@@ -12,6 +12,17 @@
 #include "sgx_trts.h"
 #include ENCLAVE_HEADER_TRUSTED
 
+RequestResponseStatus pelz_request_msg_handler(charbuf request_msg, int32_t session_id)
+{
+  if(request_msg.chars == NULL || request_msg.len == 0)
+  {
+    pelz_sgx_log(LOG_ERR, "Invalid pelz request message input buffer");
+    return CHARBUF_ERROR;
+  }
+
+  return REQUEST_OK;
+}
+
 
 RequestResponseStatus pelz_encrypt_request_handler(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf plain_data, charbuf * cipher_data, charbuf* iv, charbuf* tag, charbuf signature, charbuf cert, uint32_t session_id)
 {

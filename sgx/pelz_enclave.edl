@@ -194,6 +194,13 @@ public TableResponseStatus chan_table_destroy();
 
 /**
  * <pre>
+ * This function is used to pass a received pelz request message into the
+ * enclave for parsing and processing.
+ */
+public RequestResponseStatus pelz_request_msg_handler(charbuf request_msg, int32_t session_id);
+
+/**
+ * <pre>
  * This function implements encrypt request handling by looking if pelz already has
  * the key and if not then adding the key to the key table. Along with the
  * key lookup, this function checks the request type then based on the request

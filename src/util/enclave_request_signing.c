@@ -1,6 +1,7 @@
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
 #include <openssl/x509v3.h>
+#include <openssl/cms.h>
 #include <string.h>
 
 #include ENCLAVE_HEADER_TRUSTED
@@ -134,7 +135,78 @@ charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf ciph
   memcpy(dst, requestor_cert.chars, requestor_cert.len);
   return serialized;
 }
+
+int verify_request_signature(CMS_ContentInfo *rcvd_cms_signed_req,
+                             X509 *ca_cert,
+                             uint8_t **verified_req_data,
+                             int *verified_req_data_size)
+{
+  int result = -1;
+
+  BIO * verify_out_bio = BIO_new(BIO_s_mem());
+  X509_STORE *v_store = X509_STORE_new();
+  X509_STORE_add_cert(v_store, ca_cert);
+
+  result = CMS_verify(rcvd_cms_signed_req,
+                      NULL,
+                      v_store,
+                      NULL,
+                      verify_out_bio,
+                      0);
+  if (result != 1)
+  {
+    pelz_sgx_log(LOG_ERR, "CMS_verify() failed\n");
+    unsigned long e = ERR_get_error();
+    while (e != 0)
+    {
+      char estring[256] = { 0 };
+      ERR_error_string_n(e, estring, 256);
+      pelz_sgx_log(LOG_ERR, (char *) estring);
+      e = ERR_get_error();
+    }
+    BIO_free(verify_out_bio);
+    X509_STORE_free(v_store);
+    return result;
+  }
+  X509_STORE_free(v_store);
+
+  int bio_data_size = BIO_pending(verify_out_bio);
+  if (bio_data_size <= 0)
+  {
+    result = 0;
+    pelz_sgx_log(LOG_ERR, "invalid or empty data result of CMS_verify()");
+    BIO_free(verify_out_bio);
+    return result;
+  }
+
+  *verified_req_data = (uint8_t *) calloc((size_t) bio_data_size,
+                                          sizeof(uint8_t));
+  if (*verified_req_data == NULL)
+  {
+    result = 0;
+    pelz_sgx_log(LOG_ERR, "memory allocation of verified data buffer failed");
+    BIO_free(verify_out_bio);
+    return result;
+  }
   
+  *verified_req_data_size = BIO_read(verify_out_bio,
+                                     *verified_req_data,
+                                     bio_data_size);
+  if (*verified_req_data_size <= 0)
+  {
+    result = 0;
+    pelz_sgx_log(LOG_ERR, "BIO_read() error");
+    BIO_free(verify_out_bio);
+    return result;
+  }
+
+  BIO_free(verify_out_bio);
+
+  pelz_sgx_log(LOG_DEBUG, "verified received CMS signed request");
+
+  return result;
+}
+
 int validate_signature(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf data, charbuf iv, charbuf tag, charbuf signature, charbuf cert)
 {
   int result = 1;

@@ -136,24 +136,45 @@ charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf ciph
   return serialized;
 }
 
-int verify_request_signature(CMS_ContentInfo *rcvd_cms_signed_req,
-                             X509 *ca_cert,
-                             uint8_t **verified_req_data,
-                             int *verified_req_data_size)
+int verify_signature(CMS_ContentInfo *signed_msg_in,
+                     X509 *ca_cert,
+                     uint8_t **data_out)
 {
-  int result = -1;
+  // validate input parameter
+  if ((signed_msg_in == NULL) ||
+      (ca_cert == NULL) ||
+      (data_out == NULL) ||
+      (*data_out != NULL))
+  {
+    pelz_sgx_log(LOG_ERR, "verify_signature(): invalid input paramter");
+    return VERIFY_SIG_INVALID_PARAMETER;
+  }
 
+  // create BIO to hold signature verification output data
   BIO * verify_out_bio = BIO_new(BIO_s_mem());
+
+  // create a certificate store to facilitate validation of certificate(s)
+  // contained in the CMS message being verified (i.e., need the certificate
+  // for the Certification Authority that we are requiring any supplied
+  // certificates to be signed by)
   X509_STORE *v_store = X509_STORE_new();
   X509_STORE_add_cert(v_store, ca_cert);
 
-  result = CMS_verify(rcvd_cms_signed_req,
-                      NULL,
-                      v_store,
-                      NULL,
-                      verify_out_bio,
-                      0);
-  if (result != 1)
+  // check that the CMS_ContentInfo struct being passed in is really a
+  // CMS message with 'pkcs-signedData' content type
+
+  const ASN1_OBJECT *temp_obj = CMS_get0_type(signed_msg_in);
+  if (OBJ_obj2nid(temp_obj) != NID_pkcs7_signed)
+  {
+    pelz_sgx_log(LOG_ERR, "object is not of type pkcs7-signedData");
+    BIO_free(verify_out_bio);
+    X509_STORE_free(v_store);
+    return VERIFY_SIG_CONTENT_TYPE_ERROR;
+  }
+ 
+
+  // use OpenSSL's CMS API to verify the signed message
+  if (CMS_verify(signed_msg_in, NULL, v_store, NULL, verify_out_bio, 0) != 1)
   {
     pelz_sgx_log(LOG_ERR, "CMS_verify() failed\n");
     unsigned long e = ERR_get_error();
@@ -166,45 +187,40 @@ int verify_request_signature(CMS_ContentInfo *rcvd_cms_signed_req,
     }
     BIO_free(verify_out_bio);
     X509_STORE_free(v_store);
-    return result;
+    return VERIFY_SIG_VERIFY_ERROR;
   }
   X509_STORE_free(v_store);
 
   int bio_data_size = BIO_pending(verify_out_bio);
   if (bio_data_size <= 0)
   {
-    result = 0;
     pelz_sgx_log(LOG_ERR, "invalid or empty data result of CMS_verify()");
     BIO_free(verify_out_bio);
-    return result;
+    return VERIFY_SIG_INVALID_DATA_RESULT;
   }
 
-  *verified_req_data = (uint8_t *) calloc((size_t) bio_data_size,
-                                          sizeof(uint8_t));
-  if (*verified_req_data == NULL)
+  *data_out = (uint8_t *) calloc((size_t) bio_data_size, sizeof(uint8_t));
+  if (*data_out == NULL)
   {
-    result = 0;
     pelz_sgx_log(LOG_ERR, "memory allocation of verified data buffer failed");
     BIO_free(verify_out_bio);
-    return result;
+    return VERIFY_SIG_MALLOC_ERROR;
   }
-  
-  *verified_req_data_size = BIO_read(verify_out_bio,
-                                     *verified_req_data,
-                                     bio_data_size);
-  if (*verified_req_data_size <= 0)
+
+  int data_out_size = BIO_read(verify_out_bio, *data_out, bio_data_size);
+  if (data_out_size <= 0)
   {
-    result = 0;
     pelz_sgx_log(LOG_ERR, "BIO_read() error");
+    free(*data_out);
     BIO_free(verify_out_bio);
-    return result;
+    return VERIFY_SIG_BIO_READ_ERROR;
   }
 
   BIO_free(verify_out_bio);
 
   pelz_sgx_log(LOG_DEBUG, "verified received CMS signed request");
 
-  return result;
+  return data_out_size;
 }
 
 int validate_signature(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf data, charbuf iv, charbuf tag, charbuf signature, charbuf cert)

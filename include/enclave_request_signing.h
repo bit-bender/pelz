@@ -11,6 +11,16 @@ extern "C"
 #include "pelz_request_handler.h"
 #include "pelz_enclave.h"
 
+
+
+#define VERIFY_SIG_UNKOWN_ERROR -1
+#define VERIFY_SIG_INVALID_PARAMETER -2
+#define VERIFY_SIG_CONTENT_TYPE_ERROR -3
+#define VERIFY_SIG_VERIFY_ERROR -4
+#define VERIFY_SIG_INVALID_DATA_RESULT -5
+#define VERIFY_SIG_MALLOC_ERROR -6
+#define VERIFY_SIG_BIO_READ_ERROR -7
+
 /**
  * <pre>
  * Serializes request data so the signature can be validated.
@@ -38,24 +48,34 @@ extern "C"
 
 /**
  * <pre>
- * Verifies the signature over the CMS request message
+ * Verifies the signature for a CMS message of type 'pkcs7-signedData'
  * </pre>
  *
- * @param[in] rcvd_cms_signed_req    The struct containing the CMS "SignedData"
- *                                   content to be validated
- * @param[in] ca_cert                Pointer to X509 certificate for CA that
- *                                   requestor's cert must be signed by
- * @param[in] verified_req_data      Pointer to buffer that will hold the data
- *                                   over which the signature was verified
- * @param[in] verified_req_data_size Pointer to size, in bytes, of output data
- *                                   buffer
+ * @param[in] signed_msg_in  The struct containing the CMS "SignedData"
+ *                           content to be validated (pointer to a
+ *                           CMS_ContentInfo struct with a content type
+ *                           of 'pkcs7-signedData'). Cannot be NULL or
+ *                           have a different content type.
  *
- * @return 1 if valid, 0 if invalid
+ * @param[in] ca_cert        Pointer to X509 certificate for CA that
+ *                           requestor's cert must be signed by. Needed
+ *                           to complete the certificate chain and validate
+ *                           the peer's certificate embedded in the
+ *                           CMS message.
+ *
+ * @param[in] data_out       Pointer to buffer that will hold the data
+ *                           over which the signature was verified. The
+ *                           buffer is allocated within this function and
+ *                           must be freed by the caller. The caller must
+ *                           pass in a pointer to a NULL pointer for a byte
+ *                           array (uint8_t).
+ *
+ * @return number of data bytes allocated/written to the data_out buffer on success
+ *         error code (negative integer) otherwise
  */
-int verify_request_signature(CMS_ContentInfo *rcvd_cms_signed_req,
-                             X509 *ca_cert,
-                             uint8_t **verified_req_data,
-                             int *verified_req_data_size);
+int verify_signature(CMS_ContentInfo *signed_msg_in,
+                     X509 *ca_cert,
+                     uint8_t **data_out);
 
 /**
  * <pre>
@@ -74,10 +94,6 @@ int verify_request_signature(CMS_ContentInfo *rcvd_cms_signed_req,
  * @return 0 if valid, 1 if invalid
  */
   int validate_signature(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf data, charbuf iv, charbuf tag, charbuf signature, charbuf cert);
-  
-  
-
-
 
 #ifdef __cplusplus
 }

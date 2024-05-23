@@ -136,6 +136,67 @@ charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf ciph
   return serialized;
 }
 
+CMS_ContentInfo *create_signed_data_msg(uint8_t *data_in,
+                                        int data_in_len,
+                                        X509 *signer_cert,
+                                        EVP_PKEY *signer_priv)
+{
+  // validate function paramters provided by the caller
+  //  - input data byte array must be valid (non-NULL and
+  //    of valid, non-empty size)
+  //  - signer's certificate and key must be specified (non-NULL)
+  if ((data_in == NULL) ||
+      (data_in_len <= 0) ||
+      (signer_cert == NULL) ||
+      (signer_priv == NULL))
+  {
+    pelz_sgx_log(LOG_ERR, "create_signed_data_msg(): invalid parameter");
+    return NULL;
+  }
+
+  // create BIO containing bytes to be signed and included as content
+  // in the resulting signed data message
+  BIO * data_in_bio = BIO_new_mem_buf(data_in, data_in_len);
+  if (data_in_bio == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "create_signed_data_msg(): BIO creation error");
+    return NULL;
+  }
+  if (BIO_pending(data_in_bio) != data_in_len)
+  {
+    pelz_sgx_log(LOG_ERR, "create_signed_data_msg(): BIO init error");
+    BIO_free(data_in_bio);
+    return NULL;
+  }
+
+  // create the signed CMS content
+  CMS_ContentInfo *sign_result = NULL;
+  unsigned int sign_flags = CMS_BINARY;
+  sign_result = CMS_sign(signer_cert,
+                         signer_priv,
+                         NULL,
+                         data_in_bio,
+                         sign_flags);
+  EVP_PKEY_free(signer_priv);
+  X509_free(signer_cert);
+  BIO_free(data_in_bio);
+  if (sign_result == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "create_signed_data_msg(): CMS_sign() error");
+    unsigned long e = ERR_get_error();
+    while (e != 0)
+    {
+      char estring[256] = { 0 };
+      ERR_error_string_n(e, estring, 256);
+      pelz_sgx_log(LOG_ERR, estring);
+      e = ERR_get_error();
+    }
+    return NULL;
+  }
+
+  return sign_result;
+}
+
 int verify_signature(CMS_ContentInfo *signed_msg_in,
                      X509 *ca_cert,
                      uint8_t **data_out)

@@ -7,7 +7,7 @@
 #include ENCLAVE_HEADER_TRUSTED
 #include "kmyth_enclave_trusted.h"
 #include "charbuf.h"
-#include "enclave_request_signing.h"
+#include "pelz_messaging.h"
 #include "pelz_enclave.h"
 #include "common_table.h"
 #include "ca_table.h"

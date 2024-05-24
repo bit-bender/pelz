@@ -3,7 +3,7 @@
 #include "common_table.h"
 #include "cipher/pelz_cipher.h"
 #include "pelz_enclave_log.h"
-#include "enclave_request_signing.h"
+#include "pelz_messaging.h"
 #include "secure_socket_enclave.h"
 #include "aes_gcm.h"
 

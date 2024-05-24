@@ -12,6 +12,7 @@
 #include "util_test_suite.h"
 #include "aes_keywrap_test_suite.h"
 #include "pelz_json_parser_test_suite.h"
+#include "pelz_messaging_test_suite.h"
 #include "table_test_suite.h"
 #include "request_test_suite.h"
 #include "cmd_interface_test_suite.h"
@@ -174,21 +175,6 @@ int main(void)
     return CU_get_error();
   }
 
-  // Add request suite ---- tests pelz_request_handler functions
-  CU_pSuite request_Suite = NULL;
-
-  request_Suite = CU_add_suite("Request Suite", init_suite, clean_suite);
-  if (NULL == request_Suite)
-  {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-  if (request_suite_add_tests(request_Suite))
-  {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
   // Add cmd interface suite ---- tests cmd_interface functions
   CU_pSuite cmd_interface_Suite = NULL;
 
@@ -199,6 +185,36 @@ int main(void)
     return CU_get_error();
   }
   if (cmd_interface_suite_add_tests(cmd_interface_Suite))
+  {
+    CU_cleanup_registry();
+    return CU_get_error();
+  }
+
+  // Add pelz messaging suite ---- tests pelz messaging utilities
+  CU_pSuite messaging_Suite = NULL;
+
+  messaging_Suite = CU_add_suite("Messaging Suite", init_suite, clean_suite);
+  if (NULL == messaging_Suite)
+  {
+    CU_cleanup_registry();
+    return CU_get_error();
+  }
+  if (pelz_messaging_suite_add_tests(messaging_Suite))
+  {
+    CU_cleanup_registry();
+    return CU_get_error();
+  }
+
+  // Add request suite ---- tests pelz_request_handler functions
+  CU_pSuite request_Suite = NULL;
+
+  request_Suite = CU_add_suite("Request Suite", init_suite, clean_suite);
+  if (NULL == request_Suite)
+  {
+    CU_cleanup_registry();
+    return CU_get_error();
+  }
+  if (request_suite_add_tests(request_Suite))
   {
     CU_cleanup_registry();
     return CU_get_error();

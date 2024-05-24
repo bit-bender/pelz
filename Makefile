@@ -137,7 +137,8 @@ App_C_Test_Files := test/src/pelz_test.c \
                     test/src/util/request_test_suite.c \
                     test/src/util/cmd_interface_test_suite.c \
                     test/src/util/request_test_helpers.c \
-                    test/src/util/test_seal.c
+                    test/src/util/test_seal.c \
+					test/src/util/pelz_messaging_test_suite.c
 
 App_C_Files_for_Test := src/util/common_table.c \
                         src/util/key_table.c \
@@ -589,7 +590,7 @@ sgx/pelz_cipher.o: src/cipher/pelz_cipher.c
 	@$(CC) $(Enclave_C_Flags) $(ENCLAVE_HEADERS) -c $< -o $@
 	@echo "CC  <=  $<"
 
-sgx/enclave_request_signing.o: src/util/enclave_request_signing.c
+sgx/pelz_messaging.o: src/util/pelz_messaging.c
 	@$(CC) $(Enclave_C_Flags) $(ENCLAVE_HEADERS) -c $< -o $@
 	@echo "CC  <=  $<"
 
@@ -621,7 +622,7 @@ sgx/$(Enclave_Name): sgx/pelz_enclave_t.o \
                      sgx/memory_util.o \
                      sgx/kmip_util.o \
                      sgx/pelz_cipher.o \
-                     sgx/enclave_request_signing.o
+                     sgx/pelz_messaging.o
 	@$(CXX) $^ -o $@ $(Enclave_Link_Flags) $(ENCLAVE_HEADERS)
 	@echo "LINK =>  $@"
 
@@ -664,7 +665,7 @@ sgx/$(Test_Enclave_Name): sgx/test_enclave_t.o \
                           sgx/pelz_cipher.o \
                           sgx/ca_table.o \
                           sgx/secure_socket_enclave.o \
-                          sgx/enclave_request_signing.o
+                          sgx/pelz_messaging.o
 	@$(CXX) $^ -o $@ $(Enclave_Link_Flags) $(ENCLAVE_HEADERS)
 	@echo "LINK =>	$@"
 

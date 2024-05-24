@@ -1,5 +1,5 @@
-#ifndef _ENCLAVE_REQUEST_SIGNING_H_
-#define _ENCLAVE_REQUEST_SIGNING_H_
+#ifndef _PELZ_MESSAGING_H_
+#define _PELZ_MESSAGING_H_
 
 #ifdef __cplusplus
 extern "C"
@@ -10,8 +10,6 @@ extern "C"
 #include "charbuf.h"
 #include "pelz_request_handler.h"
 #include "pelz_enclave.h"
-
-
 
 #define VERIFY_SIG_UNKOWN_ERROR -1
 #define VERIFY_SIG_INVALID_PARAMETER -2

@@ -1,15 +1,38 @@
 enclave {
-        from "sgx_tsgxssl.edl" import *;
-        from "sgx_pthread.edl" import *;
-        from "pelz_enclave.edl" import *;
-        include "common_table.h"
-        include "charbuf.h"
-        trusted {
+  from "sgx_tsgxssl.edl" import *;
+  from "sgx_pthread.edl" import *;
+  from "pelz_enclave.edl" import *;
 
-public TableResponseStatus test_table_lookup(TableType type, charbuf id, [out] size_t *index);
-public int test_aes_keywrap_3394nopad_encrypt(size_t key_len, [in, size=key_len] unsigned char *key,
-  size_t inData_len, [in, size=inData_len] unsigned char *inData, [out] size_t * outData_len, [out] unsigned char **outData);
-public int test_aes_keywrap_3394nopad_decrypt(size_t key_len, [in, size=key_len] unsigned char *key, 
-  size_t inData_len, [in, size=inData_len] unsigned char *inData, [out] size_t * outData_len, [out] unsigned char **outData);
-	};
+  include "common_table.h"
+  include "charbuf.h"
+
+  trusted {
+    public TableResponseStatus test_table_lookup(TableType type,
+                                                 charbuf id,
+                                                 [out] size_t *index);
+    
+    public int test_aes_keywrap_3394nopad_encrypt(
+      size_t key_len,
+      [in, size=key_len] unsigned char *key,
+      size_t inData_len,
+      [in, size=inData_len] unsigned char *inData,
+      [out] size_t *outData_len,
+      [out] unsigned char **outData);
+
+    public int test_aes_keywrap_3394nopad_decrypt(
+      size_t key_len,
+      [in, size=key_len] unsigned char *key,
+      size_t inData_len,
+      [in, size=inData_len] unsigned char *inData,
+      [out] size_t *outData_len,
+      [out] unsigned char **outData);
+
+    public int test_create_signed_data_msg_helper(
+      size_t test_data_in_len,
+      [in, size=test_data_in_len] uint8_t *test_data_in,
+      size_t test_der_signer_cert_len,
+      [in, size=test_der_signer_cert_len] const uint8_t *test_der_signer_cert,
+      size_t test_der_signer_priv_len,
+      [in, size=test_der_signer_priv_len] const uint8_t *test_der_signer_priv);
+  };
 };

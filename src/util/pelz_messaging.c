@@ -201,13 +201,12 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
                      X509 *ca_cert,
                      uint8_t **data_out)
 {
-  // validate input parameter
+  // validate input parameters
   if ((signed_msg_in == NULL) ||
       (ca_cert == NULL) ||
-      (data_out == NULL) ||
-      (*data_out != NULL))
+      ((data_out != NULL) && (*data_out != NULL)))
   {
-    pelz_sgx_log(LOG_ERR, "verify_signature(): invalid input paramter");
+    pelz_sgx_log(LOG_ERR, "verify_signature(): invalid input parameter");
     return VERIFY_SIG_INVALID_PARAMETER;
   }
 
@@ -232,7 +231,6 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
     X509_STORE_free(v_store);
     return VERIFY_SIG_CONTENT_TYPE_ERROR;
   }
- 
 
   // use OpenSSL's CMS API to verify the signed message
   if (CMS_verify(signed_msg_in, NULL, v_store, NULL, verify_out_bio, 0) != 1)
@@ -260,6 +258,16 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
     return VERIFY_SIG_INVALID_DATA_RESULT;
   }
 
+  if (data_out == NULL)
+  {
+    data_out = (uint8_t **) malloc(sizeof(uint8_t *));
+    if (data_out == NULL)
+    {
+      pelz_sgx_log(LOG_ERR, "memory allocation of verified data buffer failed");
+      BIO_free(verify_out_bio);
+      return VERIFY_SIG_MALLOC_ERROR;   
+    }
+  }
   *data_out = (uint8_t *) calloc((size_t) bio_data_size, sizeof(uint8_t));
   if (*data_out == NULL)
   {

@@ -1,375 +1,385 @@
-enclave {
-	from "sgx_tsgxssl.edl" import *;
-	from "sgx_pthread.edl" import *;
-	from "kmyth_enclave.edl" import *;
-	include "sgx_dh.h"
-	include "cipher/pelz_aes_keywrap_3394nopad.h"
-	include "pelz_request_handler.h"
-	include "common_table.h"
-	include "channel_table.h"
-	include "key_load.h"
-	include "charbuf.h"
-	include "dh_datatypes.h"
-	trusted {
+enclave
+{
+  from "sgx_tsgxssl.edl" import *;
+  from "sgx_pthread.edl" import *;
+  from "kmyth_enclave.edl" import *;
+  include "sgx_dh.h"
+  include "cipher/pelz_aes_keywrap_3394nopad.h"
+  include "pelz_request_handler.h"
+  include "common_table.h"
+  include "channel_table.h"
+  include "key_load.h"
+  include "charbuf.h"
+  include "dh_datatypes.h"
 
-/**
- * <pre>
- * This function destroys the table specified by type.
- * <pre>
- *
- * @param[in] type The type of table to be destroyed (ex: key_table or server_table)
- *
- * @return OK on success, an error message indicating the type of
- *                    error otherwise.
- */
-public TableResponseStatus table_destroy(TableType type);
+  trusted
+  {
 
-/**
- * <pre>
- * This function deletes a value in hash table based on location in id.
- * <pre>
- *
- * @param[in] type The table type that the id and value needs to be deleted from
- * @param[in] id.chars Table value identifier 
- * @param[in] id.len The length of the identifier
- *
- * @return OK on success, an error message indicating the type of
- *                    error otherwise.
- */
-public TableResponseStatus table_delete(TableType type, charbuf id);
+    /**
+     * <pre>
+     * This function destroys the table specified by type.
+     * <pre>
+     *
+     * @param[in] type The type of table to be destroyed (ex: key_table or server_table)
+     *
+     * @return OK on success, an error message indicating the type of
+     *                    error otherwise.
+     */
+    public TableResponseStatus table_destroy(TableType type);
 
-/**
- * <pre>
- * This function outputs the number of entries of the TableType specificed by type.
- * <pre>
- *
- * @param[in] type The table type
- * @param[out] count Table number of entries
- *
- * @return OK on success, an error message indicating the type of
- *                    error otherwise.
- */
-public TableResponseStatus table_id_count(TableType type, [out] size_t *count);
+    /**
+     * <pre>
+     * This function deletes a value in hash table based on location in id.
+     * <pre>
+     *
+     * @param[in] type The table type that the id and value needs to be deleted from
+     * @param[in] id.chars Table value identifier 
+     * @param[in] id.len The length of the identifier
+     *
+     * @return OK on success, an error message indicating the type of
+     *                    error otherwise.
+     */
+    public TableResponseStatus table_delete(TableType type, charbuf id);
 
-/**
- * <pre>
- * This function outputs the <id> at index value of the TableType specificed by type.
- * <pre>
- *
- * @param[in] type The table type
- * @param[in] index The index value indicating the location of <id> in TableType
- * @param[out] id.chars Table value identifier
- * @param[out] id.len The length of the identifier
- *
- * @return OK on success, an error message indicating the type of
- *                    error otherwise.
- */
-public TableResponseStatus table_id(TableType type, size_t index, [out] charbuf* id);
+    /**
+     * <pre>
+     * This function outputs the number of entries of the TableType specificed by type.
+     * <pre>
+     *
+     * @param[in] type The table type
+     * @param[out] count Table number of entries
+     *
+     * @return OK on success, an error message indicating the type of
+     *                    error otherwise.
+     */
+    public TableResponseStatus table_id_count(TableType type, [out] size_t *count);
 
-/**
- * <pre>
- * This function to add values into the server hash table.
- * </pre>
- *
- * @param[in] type The table type
- * @param[in] handle The handle value for the cert data location in the kmyth unseal data table
- *
- * @return OK on success, an error message indicating the type of
- *                    error otherwise.
- */
-public TableResponseStatus add_cert_to_table(TableType type, uint64_t handle);
+    /**
+     * <pre>
+     * This function outputs the <id> at index value of the TableType specificed by type.
+     * <pre>
+     *
+     * @param[in] type The table type
+     * @param[in] index The index value indicating the location of <id> in TableType
+     * @param[out] id.chars Table value identifier
+     * @param[out] id.len The length of the identifier
+     *
+     * @return OK on success, an error message indicating the type of
+     *                    error otherwise.
+     */
+    public TableResponseStatus table_id(TableType type, size_t index, [out] charbuf* id);
 
-/**
- * <pre>
- * This function initializes a pkey.
- * <pre>
- *
- * @param[in] private_pkey The pointer for pkey to be initialized
- * @param[out] private_pkey The initialized pkey
- *
- * @return OK on success, an error message indicating the type of
- *                    error otherwise.
- */
-public TableResponseStatus private_pkey_init(void);
+    /**
+     * <pre>
+     * This function to add values into the server hash table.
+     * </pre>
+     *
+     * @param[in] type The table type
+     * @param[in] handle The handle value for the cert data location in the kmyth unseal data table
+     *
+     * @return OK on success, an error message indicating the type of
+     *                    error otherwise.
+     */
+    public TableResponseStatus add_cert_to_table(TableType type, uint64_t handle);
 
-/**
- * <pre>
- * This function frees the pkey.
- * <pre>
- *
- * @param[in] private_pkey The pointer for pkey to be freed
- *
- * @return OK on success, an error message indicating the type of
- *                    error otherwise.
- */
-public TableResponseStatus private_pkey_free(void);
+    /**
+     * <pre>
+     * This function initializes a pkey.
+     * <pre>
+     *
+     * @param[in] private_pkey The pointer for pkey to be initialized
+     * @param[out] private_pkey The initialized pkey
+     *
+     * @return OK on success, an error message indicating the type of
+     *                    error otherwise.
+     */
+    public TableResponseStatus private_pkey_init(void);
 
-/**
- * <pre>
- * This function adds a pkey from unseal table based on handle.
- * </pre>
- *
- * @param[in] handle The handle value for the pkey data location in the kmyth unseal data table
- * @param[in] private_pkey The empty or old pkey
- * @param[out] private_pkey The new pkey
- *
- * @return OK on success, an error message indicating the type of
- *                    error otherwise.
- */
-public TableResponseStatus private_pkey_add(uint64_t pkey_handle, uint64_t cert_handle);
+    /**
+     * <pre>
+     * This function frees the pkey.
+     * <pre>
+     *
+     * @param[in] private_pkey The pointer for pkey to be freed
+     *
+     * @return OK on success, an error message indicating the type of
+     *                    error otherwise.
+     */
+    public TableResponseStatus private_pkey_free(void);
 
-/**
- * <pre>
- * This function to add values in hash table based on location in key_id.
- * </pre>
- *
- * @param[in] key_id.chars Key identifier
- * @param[in] key_id.len The length of the key identifier
- * @param[in] key.chars The key value
- * @param[in] key.len The length of the key
- * @param[in] key_table The key table that the new key needs to be added to
- * @param[out] key_table The key table with the new added key
- *
- * @return 0 on success, 1 on error
- */
-public TableResponseStatus key_table_add_key(charbuf key_id, charbuf key);
+    /**
+     * <pre>
+     * This function adds a pkey from unseal table based on handle.
+     * </pre>
+     *
+     * @param[in] handle The handle value for the pkey data location in the kmyth unseal data table
+     * @param[in] private_pkey The empty or old pkey
+     * @param[out] private_pkey The new pkey
+     *
+     * @return OK on success, an error message indicating the type of
+     *                    error otherwise.
+     */
+    public TableResponseStatus private_pkey_add(uint64_t pkey_handle, uint64_t cert_handle);
 
-/**
- * <pre>
- * This function to add values in hash table based on location in key_id.
- * </pre>
- *
- * @param[in] key_id.chars Key identifier
- * @param[in] key_id.len The length of the key identifier
- * @param[in] handle The handle value for the key data location in the kmyth unseal data table
- * @param[in] key_table The key table that the new key needs to be added to
- * @param[out] key_table The key table with the new added key
- *
- * @return 0 on success, 1 on error
- */
-public TableResponseStatus key_table_add_from_handle(charbuf key_id, uint64_t handle);
+    /**
+     * <pre>
+     * This function to add values in hash table based on location in key_id.
+     * </pre>
+     *
+     * @param[in] key_id.chars Key identifier
+     * @param[in] key_id.len The length of the key identifier
+     * @param[in] key.chars The key value
+     * @param[in] key.len The length of the key
+     * @param[in] key_table The key table that the new key needs to be added to
+     * @param[out] key_table The key table with the new added key
+     *
+     * @return 0 on success, 1 on error
+     */
+    public TableResponseStatus key_table_add_key(charbuf key_id, charbuf key);
 
-/**
- * <pre>
- * This function to add values in hash table based on location in key_id.
- * </pre>
- *
- * @param[in] key_id.chars Key identifier
- * @param[in] key_id.len The length of the key identifier
- * @param[in] server_id.chars Server identifier
- * @param[in] server_id.len The length of the server identifier
- * @param[in] port.chars The connection port to server
- * @param[in] port.len The length of the port chars
- * @param[in] server_key_id.chars Key on server identifier
- * @param[in] server_key_id.len The length of the key on server identifier
- * @param[in] key_table The key table that the new key needs to be added to
- * @param[out] key_table The key table with the new added key
- *
- * @return 0 on success, 1 on error
- */
-public TableResponseStatus key_table_add_from_server(charbuf key_id, 
-  charbuf server_id, charbuf port, charbuf server_key_id);
+    /**
+     * <pre>
+     * This function to add values in hash table based on location in key_id.
+     * </pre>
+     *
+     * @param[in] key_id.chars Key identifier
+     * @param[in] key_id.len The length of the key identifier
+     * @param[in] handle The handle value for the key data location in the kmyth unseal data table
+     * @param[in] key_table The key table that the new key needs to be added to
+     * @param[out] key_table The key table with the new added key
+     *
+     * @return 0 on success, 1 on error
+     */
+    public TableResponseStatus key_table_add_from_handle(charbuf key_id, uint64_t handle);
 
-/**
- * <pre>
- * This function initializes the channel table.
- * <pre>
- *
- * @param[in] entry_num  Number of charbuf slots allocated to the channel table.
- *
- * @return OK on success, an error message indicating the type of
- *                    error otherwise.
- */
-public TableResponseStatus chan_table_init(size_t entry_num);
+    /**
+     * <pre>
+     * This function to add values in hash table based on location in key_id.
+     * </pre>
+     *
+     * @param[in] key_id.chars Key identifier
+     * @param[in] key_id.len The length of the key identifier
+     * @param[in] server_id.chars Server identifier
+     * @param[in] server_id.len The length of the server identifier
+     * @param[in] port.chars The connection port to server
+     * @param[in] port.len The length of the port chars
+     * @param[in] server_key_id.chars Key on server identifier
+     * @param[in] server_key_id.len The length of the key on server identifier
+     * @param[in] key_table The key table that the new key needs to be added to
+     * @param[out] key_table The key table with the new added key
+     *
+     * @return 0 on success, 1 on error
+     */
+    public TableResponseStatus key_table_add_from_server(charbuf key_id, 
+                                                         charbuf server_id,
+                                                         charbuf port,
+                                                         charbuf server_key_id);
 
-/**
- * <pre>
- * This function destroys the channel table.
- * <pre>
- *
- * @return OK on success, an error message indicating the type of
- *                    error otherwise.
- */
-public TableResponseStatus chan_table_destroy();
+    /**
+     * <pre>
+     * This function initializes the channel table.
+     * <pre>
+     *
+     * @param[in] entry_num  Number of charbuf slots allocated to the channel table.
+     *
+     * @return OK on success, an error message indicating the type of
+     *                    error otherwise.
+     */
+    public TableResponseStatus chan_table_init(size_t entry_num);
 
-/**
- * <pre>
- * This function is used to pass a received pelz request message into the
- * enclave for parsing and processing.
- */
-public RequestResponseStatus pelz_request_msg_handler(charbuf request_msg, int32_t session_id);
+    /**
+     * <pre>
+     * This function destroys the channel table.
+     * <pre>
+     *
+     * @return OK on success, an error message indicating the type of
+     *                    error otherwise.
+     */
+    public TableResponseStatus chan_table_destroy();
 
-/**
- * <pre>
- * This function implements encrypt request handling by looking if pelz already has
- * the key and if not then adding the key to the key table. Along with the
- * key lookup, this function checks the request type then based on the request
- * type it calls the wrap or unwrap functions to return requested key value.
- * <pre>
- *
- * @param[in] request_type the type of the request (encrypt or decrypt)
- * @param[in] key_id       the key_id of the key to be used for the request
- * @param[in] cipher_name  the name of the cipher used for the request
- * @param[in] plain_data   the input data
- * @param[out] cipher_data a pointer to a charbuf to hold the output, will
- *                         be created inside the call
- * @param[out] iv          a pointer to a charbuf to hold the IV, will
- *                         be allocated inside the call if necessary
- * @param[out] tag         the MAC tag produced by the encryption, will
- *                         be allocated inside the call if necessary
- * @param[in] signature    the signature over the request
- * @param[in] cert         the certificate used to validate the signature
- * @param[in] session_id   used to access protected request fields
- *
- * @return REQUEST_OK on success, an error message indicating the type of
- *                    error otherwise.
- */
-public RequestResponseStatus pelz_encrypt_request_handler(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf plain_data, [out] charbuf* cipher_data, [out] charbuf* iv, [out] charbuf* tag, charbuf signature, charbuf cert, uint32_t session_id);
+    /**
+     * <pre>
+     * This function is used to pass a received pelz request message into the
+     * enclave for parsing and processing.
+     */
+    public RequestResponseStatus pelz_request_msg_handler(charbuf request_msg, int32_t session_id);
 
-/**
- * <pre>
- * This function implements decrypt handling by looking if pelz already has
- * the key and if not then adding the key to the key table. Along with the
- * key lookup, this function checks the request type then based on the request
- * type it calls the wrap or unwrap functions to return requested key value.
- * <pre>
- *
- * @param[in] request_type the type of the request (encrypt or decrypt)
- * @param[in] key_id       the key_id of the key to be used for the request
- * @param[in] cipher_name  the name of the cipher used for the request
- * @param[in] cipher_data  the input data
- * @param[in] iv           the iv used to encrypt the data, may be empty.
- * @param[in] tag          the MAC tag for the encryption, may be empty.
- * @param[out] plain_data  a pointer to a charbuf to hold the output, will
- *                         be created inside the call
- * @param[in] signature    the signature over the request
- * @param[in] cert         the certificate used to validate the signature
- * @param[in] session_id   used to access protected request fields
- *
- * @return REQUEST_OK on success, an error message indicating the type of
- *                    error otherwise.
- */
-public RequestResponseStatus pelz_decrypt_request_handler(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf cipher_data, charbuf iv, charbuf tag, [out] charbuf* plain_data, charbuf signature, charbuf cert, uint32_t session_id);
+    /**
+     * <pre>
+     * This function implements encrypt request handling by looking if pelz already has
+     * the key and if not then adding the key to the key table. Along with the
+     * key lookup, this function checks the request type then based on the request
+     * type it calls the wrap or unwrap functions to return requested key value.
+     * <pre>
+     *
+     * @param[in] request_type the type of the request (encrypt or decrypt)
+     * @param[in] key_id       the key_id of the key to be used for the request
+     * @param[in] cipher_name  the name of the cipher used for the request
+     * @param[in] plain_data   the input data
+     * @param[out] cipher_data a pointer to a charbuf to hold the output, will
+     *                         be created inside the call
+     * @param[out] iv          a pointer to a charbuf to hold the IV, will
+     *                         be allocated inside the call if necessary
+     * @param[out] tag         the MAC tag produced by the encryption, will
+     *                         be allocated inside the call if necessary
+     * @param[in] signature    the signature over the request
+     * @param[in] cert         the certificate used to validate the signature
+     * @param[in] session_id   used to access protected request fields
+     *
+     * @return REQUEST_OK on success, an error message indicating the type of
+     *                    error otherwise.
+     */
+    public RequestResponseStatus pelz_encrypt_request_handler(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf plain_data, [out] charbuf* cipher_data, [out] charbuf* iv, [out] charbuf* tag, charbuf signature, charbuf cert, uint32_t session_id);
 
-/**
- * <pre>
- * Handle an attestation request by generating the message 1 response and a session id
- * <pre>
- *
- * @param[out] dh_msg1     the generated response message
- * @param[out] session_id  the generated session identifier
- *
- * @return 0 on success, an error number indicating the type of error otherwise.
- */
-public uint32_t session_request([out] sgx_dh_msg1_t *dh_msg1, [out] uint32_t *session_id);
+    /**
+     * <pre>
+     * This function implements decrypt handling by looking if pelz already has
+     * the key and if not then adding the key to the key table. Along with the
+     * key lookup, this function checks the request type then based on the request
+     * type it calls the wrap or unwrap functions to return requested key value.
+     * <pre>
+     *
+     * @param[in] request_type the type of the request (encrypt or decrypt)
+     * @param[in] key_id       the key_id of the key to be used for the request
+     * @param[in] cipher_name  the name of the cipher used for the request
+     * @param[in] cipher_data  the input data
+     * @param[in] iv           the iv used to encrypt the data, may be empty.
+     * @param[in] tag          the MAC tag for the encryption, may be empty.
+     * @param[out] plain_data  a pointer to a charbuf to hold the output, will
+     *                         be created inside the call
+     * @param[in] signature    the signature over the request
+     * @param[in] cert         the certificate used to validate the signature
+     * @param[in] session_id   used to access protected request fields
+     *
+     * @return REQUEST_OK on success, an error message indicating the type of
+     *                    error otherwise.
+     */
+    public RequestResponseStatus pelz_decrypt_request_handler(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf cipher_data, charbuf iv, charbuf tag, [out] charbuf* plain_data, charbuf signature, charbuf cert, uint32_t session_id);
 
-/**
- * <pre>
- * Process attestation message 2 and generate message 3.
- * <pre>
- *
- * @param[in] dh_msg2     a pointer to the received message 2
- * @param[out] dh_msg3    the generated message 3 response
- * @param[in] session_id  the session identifier
- *
- * @return 0 on success, an error number indicating the type of error otherwise.
- */
-public uint32_t exchange_report([in] sgx_dh_msg2_t *dh_msg2, [out] sgx_dh_msg3_t *dh_msg3, uint32_t session_id);
+    /**
+     * <pre>
+     * Handle an attestation request by generating the message 1 response and a session id
+     * <pre>
+     *
+     * @param[out] dh_msg1     the generated response message
+     * @param[out] session_id  the generated session identifier
+     *
+     * @return 0 on success, an error number indicating the type of error otherwise.
+     */
+    public uint32_t session_request([out] sgx_dh_msg1_t *dh_msg1, [out] uint32_t *session_id);
 
-/**
- * <pre>
- * Respond to the request from the peer enclave to close the session.
- * <pre>
- *
- * @param[in] session_id  the session identifier
- *
- * @return 0 on success, an error number indicating the type of error otherwise.
- */
-public uint32_t end_session(uint32_t session_id);
+    /**
+     * <pre>
+     * Process attestation message 2 and generate message 3.
+     * <pre>
+     *
+     * @param[in] dh_msg2     a pointer to the received message 2
+     * @param[out] dh_msg3    the generated message 3 response
+     * @param[in] session_id  the session identifier
+     *
+     * @return 0 on success, an error number indicating the type of error otherwise.
+     */
+    public uint32_t exchange_report([in] sgx_dh_msg2_t *dh_msg2, [out] sgx_dh_msg3_t *dh_msg3, uint32_t session_id);
 
-/**
- * <pre>
- * Process an incoming message and store data in the session object.
- * <pre>
- *
- * @param[in] req_message       a pointer to the incoming message
- * @param[in] req_message_size  the size of the incoming message
- * @param[in] session_id        the session identifier
- *
- * @return 0 on success, an error number indicating the type of error otherwise.
- */
-public uint32_t handle_incoming_msg([in, size=req_message_size] secure_message_t *req_message, size_t req_message_size, uint32_t session_id);
+    /**
+     * <pre>
+     * Respond to the request from the peer enclave to close the session.
+     * <pre>
+     *
+     * @param[in] session_id  the session identifier
+     *
+     * @return 0 on success, an error number indicating the type of error otherwise.
+     */
+    public uint32_t end_session(uint32_t session_id);
 
-/**
- * <pre>
- * Construct an outgoing message containing data stored in the session object.
- * <pre>
- *
- * @param[in] max_payload_size       the maximum size of the outgoing message payload
- * @param[out] resp_message          a pointer to the constructed outgoing message, allocated inside the call
- * @param[out] resp_message_size     the size of the constructed outgoing message
- * @param[in] resp_message_max_size  the maximum size of the outgoing message
- * @param[in] session_id             the session identifier
- *
- * @return 0 on success, an error number indicating the type of error otherwise.
- */
-public uint32_t handle_outgoing_msg(size_t max_payload_size, [out] secure_message_t **resp_message, [out] size_t *resp_message_size, size_t resp_message_max_size, uint32_t session_id);
+    /**
+     * <pre>
+     * Process an incoming message and store data in the session object.
+     * <pre>
+     *
+     * @param[in] req_message       a pointer to the incoming message
+     * @param[in] req_message_size  the size of the incoming message
+     * @param[in] session_id        the session identifier
+     *
+     * @return 0 on success, an error number indicating the type of error otherwise.
+     */
+    public uint32_t handle_incoming_msg([in, size=req_message_size] secure_message_t *req_message, size_t req_message_size, uint32_t session_id);
 
-/**
- * <pre>
- * Retrieve the contents of the most recent pelz request for this session.
- * <pre>
- *
- * @param[in] session_id            the session identifier
- * @param[out] request_data         a pointer to the request data, allocated inside the call
- * @param[out] request_data_length  the size of the request data
- *
- * @return 0 on success, an error number indicating the type of error otherwise.
- */
-public uint32_t get_request_data(uint32_t session_id, [out] char **request_data, [out] size_t *request_data_length);
+    /**
+     * <pre>
+     * Construct an outgoing message containing data stored in the session object.
+     * <pre>
+     *
+     * @param[in] max_payload_size       the maximum size of the outgoing message payload
+     * @param[out] resp_message          a pointer to the constructed outgoing message, allocated inside the call
+     * @param[out] resp_message_size     the size of the constructed outgoing message
+     * @param[in] resp_message_max_size  the maximum size of the outgoing message
+     * @param[in] session_id             the session identifier
+     *
+     * @return 0 on success, an error number indicating the type of error otherwise.
+     */
+    public uint32_t handle_outgoing_msg(size_t max_payload_size, [out] secure_message_t **resp_message, [out] size_t *resp_message_size, size_t resp_message_max_size, uint32_t session_id);
 
-/**
- * <pre>
- * Store the contents of the next pelz response for this session.
- * <pre>
- *
- * @param[in] session_id             the session identifier
- * @param[out] response_data         a pointer to the response data
- * @param[out] response_data_length  the size of the response data
- *
- * @return 0 on success, an error number indicating the type of error otherwise.
- */
-public uint32_t save_response_data(uint32_t session_id, [in, count=response_data_length] char *response_data, size_t response_data_length);
-	};
-	untrusted {
-/**
- * <pre>
- * Malloc untrusted memory from within the enclave. The result must
- * be checked to ensure it lies outside the enclave by calling
- * sgx_is_outside_enclave(*buf, size);
- * <pre>
- *
- * @param[in]     size the size to allocate (in bytes).
- * @param[in,out] buf  a pointer to a pointer to hold the allocated space
- *
- * @return none
- */
-void ocall_malloc(size_t size, [out] unsigned char** buf);
+    /**
+     * <pre>
+     * Retrieve the contents of the most recent pelz request for this session.
+     * <pre>
+     *
+     * @param[in] session_id            the session identifier
+     * @param[out] request_data         a pointer to the request data, allocated inside the call
+     * @param[out] request_data_length  the size of the request data
+     *
+     * @return 0 on success, an error number indicating the type of error otherwise.
+     */
+    public uint32_t get_request_data(uint32_t session_id, [out] char **request_data, [out] size_t *request_data_length);
 
-/**
- * <pre>
- * Frees untrusted memory from within the enclave. If the length of the
- * buffer is available the caller should check that it is entirely outside
- * enclave memory by calling
- * sgx_is_outside_enclave(ptr, len);
- * <pre>
- *
- * @param[in] ptr the pointer to be freed
- * @param[in] len the length of the buffer pointed to by ptr
- *
- * @return none
- */
-void ocall_free([user_check] void* ptr, size_t len);
-	};
-};	
-	
+    /**
+     * <pre>
+     * Store the contents of the next pelz response for this session.
+     * <pre>
+     *
+     * @param[in] session_id             the session identifier
+     * @param[out] response_data         a pointer to the response data
+     * @param[out] response_data_length  the size of the response data
+     *
+     * @return 0 on success, an error number indicating the type of error otherwise.
+     */
+    public uint32_t save_response_data(uint32_t session_id, [in, count=response_data_length] char *response_data, size_t response_data_length);
+  };
+
+  untrusted
+  {
+
+    /**
+     * <pre>
+     * Malloc untrusted memory from within the enclave. The result must
+     * be checked to ensure it lies outside the enclave by calling
+     * sgx_is_outside_enclave(*buf, size);
+     * <pre>
+     *
+     * @param[in]     size the size to allocate (in bytes).
+     * @param[in,out] buf  a pointer to a pointer to hold the allocated space
+     *
+     * @return none
+     */
+    void ocall_malloc(size_t size, [out] unsigned char** buf);
+
+    /**
+     * <pre>
+     * Frees untrusted memory from within the enclave. If the length of the
+     * buffer is available the caller should check that it is entirely outside
+     * enclave memory by calling
+     * sgx_is_outside_enclave(ptr, len);
+     * <pre>
+     *
+     * @param[in] ptr the pointer to be freed
+     * @param[in] len the length of the buffer pointed to by ptr
+     *
+     * @return none
+     */
+    void ocall_free([user_check] void* ptr, size_t len);
+
+  };
+
+};
+

@@ -84,14 +84,11 @@ int test_create_signed_data_msg_helper(size_t test_data_in_len,
                                        size_t test_der_sign_priv_len,
                                        const uint8_t *test_der_sign_priv)
 {
+  // convert input DER-formatted key/cert byte arrays to internal format
   X509 *test_cert = NULL;
   if ((test_der_sign_cert != NULL) && (test_der_sign_cert_len != 0))
   {
     d2i_X509(&test_cert, &test_der_sign_cert, (int) test_der_sign_cert_len);
-    if (test_cert == NULL)
-    {
-      return SIGN_TEST_INVALID_DER_CERT;
-    }
   }
 
   EVP_PKEY *test_priv = NULL;
@@ -101,10 +98,22 @@ int test_create_signed_data_msg_helper(size_t test_data_in_len,
                    &test_priv,
                    &test_der_sign_priv,
                    (int) test_der_sign_priv_len);
-    if (test_priv == NULL)
+  }
+
+  // if input parameters result in NULL cert and/or key,
+  // test that these invalid parameter cases are properly handled
+  if ((test_cert == NULL) || (test_priv == NULL))
+  {
+    CMS_ContentInfo *null_key_cert_msg = NULL;
+    null_key_cert_msg = create_signed_data_msg((uint8_t *) "test data",
+                                               9,
+                                               test_cert,
+                                               test_priv);
+    if (null_key_cert_msg != NULL)
     {
-      return SIGN_TEST_INVALID_DER_PRIV;
+        return MSG_TEST_PARAM_HANDLING_ERROR;
     }
+    return MSG_TEST_PARAM_HANDLING_OK;
   }
 
   CMS_ContentInfo *signed_msg = NULL;
@@ -115,27 +124,33 @@ int test_create_signed_data_msg_helper(size_t test_data_in_len,
 
   if (signed_msg == NULL)
   {
-    return SIGN_TEST_FAILURE;
+    return MSG_TEST_SIGN_FAILURE;
   }
 
   if (OBJ_obj2nid(CMS_get0_type(signed_msg)) != NID_pkcs7_signed)
   {
-    return SIGN_TEST_INVALID_RESULT;
+    return MSG_TEST_INVALID_SIGN_RESULT;
   }
 
   ASN1_OCTET_STRING *signed_content = NULL;
   signed_content = *(CMS_get0_content(signed_msg));
   if (signed_content == NULL)
   {
-    return SIGN_TEST_PARSE_ERROR;
+    return MSG_TEST_SETUP_ERROR;
   }
   const unsigned char * signed_data = NULL;
+  int signed_data_len = ASN1_STRING_length((const ASN1_STRING *) signed_content);
   signed_data = ASN1_STRING_get0_data((const ASN1_STRING *) signed_content);
-  if (memcmp(test_data_in, signed_data, test_data_in_len) != 0)
+  if ((signed_data == NULL) || (signed_data_len <= 0))
   {
-    return SIGN_TEST_INVALID_RESULT;
+    return MSG_TEST_SETUP_ERROR;
+  }
+  if ((signed_data_len != test_data_in_len) ||
+      (memcmp(test_data_in, signed_data, signed_data_len) != 0))
+  {
+    return MSG_TEST_INVALID_SIGN_RESULT;
   }
 
-  return SIGN_TEST_SUCCESS;
+  return MSG_TEST_SUCCESS;
 
 }

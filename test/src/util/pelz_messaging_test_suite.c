@@ -110,7 +110,7 @@ void test_create_signed_data_msg(void)
                                      test_der_cert,
                                      test_der_key_len,
                                      test_der_key);
-  CU_ASSERT(result == SIGN_TEST_SUCCESS);
+  CU_ASSERT(result == MSG_TEST_SUCCESS);
 
   // NULL input data  pointer should fail
   test_create_signed_data_msg_helper(eid,
@@ -121,7 +121,7 @@ void test_create_signed_data_msg(void)
                                      test_der_cert,
                                      test_der_key_len,
                                      test_der_key);
-  CU_ASSERT(result == SIGN_TEST_FAILURE);
+  CU_ASSERT(result == MSG_TEST_SIGN_FAILURE);
   
   // Empty input data buffer should fail
   test_create_signed_data_msg_helper(eid,
@@ -132,7 +132,7 @@ void test_create_signed_data_msg(void)
                                      test_der_cert,
                                      test_der_key_len,
                                      test_der_key);
-  CU_ASSERT(result == SIGN_TEST_FAILURE);
+  CU_ASSERT(result == MSG_TEST_SIGN_FAILURE);
   
   // NULL cert should fail
   test_create_signed_data_msg_helper(eid,
@@ -143,7 +143,7 @@ void test_create_signed_data_msg(void)
                                      NULL,
                                      test_der_key_len,
                                      test_der_key);
-  CU_ASSERT(result == SIGN_TEST_FAILURE);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // NULL private signing key should fail
   test_create_signed_data_msg_helper(eid,
@@ -154,7 +154,7 @@ void test_create_signed_data_msg(void)
                                      test_der_cert,
                                      test_der_key_len,
                                      NULL);
-  CU_ASSERT(result == SIGN_TEST_FAILURE);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // Mismatched key/cert should fail
   test_create_signed_data_msg_helper(eid,
@@ -165,7 +165,7 @@ void test_create_signed_data_msg(void)
                                      test_der_cert,
                                      mismatch_der_key_len,
                                      mismatch_der_key);
-  CU_ASSERT(result == SIGN_TEST_FAILURE);
+  CU_ASSERT(result == MSG_TEST_SIGN_FAILURE);
 }
 
 void test_verify_signature(void)

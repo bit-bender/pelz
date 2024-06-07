@@ -15,6 +15,23 @@
 
 #include <stdio.h>
 
+DECLARE_ASN1_FUNCTIONS(PELZ_MSG);
+DECLARE_ASN1_PRINT_FUNCTION(PELZ_MSG);
+
+ASN1_SEQUENCE(PELZ_MSG) = {
+  ASN1_SIMPLE(PELZ_MSG, msg_type, ASN1_INTEGER),
+  ASN1_SIMPLE(PELZ_MSG, req_type, ASN1_INTEGER),
+  ASN1_SIMPLE(PELZ_MSG, msg_time, ASN1_UTCTIME),
+  ASN1_SIMPLE(PELZ_MSG, key_id, ASN1_UTF8STRING),
+  ASN1_SIMPLE(PELZ_MSG, data, ASN1_OCTET_STRING),
+  ASN1_SIMPLE(PELZ_MSG, status, ASN1_PRINTABLESTRING),
+} ASN1_SEQUENCE_END(PELZ_MSG);
+
+IMPLEMENT_ASN1_FUNCTIONS(PELZ_MSG);
+IMPLEMENT_ASN1_DUP_FUNCTION(PELZ_MSG);
+IMPLEMENT_ASN1_PRINT_FUNCTION(PELZ_MSG);
+
+
 charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf data, charbuf iv, charbuf tag, charbuf requestor_cert)
 {
   uint64_t num_fields = 5;

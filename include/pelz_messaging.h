@@ -11,6 +11,23 @@ extern "C"
 #include "pelz_request_handler.h"
 #include "pelz_enclave.h"
 
+typedef struct PELZ_MSG {
+  ASN1_INTEGER * msg_type;
+  ASN1_INTEGER * req_type;
+  ASN1_UTCTIME * msg_time;
+  ASN1_UTF8STRING * key_id;
+  ASN1_OCTET_STRING * data;
+  ASN1_PRINTABLESTRING * status;
+} PELZ_MSG;
+
+#define PELZ_UNSPECIFIED_MSG_TYPE 0
+#define PELZ_REQUEST_MSG_TYPE 1
+#define PELZ_RESPONSE_MSG_TYPE 2
+
+#define PELZ_UNSPECIFIED_REQ_TYPE 0
+#define PELZ_AES_KEY_WRAP_REQ_TYPE 1
+#define PELZ_AES_KEY_UNWRAP_REQ_TYPE 2
+
 #define VERIFY_SIG_UNKOWN_ERROR -1
 #define VERIFY_SIG_INVALID_PARAMETER -2
 #define VERIFY_SIG_CONTENT_TYPE_ERROR -3
@@ -43,6 +60,7 @@ extern "C"
  * @return a charbuf containing the serialized data, or an empty charbuf on error.
  */
   charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf data, charbuf iv, charbuf tag, charbuf requestor_cert);
+
 
 /**
  * <pre>
@@ -80,6 +98,7 @@ CMS_ContentInfo *create_signed_data_msg(uint8_t *data_in,
                                         int data_in_len,
                                         X509 *signer_cert,
                                         EVP_PKEY *signer_priv);
+
 /**
  * <pre>
  * Verifies the signature for a CMS message of type 'pkcs7-signedData'
@@ -127,7 +146,14 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
  *
  * @return 0 if valid, 1 if invalid
  */
-  int validate_signature(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf data, charbuf iv, charbuf tag, charbuf signature, charbuf cert);
+int validate_signature(RequestType request_type,
+                       charbuf key_id,
+                       charbuf cipher_name,
+                       charbuf data,
+                       charbuf iv,
+                       charbuf tag,
+                       charbuf signature,
+                       charbuf cert);
 
 #ifdef __cplusplus
 }

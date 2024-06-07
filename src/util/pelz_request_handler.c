@@ -1,9 +1,9 @@
 #include "charbuf.h"
 #include "pelz_request_handler.h"
+#include "pelz_messaging.h"
 #include "common_table.h"
 #include "cipher/pelz_cipher.h"
 #include "pelz_enclave_log.h"
-#include "pelz_messaging.h"
 #include "secure_socket_enclave.h"
 #include "aes_gcm.h"
 
@@ -12,49 +12,12 @@
 #include "sgx_trts.h"
 #include ENCLAVE_HEADER_TRUSTED
 
-typedef struct PELZ_MSG {
-  ASN1_INTEGER * msg_type;
-  ASN1_INTEGER * req_type;
-  ASN1_UTCTIME * msg_time;
-  ASN1_UTF8STRING * key_id;
-  ASN1_OCTET_STRING * data;
-  ASN1_PRINTABLESTRING * status;
-} PELZ_MSG;
-
-DECLARE_ASN1_FUNCTIONS(PELZ_MSG);
-//DECLARE_ASN1_ENCODE_FUNCTIONS(PELZ_MSG, PELZ_MSG, PELZ_MSG);
-DECLARE_ASN1_PRINT_FUNCTION(PELZ_MSG);
-
-ASN1_SEQUENCE(PELZ_MSG) = {
-  ASN1_SIMPLE(PELZ_MSG, msg_type, ASN1_INTEGER),
-  ASN1_SIMPLE(PELZ_MSG, req_type, ASN1_INTEGER),
-  ASN1_SIMPLE(PELZ_MSG, msg_time, ASN1_UTCTIME),
-  ASN1_SIMPLE(PELZ_MSG, key_id, ASN1_UTF8STRING),
-  ASN1_SIMPLE(PELZ_MSG, data, ASN1_OCTET_STRING),
-  ASN1_SIMPLE(PELZ_MSG, status, ASN1_PRINTABLESTRING),
-} ASN1_SEQUENCE_END(PELZ_MSG)
-
-IMPLEMENT_ASN1_FUNCTIONS(PELZ_MSG);
-IMPLEMENT_ASN1_DUP_FUNCTION(PELZ_MSG);
-IMPLEMENT_ASN1_PRINT_FUNCTION(PELZ_MSG);
 
 RequestResponseStatus pelz_request_msg_handler(charbuf request_msg, int32_t session_id)
 {
   if(request_msg.chars == NULL || request_msg.len == 0)
   {
     pelz_sgx_log(LOG_ERR, "Invalid pelz request message input buffer");
-    return CHARBUF_ERROR;
-  }
-
-  // convert received pelz request from DER to internal format
-  //   Note: must pass 'd2i_TYPE()' function temporary variable as
-  //         returned pointer is incremented to point past buffer
-  PELZ_MSG * rcvd_request = NULL;
-  const unsigned char * temp_buf = (const unsigned char *) request_msg.chars;
-  rcvd_request = d2i_PELZ_MSG(&rcvd_request, &temp_buf, (long int) request_msg.len);
-  if (rcvd_request == NULL)
-  {
-    pelz_sgx_log(LOG_ERR, "DER to PELZ_MSG (ASN1) conversion error");
     return CHARBUF_ERROR;
   }
 

@@ -19,14 +19,6 @@
 
 #include "charbuf.h"
 
-#define PELZ_UNSPECIFIED_MSG_TYPE -1
-#define PELZ_REQUEST_MSG_TYPE 0
-#define PELZ_RESPONSE_MSG_TYPE 1
-
-#define PELZ_UNSPECIFIED_REQ_TYPE 0
-#define PELZ_AES_KEY_WRAP_REQ_TYPE 1
-#define PELZ_AES_KEY_UNWRAP_REQ_TYPE 2
-
 //The maxim key length
 #define MAX_KEY_LEN 1024
 #define MAX_SOC_DATA_SIZE 1024

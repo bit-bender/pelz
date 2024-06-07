@@ -34,5 +34,17 @@ enclave {
       [in, size=test_der_signer_cert_len] const uint8_t *test_der_signer_cert,
       size_t test_der_signer_priv_len,
       [in, size=test_der_signer_priv_len] const uint8_t *test_der_signer_priv);
+
+
+    public int test_verify_signature_helper(
+      size_t test_data_in_len,
+      [in, size=test_data_in_len] uint8_t *test_data_in,
+      size_t test_der_signer_cert_len,
+      [in, size=test_der_signer_cert_len] const uint8_t *test_der_signer_cert,
+      size_t test_der_signer_priv_len,
+      [in, size=test_der_signer_priv_len] const uint8_t *test_der_signer_priv,
+      size_t test_der_ca_cert_len,
+      [in, size=test_der_ca_cert_len] const uint8_t *test_der_ca_cert);
+
   };
 };

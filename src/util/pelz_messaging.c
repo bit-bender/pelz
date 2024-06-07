@@ -2,7 +2,6 @@
 #include <openssl/x509_vfy.h>
 #include <openssl/x509v3.h>
 #include <openssl/cms.h>
-#include <string.h>
 
 #include ENCLAVE_HEADER_TRUSTED
 #include "kmyth_enclave_trusted.h"
@@ -14,6 +13,7 @@
 #include "ecdh_util.h"
 #include "pelz_enclave_log.h"
 
+#include <stdio.h>
 
 charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf data, charbuf iv, charbuf tag, charbuf requestor_cert)
 {
@@ -204,6 +204,7 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
   // validate input parameters
   if ((signed_msg_in == NULL) ||
       (ca_cert == NULL) ||
+      (data_out == NULL) ||
       ((data_out != NULL) && (*data_out != NULL)))
   {
     pelz_sgx_log(LOG_ERR, "verify_signature(): invalid input parameter");
@@ -223,7 +224,8 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
   // check that the CMS_ContentInfo struct being passed in is really a
   // CMS message with 'pkcs-signedData' content type
 
-  const ASN1_OBJECT *temp_obj = CMS_get0_type(signed_msg_in);
+  CMS_ContentInfo *temp_cms_msg = signed_msg_in;
+  const ASN1_OBJECT *temp_obj = CMS_get0_type(temp_cms_msg);
   if (OBJ_obj2nid(temp_obj) != NID_pkcs7_signed)
   {
     pelz_sgx_log(LOG_ERR, "object is not of type pkcs7-signedData");
@@ -233,9 +235,10 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
   }
 
   // use OpenSSL's CMS API to verify the signed message
-  if (CMS_verify(signed_msg_in, NULL, v_store, NULL, verify_out_bio, 0) != 1)
+  int ret = CMS_verify(signed_msg_in, NULL, v_store, NULL, verify_out_bio, 0);
+  if (ret != 1)
   {
-    pelz_sgx_log(LOG_ERR, "CMS_verify() failed\n");
+    pelz_sgx_log(LOG_ERR, "CMS_verify() failed");
     unsigned long e = ERR_get_error();
     while (e != 0)
     {

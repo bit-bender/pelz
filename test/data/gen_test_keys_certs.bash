@@ -118,4 +118,46 @@ openssl x509 -req \
              -CAkey ca_priv.pem \
              -CAcreateserial \
              -days 365 \
-             -out worker_pub.pem \
+             -out worker_pub.pem
+
+# create key and certificate for messaging tests "requestor"
+openssl ecparam -name secp521r1 \
+                -genkey \
+                -noout \
+                -out msg_test_req_priv.pem
+
+openssl req -new \
+            -config msg_test_requestor.cnf \
+            -key msg_test_req_priv.pem \
+            -out msg_test_requestor.csr
+
+openssl x509 -req \
+             -in msg_test_requestor.csr \
+             -extfile msg_test_requestor.cnf \
+             -extensions v3_ext \
+             -CA ca_pub.pem \
+             -CAkey ca_priv.pem \
+             -CAcreateserial \
+             -days 365 \
+             -out msg_test_req_pub.pem
+
+# create key and certificate for messaging tests "responder"
+openssl ecparam -name secp521r1 \
+                -genkey \
+                -noout \
+                -out msg_test_resp_priv.pem
+
+openssl req -new \
+            -config msg_test_responder.cnf \
+            -key msg_test_resp_priv.pem \
+            -out msg_test_responder.csr
+
+openssl x509 -req \
+             -in msg_test_responder.csr \
+             -extfile msg_test_responder.cnf \
+             -extensions v3_ext \
+             -CA ca_pub.pem \
+             -CAkey ca_priv.pem \
+             -CAcreateserial \
+             -days 365 \
+             -out msg_test_resp_pub.pem

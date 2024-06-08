@@ -21,7 +21,6 @@ DECLARE_ASN1_PRINT_FUNCTION(PELZ_MSG);
 ASN1_SEQUENCE(PELZ_MSG) = {
   ASN1_SIMPLE(PELZ_MSG, msg_type, ASN1_INTEGER),
   ASN1_SIMPLE(PELZ_MSG, req_type, ASN1_INTEGER),
-  ASN1_SIMPLE(PELZ_MSG, msg_time, ASN1_UTCTIME),
   ASN1_SIMPLE(PELZ_MSG, key_id, ASN1_UTF8STRING),
   ASN1_SIMPLE(PELZ_MSG, data, ASN1_OCTET_STRING),
   ASN1_SIMPLE(PELZ_MSG, status, ASN1_PRINTABLESTRING),
@@ -151,6 +150,67 @@ charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf ciph
 
   memcpy(dst, requestor_cert.chars, requestor_cert.len);
   return serialized;
+}
+
+PELZ_MSG * create_pelz_asn1_message (uint64_t msg_type,
+                                     uint64_t req_type,
+                                     charbuf key_id,
+                                     charbuf data,
+                                     charbuf status)
+{
+  // input parameter checks
+  if ((key_id.chars == NULL) || (key_id.len == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error: NULL/empty message key ID");
+    return NULL;
+  }
+  if ((data.chars == NULL) || (data.len == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error: NULL/empty message data buffer");
+    return NULL;
+  }
+  if ((status.chars == NULL) || (status.len == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error: NULL/empty message status string");
+    return NULL;
+  }
+
+  // construct test request (using ASN.1 specified format)
+  PELZ_MSG * msg = PELZ_MSG_new();
+
+  if (ASN1_INTEGER_set_uint64(msg->msg_type, msg_type) != 1)
+  {
+    pelz_sgx_log(LOG_ERR, "error setting message type field");
+    return NULL;
+  }
+  if (ASN1_INTEGER_set_uint64(msg->req_type, req_type) != 1)
+  {
+    pelz_sgx_log(LOG_ERR, "error setting pelz request type field");
+    return NULL;
+  }
+  if (ASN1_STRING_set((ASN1_STRING *) msg->key_id,
+                      (unsigned char *) key_id.chars,
+                      (int) key_id.len) != 1)
+  {
+    pelz_sgx_log(LOG_ERR, "error setting message 'key ID' field");
+    return NULL;
+  }
+  if (ASN1_OCTET_STRING_set(msg->data,
+                            (unsigned char *) data.chars,
+                            (int) data.len) != 1)
+  {
+    pelz_sgx_log(LOG_ERR, "error setting message data field");
+    return NULL;
+  }
+  if (ASN1_STRING_set((ASN1_STRING *) msg->status,
+                      (unsigned char *) status.chars,
+                      (int) status.len) != 1)
+  {
+    pelz_sgx_log(LOG_ERR, "error setting message status field");
+    return NULL;
+  }
+
+  return msg;
 }
 
 CMS_ContentInfo *create_signed_data_msg(uint8_t *data_in,

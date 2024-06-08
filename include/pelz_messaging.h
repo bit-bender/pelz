@@ -5,7 +5,9 @@
 extern "C"
 {
 #endif
+
 #include <openssl/cms.h>
+#include <time.h>
 
 #include "charbuf.h"
 #include "pelz_request_handler.h"
@@ -14,7 +16,6 @@ extern "C"
 typedef struct PELZ_MSG {
   ASN1_INTEGER * msg_type;
   ASN1_INTEGER * req_type;
-  ASN1_UTCTIME * msg_time;
   ASN1_UTF8STRING * key_id;
   ASN1_OCTET_STRING * data;
   ASN1_PRINTABLESTRING * status;
@@ -59,8 +60,43 @@ typedef struct PELZ_MSG {
  *
  * @return a charbuf containing the serialized data, or an empty charbuf on error.
  */
-  charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf data, charbuf iv, charbuf tag, charbuf requestor_cert);
+charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf data, charbuf iv, charbuf tag, charbuf requestor_cert);
 
+/**
+ * <pre>
+ * Creates an ASN.1 formatted pelz message (request or response).
+ * </pre>
+ *
+ * @param[in] msg_type   Unsigned integer value representing the pelz
+ *                       message type (e.g., 1 = request, 2 = response)
+ *
+ * @param[in] req_type   Unsigned integer value specifying the pelz
+ *                       request type (e.g.,1 = AES key wrap,
+ *                       2 = AES key unwrap, ...)
+ *
+ * @param[in] key_id     Character buffer (charbuf) struct value used to
+ *                       specify the KEK ID (e.g., KEK URL)
+ *
+ * @param[in] data       Character buffer (charbuf) struct value used to
+ *                       specify the data payload for the message (e.g.,
+ *                       plaintext key data (input to be wrapped or
+ *                       unwrapped data for response), ciphertext key
+ *                       data (input to be unwrapped or wrapped data for
+ *                       response, ...)
+ *
+ * @param[in] status     Character buffer (charbuf) struct value used to
+ *                       specify the status string payload for the message
+ *                       (e.g., success/error information, ...)
+ *
+ * @return               Pointer to the resultant 'PELZ_MSG' ASN.1 message
+ *                       sequence. A NULL pointer is returned when an
+ *                       error is encountered.
+ */
+PELZ_MSG * create_pelz_asn1_message(uint64_t msg_type,
+                                    uint64_t req_type,
+                                    charbuf key_id,
+                                    charbuf data,
+                                    charbuf status);
 
 /**
  * <pre>

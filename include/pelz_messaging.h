@@ -13,9 +13,16 @@ extern "C"
 #include "pelz_request_handler.h"
 #include "pelz_enclave.h"
 
+typedef struct PELZ_MSG_DATA {
+  uint32_t msg_type;
+  uint32_t req_type;
+  charbuf key_id;
+  charbuf data;
+  charbuf status;
+} PELZ_MSG_DATA;
+
 typedef struct PELZ_MSG {
-  ASN1_INTEGER * msg_type;
-  ASN1_INTEGER * req_type;
+  ASN1_INTEGER * type;
   ASN1_UTF8STRING * key_id;
   ASN1_OCTET_STRING * data;
   ASN1_PRINTABLESTRING * status;
@@ -29,13 +36,18 @@ typedef struct PELZ_MSG {
 #define PELZ_AES_KEY_WRAP_REQ_TYPE 1
 #define PELZ_AES_KEY_UNWRAP_REQ_TYPE 2
 
-#define VERIFY_SIG_UNKOWN_ERROR -1
-#define VERIFY_SIG_INVALID_PARAMETER -2
-#define VERIFY_SIG_CONTENT_TYPE_ERROR -3
-#define VERIFY_SIG_VERIFY_ERROR -4
-#define VERIFY_SIG_INVALID_DATA_RESULT -5
-#define VERIFY_SIG_MALLOC_ERROR -6
-#define VERIFY_SIG_BIO_READ_ERROR -7
+#define PELZ_MSG_TYPE_PARSE_ERROR -1
+#define PELZ_MSG_KEY_ID_PARSE_ERROR -2
+#define PELZ_MSG_DATA_PARSE_ERROR -3
+#define PELZ_MSG_STATUS_PARSE_ERROR -4
+
+#define VERIFY_SIG_UNKOWN_ERROR -16
+#define VERIFY_SIG_INVALID_PARAMETER -17
+#define VERIFY_SIG_CONTENT_TYPE_ERROR -18
+#define VERIFY_SIG_VERIFY_ERROR -19
+#define VERIFY_SIG_INVALID_DATA_RESULT -20
+#define VERIFY_SIG_MALLOC_ERROR -21
+#define VERIFY_SIG_BIO_READ_ERROR -22
 
 /**
  * <pre>
@@ -71,7 +83,7 @@ charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf ciph
  *                       message type (e.g., 1 = request, 2 = response)
  *
  * @param[in] req_type   Unsigned integer value specifying the pelz
- *                       request type (e.g.,1 = AES key wrap,
+ *                       request type (e.g., 1 = AES key wrap,
  *                       2 = AES key unwrap, ...)
  *
  * @param[in] key_id     Character buffer (charbuf) struct value used to
@@ -92,11 +104,27 @@ charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf ciph
  *                       sequence. A NULL pointer is returned when an
  *                       error is encountered.
  */
-PELZ_MSG * create_pelz_asn1_message(uint64_t msg_type,
-                                    uint64_t req_type,
+PELZ_MSG * create_pelz_asn1_message(uint32_t msg_type,
+                                    uint32_t req_type,
                                     charbuf key_id,
                                     charbuf data,
                                     charbuf status);
+/**
+ * <pre>
+ * Parses a PELZ_MSG ASN.1 sequesnce into a set of output parameters
+ * containing the message field values.
+ * </pre>
+ *
+ * @param[in] msg_in           Pointer to the input PELZ_MSG ASN.1 sequence
+ *                             to be parsed.
+ * 
+ * @param[out] parsed_msg_out  Pointer to the output PELZ_MSG_DATA struct to
+ *                             hold the parsed message field values.
+ *
+ * @return                     Zero (0) on success, non-zero error code
+ *                             on failure
+ */
+int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out);
 
 /**
  * <pre>

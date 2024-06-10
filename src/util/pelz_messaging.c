@@ -19,8 +19,7 @@ DECLARE_ASN1_FUNCTIONS(PELZ_MSG);
 DECLARE_ASN1_PRINT_FUNCTION(PELZ_MSG);
 
 ASN1_SEQUENCE(PELZ_MSG) = {
-  ASN1_SIMPLE(PELZ_MSG, msg_type, ASN1_INTEGER),
-  ASN1_SIMPLE(PELZ_MSG, req_type, ASN1_INTEGER),
+  ASN1_SIMPLE(PELZ_MSG, type, ASN1_INTEGER),
   ASN1_SIMPLE(PELZ_MSG, key_id, ASN1_UTF8STRING),
   ASN1_SIMPLE(PELZ_MSG, data, ASN1_OCTET_STRING),
   ASN1_SIMPLE(PELZ_MSG, status, ASN1_PRINTABLESTRING),
@@ -152,8 +151,8 @@ charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf ciph
   return serialized;
 }
 
-PELZ_MSG * create_pelz_asn1_message (uint64_t msg_type,
-                                     uint64_t req_type,
+PELZ_MSG * create_pelz_asn1_message (uint32_t msg_type,
+                                     uint32_t req_type,
                                      charbuf key_id,
                                      charbuf data,
                                      charbuf status)
@@ -178,14 +177,12 @@ PELZ_MSG * create_pelz_asn1_message (uint64_t msg_type,
   // construct test request (using ASN.1 specified format)
   PELZ_MSG * msg = PELZ_MSG_new();
 
-  if (ASN1_INTEGER_set_uint64(msg->msg_type, msg_type) != 1)
+  uint64_t type_val = msg_type;
+  type_val <<= 32;
+  type_val += req_type;
+  if (ASN1_INTEGER_set_uint64(msg->type, type_val) != 1)
   {
-    pelz_sgx_log(LOG_ERR, "error setting message type field");
-    return NULL;
-  }
-  if (ASN1_INTEGER_set_uint64(msg->req_type, req_type) != 1)
-  {
-    pelz_sgx_log(LOG_ERR, "error setting pelz request type field");
+    pelz_sgx_log(LOG_ERR, "error setting type message field");
     return NULL;
   }
   if (ASN1_STRING_set((ASN1_STRING *) msg->key_id,
@@ -211,6 +208,55 @@ PELZ_MSG * create_pelz_asn1_message (uint64_t msg_type,
   }
 
   return msg;
+}
+
+int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
+{
+  // parse 'message type' and 'request type' message fields
+  uint64_t type_val = 0;
+  if (ASN1_INTEGER_get_uint64(&type_val,
+                              (const ASN1_INTEGER *) &(msg_in->type)) != 1)
+  {
+    pelz_sgx_log(LOG_ERR, "error parsing type message field");
+    return PELZ_MSG_TYPE_PARSE_ERROR;
+  }
+  parsed_msg_out->req_type = type_val & 0xFFFF;
+  type_val >>= 32;
+  parsed_msg_out->msg_type = type_val & 0xFFFF;
+
+  // parse 'key ID' message field
+  parsed_msg_out->key_id.len =
+    (size_t) ASN1_STRING_to_UTF8(&(parsed_msg_out->key_id.chars),
+                                 (const ASN1_STRING *) msg_in->key_id);
+  if ((parsed_msg_out->key_id.chars == NULL) ||
+      (parsed_msg_out->key_id.len == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error parsing key ID message field");
+    return PELZ_MSG_KEY_ID_PARSE_ERROR;
+  }
+
+  // parse 'data' message field
+  parsed_msg_out->data.len =
+    (size_t) ASN1_STRING_to_UTF8(&(parsed_msg_out->data.chars),
+                                 (const ASN1_STRING *) msg_in->data);
+  if ((parsed_msg_out->data.chars == NULL) || (parsed_msg_out->data.len == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error parsing data message field");
+    return PELZ_MSG_DATA_PARSE_ERROR;
+  }
+
+  // parse 'status' message field
+  parsed_msg_out->status.len =
+    (size_t) ASN1_STRING_to_UTF8(&(parsed_msg_out->status.chars),
+                                 (const ASN1_STRING *) msg_in->status);
+  if ((parsed_msg_out->status.chars == NULL) ||
+      (parsed_msg_out->status.len == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error parsing data message field");
+    return PELZ_MSG_STATUS_PARSE_ERROR;
+  }
+
+  return 0;
 }
 
 CMS_ContentInfo *create_signed_data_msg(uint8_t *data_in,

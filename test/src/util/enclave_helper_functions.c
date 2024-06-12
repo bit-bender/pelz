@@ -78,6 +78,153 @@ int test_aes_keywrap_3394nopad_decrypt(size_t key_len,
   return (ret);
 }
 
+int test_create_pelz_asn1_msg_helper(uint16_t test_msg_type,
+                                     uint16_t test_req_type,
+                                     size_t test_key_id_len,
+                                     unsigned char * test_key_id,
+                                     size_t test_data_len,
+                                     unsigned char * test_data,
+                                     size_t test_status_len,
+                                     unsigned char * test_status)
+{
+  PELZ_MSG_DATA test_msg_data_in = { .msg_type = test_msg_type,
+                                     .req_type = test_req_type,
+                                     .key_id = { .chars = test_key_id,
+                                                 .len = test_key_id_len },
+                                     .data = { .chars = test_data,
+                                               .len = test_data_len },
+                                     .status = { .chars = test_status,
+                                                 .len = test_status_len } };
+
+  PELZ_MSG * test_msg = create_pelz_asn1_msg (&test_msg_data_in);
+  if (test_msg == NULL)
+  {
+    return MSG_TEST_CREATE_ERROR;
+  }
+
+  PELZ_MSG_DATA parsed_test_msg_data;
+
+  int ret = parse_pelz_asn1_msg(test_msg, &parsed_test_msg_data);
+  if ((ret != 0) ||
+      (parsed_test_msg_data.msg_type != test_msg_data_in.msg_type) ||
+      (parsed_test_msg_data.req_type != test_msg_data_in.req_type) ||
+      (memcmp(parsed_test_msg_data.key_id.chars,
+              test_msg_data_in.key_id.chars,
+              test_msg_data_in.key_id.len) != 0) ||
+      (memcmp(parsed_test_msg_data.data.chars,
+              test_msg_data_in.data.chars,
+              test_msg_data_in.data.len) != 0) ||
+      (memcmp(parsed_test_msg_data.status.chars,
+              test_msg_data_in.status.chars,
+              test_msg_data_in.status.len) != 0))
+  {
+    return MSG_TEST_PARSE_INVALID + ret;
+  }
+
+  return MSG_TEST_SUCCESS;
+}
+
+int test_parse_pelz_asn1_msg_helper(uint16_t test_msg_type,
+                                    uint16_t test_req_type,
+                                    size_t test_key_id_len,
+                                    unsigned char * test_key_id,
+                                    size_t test_data_len,
+                                    unsigned char * test_data,
+                                    size_t test_status_len,
+                                    unsigned char * test_status,
+                                    size_t test_select)
+{
+  // construct baseline PELZ_MSG
+  PELZ_MSG_DATA test_msg_data_in = { .msg_type = test_msg_type,
+                                     .req_type = test_req_type,
+                                     .key_id = { .chars = test_key_id,
+                                                 .len = test_key_id_len },
+                                     .data = { .chars = test_data,
+                                               .len = test_data_len },
+                                     .status = { .chars = test_status,
+                                                 .len = test_status_len } };
+
+  PELZ_MSG * test_msg = create_pelz_asn1_msg (&test_msg_data_in);
+  if (test_msg == NULL)
+  {
+    return MSG_TEST_SETUP_ERROR;
+  }
+
+  uint64_t test_type_val = 0;
+  switch(test_select)
+  {
+  case PARSE_HELPER_NO_MOD:
+    break;
+  case PARSE_HELPER_MOD_TYPE_TAG:
+    test_msg->type->type = V_ASN1_ENUMERATED;
+    break;
+  case PARSE_HELPER_MOD_MSG_TYPE_VAL_LO:
+    test_type_val = (MSG_TYPE_MIN - 1) << 16;
+    test_type_val += REQ_TYPE_MIN;
+    if (ASN1_INTEGER_set_uint64(test_msg->type, test_type_val) != 1)
+    {
+      return MSG_TEST_SETUP_ERROR;
+    }
+    break;
+  case PARSE_HELPER_MOD_MSG_TYPE_VAL_HI:
+    test_type_val = (MSG_TYPE_MAX + 1) << 16;
+    test_type_val += REQ_TYPE_MIN;
+    if (ASN1_INTEGER_set_uint64(test_msg->type, test_type_val) != 1)
+    {
+      return MSG_TEST_SETUP_ERROR;
+    }
+    break;
+  case PARSE_HELPER_MOD_REQ_TYPE_VAL_LO:
+    test_type_val = MSG_TYPE_MIN << 16;
+    test_type_val += REQ_TYPE_MIN - 1;
+    if (ASN1_INTEGER_set_uint64(test_msg->type, test_type_val) != 1)
+    {
+      return MSG_TEST_SETUP_ERROR;
+    }
+    break;
+  case PARSE_HELPER_MOD_REQ_TYPE_VAL_HI:
+    test_type_val = MSG_TYPE_MIN << 16;
+    test_type_val += REQ_TYPE_MAX + 1;
+    if (ASN1_INTEGER_set_uint64(test_msg->type, test_type_val) != 1)
+    {
+      return MSG_TEST_SETUP_ERROR;
+    }
+    break;
+  case PARSE_HELPER_MOD_KEY_ID_TAG:
+    test_msg->key_id->type = V_ASN1_GENERALSTRING;
+    break;
+  case PARSE_HELPER_MOD_DATA_TAG:
+    test_msg->data->type = V_ASN1_UTF8STRING;
+    break;
+  case PARSE_HELPER_MOD_STATUS_TAG:
+    test_msg->status->type = V_ASN1_PRINTABLESTRING;
+    break;
+  default:
+    return MSG_TEST_SETUP_ERROR;
+  }
+
+  PELZ_MSG_DATA parsed_test_msg_data;
+
+  int ret = parse_pelz_asn1_msg(test_msg, &parsed_test_msg_data);
+  if ((ret != 0) ||
+      (parsed_test_msg_data.msg_type != test_msg_data_in.msg_type) ||
+      (parsed_test_msg_data.req_type != test_msg_data_in.req_type) ||
+      (memcmp(parsed_test_msg_data.key_id.chars,
+              test_msg_data_in.key_id.chars,
+              test_msg_data_in.key_id.len) != 0) ||
+      (memcmp(parsed_test_msg_data.data.chars,
+              test_msg_data_in.data.chars,
+              test_msg_data_in.data.len) != 0) ||
+      (memcmp(parsed_test_msg_data.status.chars,
+              test_msg_data_in.status.chars,
+              test_msg_data_in.status.len) != 0))
+  {
+    return MSG_TEST_PARSE_INVALID + ret;
+  }
+
+  return MSG_TEST_SUCCESS;
+}
+
 int test_create_signed_data_msg_helper(size_t test_data_in_len,
                                        uint8_t *test_data_in,
                                        size_t test_der_sign_cert_len,

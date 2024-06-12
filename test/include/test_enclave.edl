@@ -27,6 +27,27 @@ enclave {
       [out] size_t *outData_len,
       [out] unsigned char **outData);
 
+    public int test_create_pelz_asn1_msg_helper(
+      uint16_t test_msg_type,
+      uint16_t test_req_type,
+      size_t test_key_id_len,
+      [in, size=test_key_id_len] unsigned char * test_key_id,
+      size_t test_data_len,
+      [in, size=test_data_len] unsigned char * test_data,
+      size_t test_status_len,
+      [in, size=test_status_len] unsigned char * test_status);
+
+    public int test_parse_pelz_asn1_msg_helper(
+      uint16_t test_msg_type,
+      uint16_t test_req_type,
+      size_t test_key_id_len,
+      [in, size=test_key_id_len] unsigned char * test_key_id,
+      size_t test_data_len,
+      [in, size=test_data_len] unsigned char * test_data,
+      size_t test_status_len,
+      [in, size=test_status_len] unsigned char * test_status,
+      size_t test_select);
+
     public int test_create_signed_data_msg_helper(
       size_t test_data_in_len,
       [in, size=test_data_in_len] uint8_t *test_data_in,

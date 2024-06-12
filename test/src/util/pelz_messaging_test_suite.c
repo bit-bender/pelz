@@ -18,6 +18,18 @@
 // Adds all pelz messaging tests to main test runner.
 int pelz_messaging_suite_add_tests(CU_pSuite suite)
 {
+  if (NULL == CU_add_test(suite, "Test Pelz ASN.1 formatted message creation",
+                                 test_create_pelz_asn1_msg))
+  {
+    return (1);
+  }
+
+  if (NULL == CU_add_test(suite, "Test Pelz ASN.1 formatted message parsing",
+                                 test_parse_pelz_asn1_msg))
+  {
+    return (1);
+  }
+
   if (NULL == CU_add_test(suite, "Test Pelz signed CMS message creation",
                                  test_create_signed_data_msg))
   {
@@ -31,6 +43,291 @@ int pelz_messaging_suite_add_tests(CU_pSuite suite)
   }
 
   return (0);
+}
+
+
+void test_create_pelz_asn1_msg(void)
+{
+  pelz_log(LOG_DEBUG, "Start create_pelz_asn1_msg() functionality test");
+
+  int result = 0;
+
+  // invalid (less than MSG_TYPE_MIN) message type should fail param checks
+  test_create_pelz_asn1_msg_helper(eid,
+                                   &result,
+                                   MSG_TYPE_MIN - 1,
+                                   AES_KEY_WRAP,
+                                   15,
+                                   (uint8_t *) "file://test.key",
+                                   14,
+                                   (uint8_t *) "Test,test,test",
+                                   11,
+                                   (uint8_t *) "some status");
+  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+
+  // invalid (greater than MSG_TYPE_MAX) message type should fail param checks
+  test_create_pelz_asn1_msg_helper(eid,
+                                   &result,
+                                   MSG_TYPE_MAX + 1,
+                                   AES_KEY_WRAP,
+                                   15,
+                                   (uint8_t *) "file://test.key",
+                                   14,
+                                   (uint8_t *) "Test,test,test",
+                                   11,
+                                   (uint8_t *) "some status");
+  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+
+  // invalid (less than REQ_TYPE_MIN) message type should fail param checks
+  test_create_pelz_asn1_msg_helper(eid,
+                                   &result,
+                                   REQUEST,
+                                   REQ_TYPE_MIN - 1,
+                                   15,
+                                   (uint8_t *) "file://test.key",
+                                   14,
+                                   (uint8_t *) "Test,test,test",
+                                   11,
+                                   (uint8_t *) "some status");
+  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+
+  // invalid (greater than REQ_TYPE_MAX) message type should fail param checks
+  test_create_pelz_asn1_msg_helper(eid,
+                                   &result,
+                                   REQUEST,
+                                   REQ_TYPE_MAX + 1,
+                                   15,
+                                   (uint8_t *) "file://test.key",
+                                   14,
+                                   (uint8_t *) "Test,test,test",
+                                   11,
+                                   (uint8_t *) "some status");
+  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+
+  // null KEK key ID input should fail param checks
+  test_create_pelz_asn1_msg_helper(eid,
+                                   &result,
+                                   REQUEST,
+                                   AES_KEY_WRAP,
+                                   15,
+                                   NULL,
+                                   14,
+                                   (uint8_t *) "Test,test,test",
+                                   11,
+                                   (uint8_t *) "some status");
+  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+
+  // empty (zero-length) KEK key ID input should fail param checks
+  test_create_pelz_asn1_msg_helper(eid,
+                                   &result,
+                                   REQUEST,
+                                   AES_KEY_WRAP,
+                                   0,
+                                   (uint8_t *) "file://test.key",
+                                   14,
+                                   (uint8_t *) "Test,test,test",
+                                   11,
+                                   (uint8_t *) "some status");
+  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+
+  // null data input should fail param checks
+  test_create_pelz_asn1_msg_helper(eid,
+                                   &result,
+                                   REQUEST,
+                                   AES_KEY_WRAP,
+                                   15,
+                                   (uint8_t *) "file://test.key",
+                                   14,
+                                   NULL,
+                                   11,
+                                   (uint8_t *) "some status");
+  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+
+  // empty (zero-length) data input should fail param checks
+  test_create_pelz_asn1_msg_helper(eid,
+                                   &result,
+                                   REQUEST,
+                                   AES_KEY_WRAP,
+                                   15,
+                                   (uint8_t *) "file://test.key",
+                                   0,
+                                   (uint8_t *) "Test,test,test",
+                                   11,
+                                   (uint8_t *) "some status");
+  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+
+  // null status input should fail param checks
+  test_create_pelz_asn1_msg_helper(eid,
+                                   &result,
+                                   REQUEST,
+                                   AES_KEY_WRAP,
+                                   15,
+                                   (uint8_t *) "file://test.key",
+                                   14,
+                                   (uint8_t *) "Test,test,test",
+                                   11,
+                                   NULL);
+  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+
+  // empty (zero-length) status input should fail param checks
+  test_create_pelz_asn1_msg_helper(eid,
+                                   &result,
+                                   REQUEST,
+                                   AES_KEY_WRAP,
+                                   15,
+                                   (uint8_t *) "file://test.key",
+                                   14,
+                                   (uint8_t *) "Test,test,test",
+                                   0,
+                                   (uint8_t *) "some status");
+  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+
+  // valid test case should pass
+  test_create_pelz_asn1_msg_helper(eid,
+                                   &result,
+                                   REQUEST,
+                                   AES_KEY_WRAP,
+                                   15,
+                                   (uint8_t *) "file://test.key",
+                                   21,
+                                   (uint8_t *) "ASN1 create test data",
+                                   11,
+                                   (uint8_t *) "some status");
+  CU_ASSERT(result == MSG_TEST_SUCCESS);
+}
+
+void test_parse_pelz_asn1_msg(void)
+{
+  pelz_log(LOG_DEBUG, "Start parse_pelz_asn1_msg() functionality test");
+
+  int result = 0;
+
+  // invalid type field tag should result in parse error
+  test_parse_pelz_asn1_msg_helper(eid,
+                                  &result,
+                                  RESPONSE,
+                                  AES_KEY_UNWRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  20,
+                                  (uint8_t *) "ASN1 parse test data",
+                                  21,
+                                  (uint8_t *) "some different status",
+                                  PARSE_HELPER_MOD_TYPE_TAG);
+  CU_ASSERT(result == (MSG_TEST_PARSE_INVALID + PELZ_MSG_TYPE_TAG_ERROR));
+
+  // invalid message type field value (< MSG_TYPE_MIN) should error
+  test_parse_pelz_asn1_msg_helper(eid,
+                                  &result,
+                                  RESPONSE,
+                                  AES_KEY_UNWRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  20,
+                                  (uint8_t *) "ASN1 parse test data",
+                                  21,
+                                  (uint8_t *) "some different status",
+                                  PARSE_HELPER_MOD_MSG_TYPE_VAL_LO);
+  CU_ASSERT(result == (MSG_TEST_PARSE_INVALID + PELZ_MSG_TYPE_PARSE_INVALID));
+
+  // invalid message type field value (> MSG_TYPE_MAX) should error
+  test_parse_pelz_asn1_msg_helper(eid,
+                                  &result,
+                                  RESPONSE,
+                                  AES_KEY_UNWRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  20,
+                                  (uint8_t *) "ASN1 parse test data",
+                                  21,
+                                  (uint8_t *) "some different status",
+                                  PARSE_HELPER_MOD_MSG_TYPE_VAL_HI);
+  CU_ASSERT(result == (MSG_TEST_PARSE_INVALID + PELZ_MSG_TYPE_PARSE_INVALID));
+
+  // invalid request type field value (< REQ_TYPE_MIN) should error
+  test_parse_pelz_asn1_msg_helper(eid,
+                                  &result,
+                                  RESPONSE,
+                                  AES_KEY_UNWRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  20,
+                                  (uint8_t *) "ASN1 parse test data",
+                                  21,
+                                  (uint8_t *) "some different status",
+                                  PARSE_HELPER_MOD_REQ_TYPE_VAL_LO);
+  CU_ASSERT(result == (MSG_TEST_PARSE_INVALID + PELZ_MSG_TYPE_PARSE_INVALID));
+
+  // invalid request type field value (> REQ_TYPE_MAX) should error
+  test_parse_pelz_asn1_msg_helper(eid,
+                                  &result,
+                                  RESPONSE,
+                                  AES_KEY_UNWRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  20,
+                                  (uint8_t *) "ASN1 parse test data",
+                                  21,
+                                  (uint8_t *) "some different status",
+                                  PARSE_HELPER_MOD_REQ_TYPE_VAL_HI);
+  CU_ASSERT(result == (MSG_TEST_PARSE_INVALID + PELZ_MSG_TYPE_PARSE_INVALID));
+
+  // invalid key ID field tag should result in parse error
+  test_parse_pelz_asn1_msg_helper(eid,
+                                  &result,
+                                  RESPONSE,
+                                  AES_KEY_UNWRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  20,
+                                  (uint8_t *) "ASN1 parse test data",
+                                  21,
+                                  (uint8_t *) "some different status",
+                                  PARSE_HELPER_MOD_KEY_ID_TAG);
+  CU_ASSERT(result == (MSG_TEST_PARSE_INVALID + PELZ_MSG_KEY_ID_TAG_ERROR));
+
+  // invalid data field tag should result in parse error
+  test_parse_pelz_asn1_msg_helper(eid,
+                                  &result,
+                                  RESPONSE,
+                                  AES_KEY_UNWRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  20,
+                                  (uint8_t *) "ASN1 parse test data",
+                                  21,
+                                  (uint8_t *) "some different status",
+                                  PARSE_HELPER_MOD_DATA_TAG);
+  CU_ASSERT(result == (MSG_TEST_PARSE_INVALID + PELZ_MSG_DATA_TAG_ERROR));
+
+  // invalid status field tag should result in parse error
+  test_parse_pelz_asn1_msg_helper(eid,
+                                  &result,
+                                  RESPONSE,
+                                  AES_KEY_UNWRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  20,
+                                  (uint8_t *) "ASN1 parse test data",
+                                  21,
+                                  (uint8_t *) "some different status",
+                                  PARSE_HELPER_MOD_STATUS_TAG);
+  CU_ASSERT(result == (MSG_TEST_PARSE_INVALID + PELZ_MSG_STATUS_TAG_ERROR));
+
+  // valid message format/contents should parse successfully
+  test_parse_pelz_asn1_msg_helper(eid,
+                                  &result,
+                                  RESPONSE,
+                                  AES_KEY_UNWRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  20,
+                                  (uint8_t *) "ASN1 parse test data",
+                                  21,
+                                  (uint8_t *) "some different status",
+                                  PARSE_HELPER_NO_MOD);
+  CU_ASSERT(result == MSG_TEST_SUCCESS);
+
 }
 
 void test_create_signed_data_msg(void)

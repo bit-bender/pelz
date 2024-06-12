@@ -13,6 +13,12 @@ typedef struct charbuffer
   size_t len;
 } charbuf;
 
+typedef struct fixed_charbuffer
+{
+  const unsigned char *chars;
+  size_t len;
+} fixed_charbuf;
+
 /**
  * <pre>
  * Takes a struct charbuf and allocates memory of len then sets charbuf len to @pram[in] len.

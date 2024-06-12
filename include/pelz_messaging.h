@@ -14,10 +14,10 @@ extern "C"
 #include "pelz_enclave.h"
 
 typedef struct PELZ_MSG_DATA {
-  uint32_t msg_type;
-  uint32_t req_type;
+  uint16_t msg_type;
+  uint16_t req_type;
   charbuf key_id;
-  charbuf data;
+  fixed_charbuf data;
   charbuf status;
 } PELZ_MSG_DATA;
 
@@ -25,22 +25,34 @@ typedef struct PELZ_MSG {
   ASN1_INTEGER * type;
   ASN1_UTF8STRING * key_id;
   ASN1_OCTET_STRING * data;
-  ASN1_PRINTABLESTRING * status;
+  ASN1_UTF8STRING * status;
 } PELZ_MSG;
 
-#define PELZ_UNSPECIFIED_MSG_TYPE 0
-#define PELZ_REQUEST_MSG_TYPE 1
-#define PELZ_RESPONSE_MSG_TYPE 2
+enum PELZ_MSG_TYPE { MSG_TYPE_MIN = 1,
+                     REQUEST = 1,
+                     RESPONSE = 2,
+                     MSG_TYPE_MAX = 2 };
 
-#define PELZ_UNSPECIFIED_REQ_TYPE 0
-#define PELZ_AES_KEY_WRAP_REQ_TYPE 1
-#define PELZ_AES_KEY_UNWRAP_REQ_TYPE 2
+enum PELZ_REQ_TYPE { REQ_TYPE_MIN = 1,
+                     AES_KEY_WRAP = 1,
+                     AES_KEY_UNWRAP = 2,
+                     REQ_TYPE_MAX = 2 };
 
-#define PELZ_MSG_TYPE_PARSE_ERROR -1
-#define PELZ_MSG_KEY_ID_PARSE_ERROR -2
-#define PELZ_MSG_DATA_PARSE_ERROR -3
-#define PELZ_MSG_STATUS_PARSE_ERROR -4
+#define PELZ_MSG_SUCCESS 0
+#define PELZ_MSG_TYPE_TAG_ERROR -1
+#define PELZ_MSG_TYPE_PARSE_ERROR -2
+#define PELZ_MSG_TYPE_PARSE_INVALID -3
+#define PELZ_MSG_KEY_ID_TAG_ERROR -4
+#define PELZ_MSG_KEY_ID_PARSE_ERROR -5
+#define PELZ_MSG_KEY_ID_PARSE_INVALID -6
+#define PELZ_MSG_DATA_TAG_ERROR -7
+#define PELZ_MSG_DATA_PARSE_ERROR -8
+#define PELZ_MSG_DATA_PARSE_INVALID -9
+#define PELZ_MSG_STATUS_TAG_ERROR -10
+#define PELZ_MSG_STATUS_PARSE_ERROR -11
+#define PELZ_MSG_STATUS_PARSE_INVALID -12
 
+#define VERIFY_SIG_SUCCESS 0
 #define VERIFY_SIG_UNKOWN_ERROR -16
 #define VERIFY_SIG_INVALID_PARAMETER -17
 #define VERIFY_SIG_CONTENT_TYPE_ERROR -18
@@ -79,36 +91,37 @@ charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf ciph
  * Creates an ASN.1 formatted pelz message (request or response).
  * </pre>
  *
- * @param[in] msg_type   Unsigned integer value representing the pelz
- *                       message type (e.g., 1 = request, 2 = response)
+ * @param[in] msg_data_in   PELZ_MSG_DATA struct containing data to be used
+ *                          for constructing PELZ_MSG ASN.1 sequence:
+ * 
+ *                            msg_type: Unsigned integer value representing
+ *                                      the pelz message type (e.g.,
+ *                                      1 = request, 2 = response)
  *
- * @param[in] req_type   Unsigned integer value specifying the pelz
- *                       request type (e.g., 1 = AES key wrap,
- *                       2 = AES key unwrap, ...)
+ *                            req_type: Unsigned integer value specifying
+ *                                      the pelz request type (e.g.,
+ *                                      1 = AES key wrap, 2 = AES key unwrap)
  *
- * @param[in] key_id     Character buffer (charbuf) struct value used to
- *                       specify the KEK ID (e.g., KEK URL)
+ *                            key_id: Character buffer (charbuf) struct value
+ *                                    used to specify the KEK ID (URL)
  *
- * @param[in] data       Character buffer (charbuf) struct value used to
- *                       specify the data payload for the message (e.g.,
- *                       plaintext key data (input to be wrapped or
- *                       unwrapped data for response), ciphertext key
- *                       data (input to be unwrapped or wrapped data for
- *                       response, ...)
+ *                            data: Character buffer (charbuf) struct value
+ *                                  used to specify the data payload for the
+ *                                  message (e.g., plaintext key data to be
+ *                                  wrapped, wrapped data for response,
+ *                                  ciphertext key data to be unwrapped,
+ *                                  unwrapped data for response, ...)
  *
- * @param[in] status     Character buffer (charbuf) struct value used to
- *                       specify the status string payload for the message
- *                       (e.g., success/error information, ...)
+ *                            status: Character buffer (charbuf) struct value
+ *                                    used to specify the status string
+ *                                    payload for the message (e.g., success
+ *                                    or error information, ...)
  *
- * @return               Pointer to the resultant 'PELZ_MSG' ASN.1 message
- *                       sequence. A NULL pointer is returned when an
- *                       error is encountered.
+ * @return    Pointer to the resultant 'PELZ_MSG' ASN.1 message sequence.
+ *            A NULL pointer is returned when an error is encountered.
  */
-PELZ_MSG * create_pelz_asn1_message(uint32_t msg_type,
-                                    uint32_t req_type,
-                                    charbuf key_id,
-                                    charbuf data,
-                                    charbuf status);
+PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA *msg_data_in);
+
 /**
  * <pre>
  * Parses a PELZ_MSG ASN.1 sequesnce into a set of output parameters

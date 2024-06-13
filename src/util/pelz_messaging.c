@@ -220,14 +220,29 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA * msg_data_in)
   return msg;
 }
 
-int serialize_pelz_asn1_msg(const PELZ_MSG *msg_in, unsigned char **bytes_out)
+int der_encode_pelz_asn1_msg(const PELZ_MSG *msg_in, unsigned char **bytes_out)
 {
   int num_bytes_out = PELZ_MSG_UNKNOWN_ERROR;
 
+  // check output buffer pointer parameter passed
+  //   - if pointer to byte array pointer is NULL, error
+  //   - if byte array previously allocated, free so we can allocate correctly
+  if (bytes_out == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "NULL output buffer pointer parameter");
+    return PELZ_MSG_PARAM_INVALID;
+  }
+  if (*bytes_out != NULL)
+  {
+    free(*bytes_out);
+    *bytes_out = NULL;
+  }
+
+  // DER-encode input message
   num_bytes_out = i2d_PELZ_MSG(msg_in, bytes_out);
   if ((bytes_out == NULL) || (num_bytes_out <= 0))
   {
-    pelz_sgx_log(LOG_ERR, "DER formatting (serialization) of PELZ_MSG failed");
+    pelz_sgx_log(LOG_ERR, "DER encode of PELZ_MSG (ASN.1 sequence) failed");
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -242,14 +257,13 @@ int serialize_pelz_asn1_msg(const PELZ_MSG *msg_in, unsigned char **bytes_out)
   return num_bytes_out;
 }
 
-PELZ_MSG *deserialize_pelz_asn1_msg(const unsigned char *bytes_in,
-                                    long bytes_in_len)
+PELZ_MSG *der_decode_pelz_asn1_msg(const unsigned char *bytes_in,
+                                   long bytes_in_len)
 {
   PELZ_MSG *msg_out = d2i_PELZ_MSG(NULL, &bytes_in, bytes_in_len);
   if (msg_out == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "DER to ASN.1 sequence conversion "
-                          "(deserialization) failed");
+    pelz_sgx_log(LOG_ERR, "DER decode of PELZ_MSG ASN.1 sequence failed");
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -451,7 +465,7 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
       ((data_out != NULL) && (*data_out != NULL)))
   {
     pelz_sgx_log(LOG_ERR, "verify_signature(): invalid input parameter");
-    return PELZ_MSG_VERIFY_PARAM_INVALID;
+    return PELZ_MSG_PARAM_INVALID;
   }
 
   // create BIO to hold signature verification output data
@@ -513,6 +527,10 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
       BIO_free(verify_out_bio);
       return PELZ_MSG_MALLOC_ERROR;
     }
+  }
+  if (*data_out != NULL)
+  {
+    free(*data_out);
   }
   *data_out = (uint8_t *) calloc((size_t) bio_data_size, sizeof(uint8_t));
   if (*data_out == NULL)

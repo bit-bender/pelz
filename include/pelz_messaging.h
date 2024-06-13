@@ -42,26 +42,26 @@ enum PELZ_REQ_TYPE { REQ_TYPE_MIN = 1,
 
 #define PELZ_MSG_UNKNOWN_ERROR -1
 
-#define PELZ_MSG_MALLOC_ERROR -2
-#define PELZ_MSG_BIO_READ_ERROR -3
+#define PELZ_MSG_PARAM_INVALID -2
+#define PELZ_MSG_MALLOC_ERROR -3
+#define PELZ_MSG_BIO_READ_ERROR -4
 
-#define PELZ_MSG_TYPE_TAG_ERROR -4
-#define PELZ_MSG_TYPE_PARSE_ERROR -5
-#define PELZ_MSG_TYPE_PARSE_INVALID -6
-#define PELZ_MSG_KEY_ID_TAG_ERROR -7
-#define PELZ_MSG_KEY_ID_PARSE_ERROR -8
-#define PELZ_MSG_KEY_ID_PARSE_INVALID -9
-#define PELZ_MSG_DATA_TAG_ERROR -10
-#define PELZ_MSG_DATA_PARSE_ERROR -11
-#define PELZ_MSG_DATA_PARSE_INVALID -12
-#define PELZ_MSG_STATUS_TAG_ERROR -13
-#define PELZ_MSG_STATUS_PARSE_ERROR -14
-#define PELZ_MSG_STATUS_PARSE_INVALID -15
+#define PELZ_MSG_TYPE_TAG_ERROR -5
+#define PELZ_MSG_TYPE_PARSE_ERROR -6
+#define PELZ_MSG_TYPE_PARSE_INVALID -7
+#define PELZ_MSG_KEY_ID_TAG_ERROR -8
+#define PELZ_MSG_KEY_ID_PARSE_ERROR -9
+#define PELZ_MSG_KEY_ID_PARSE_INVALID -10
+#define PELZ_MSG_DATA_TAG_ERROR -11
+#define PELZ_MSG_DATA_PARSE_ERROR -12
+#define PELZ_MSG_DATA_PARSE_INVALID -13
+#define PELZ_MSG_STATUS_TAG_ERROR -14
+#define PELZ_MSG_STATUS_PARSE_ERROR -15
+#define PELZ_MSG_STATUS_PARSE_INVALID -16
 
-#define PELZ_MSG_SERIALIZE_ERROR -16
-#define PELZ_MSG_DESERIALIZE_ERROR -17
+#define PELZ_MSG_SERIALIZE_ERROR -17
+#define PELZ_MSG_DESERIALIZE_ERROR -18
 
-#define PELZ_MSG_VERIFY_PARAM_INVALID -18
 #define PELZ_MSG_VERIFY_CONTENT_ERROR -19
 #define PELZ_MSG_VERIFY_FAIL -20
 #define PELZ_MSG_VERIFY_RESULT_INVALID -21
@@ -98,7 +98,7 @@ charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf ciph
  *
  * @param[in] msg_data_in   PELZ_MSG_DATA struct containing data to be used
  *                          for constructing PELZ_MSG ASN.1 sequence:
- * 
+ *
  *                            msg_type: Unsigned integer value representing
  *                                      the pelz message type (e.g.,
  *                                      1 = request, 2 = response)
@@ -127,10 +127,50 @@ charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf ciph
  */
 PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA *msg_data_in);
 
-int serialize_pelz_asn1_msg(const PELZ_MSG *msg_in, unsigned char **bytes_out);
+/**
+ * <pre>
+ * Encodes an input PELZ_MSG ASN.1 sequence using Distinguished Encoding
+ * Rules (DER) formatting. In other words, this function serializes a
+ * raw (unsigned, unencrypted) pelz message from an internal OpenSSL
+ * format (PELZ_MSG) into a binary array of bytes (DER-formatted).
+ * </pre>
+ *
+ * @param[in]  msg_in        A byte array (uint8_t *) containing the input
+ *                           data to be used for the creation of a CMS
+ *                           "SignedData" message. Cannot be NULL or have
+ *                           an invalid (negative) or empty (zero) length.
+ *
+ * @param[out] bytes_out     A pointer to a pointer to the byte array where
+ *                           the DER-formatted output bytes will be returned
+ *                           to the caller. The byte array is allocated within
+ *                           this function. Therefore, a NULL byte array
+ *                           pointer should be passed in. The caller is
+ *                           responsible for freeing this buffer when done
+ *                           with it.
+ *
+ * @return number of data bytes allocated/written to the 'bytes_out' buffer
+ *         on success; error code (negative integer) otherwise
+ */
+int der_encode_pelz_asn1_msg(const PELZ_MSG *msg_in, unsigned char **bytes_out);
 
-PELZ_MSG *deserialize_pelz_asn1_msg(const unsigned char *bytes_in,
-                                    long bytes_in_len);
+/**
+ * <pre>
+ * Decodes an input DER-formatted byte array into its original internal
+ * (PELZ_MSG ASN.1 sequence) format. In other words, this function
+ * de-serializes a DER-encoded, raw (unsigned, unencrypted) pelz message
+ * to enable parsing the message using a structured format.
+ * </pre>
+ *
+ * @param[in] bytes_in      Pointer to the input buffer containing the
+ *                          DER-formatted byte array
+ *
+ * @param[in] bytes_in_len  Size (in bytes) of the input byte buffer
+ *
+ * @return    Pointer to the resultant 'PELZ_MSG' ASN.1 message sequence.
+ *            A NULL pointer is returned when an error is encountered.
+ */
+PELZ_MSG *der_decode_pelz_asn1_msg(const unsigned char *bytes_in,
+                                   long bytes_in_len);
 
 /**
  * <pre>
@@ -140,7 +180,7 @@ PELZ_MSG *deserialize_pelz_asn1_msg(const unsigned char *bytes_in,
  *
  * @param[in] msg_in           Pointer to the input PELZ_MSG ASN.1 sequence
  *                             to be parsed.
- * 
+ *
  * @param[out] parsed_msg_out  Pointer to the output PELZ_MSG_DATA struct to
  *                             hold the parsed message field values.
  *

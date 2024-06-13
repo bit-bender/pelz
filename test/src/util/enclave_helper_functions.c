@@ -357,7 +357,7 @@ int test_verify_signature_helper(size_t test_data_in_len,
     verify_data_len = verify_signature(NULL,
                                        test_ca_cert,
                                        &verify_data);
-    if (verify_data_len != VERIFY_SIG_INVALID_PARAMETER)
+    if (verify_data_len != PELZ_MSG_VERIFY_PARAM_INVALID)
     {
       return MSG_TEST_PARAM_HANDLING_ERROR;
     }
@@ -383,7 +383,7 @@ int test_verify_signature_helper(size_t test_data_in_len,
     verify_data_len = verify_signature(test_signed_msg,
                                        NULL,
                                        &verify_data);
-    if (verify_data_len != VERIFY_SIG_INVALID_PARAMETER)
+    if (verify_data_len != PELZ_MSG_VERIFY_PARAM_INVALID)
     {
       temp_result = MSG_TEST_PARAM_HANDLING_ERROR;
     }
@@ -391,7 +391,7 @@ int test_verify_signature_helper(size_t test_data_in_len,
     verify_data_len = verify_signature(test_signed_msg,
                                        test_ca_cert,
                                        NULL);
-    if (verify_data_len != VERIFY_SIG_INVALID_PARAMETER)
+    if (verify_data_len != PELZ_MSG_VERIFY_PARAM_INVALID)
     {
       temp_result = MSG_TEST_PARAM_HANDLING_ERROR;
     }
@@ -400,7 +400,7 @@ int test_verify_signature_helper(size_t test_data_in_len,
     verify_data_len = verify_signature(test_signed_msg,
                                        test_ca_cert,
                                        NULL);
-    if (verify_data_len != VERIFY_SIG_INVALID_PARAMETER)
+    if (verify_data_len != PELZ_MSG_VERIFY_PARAM_INVALID)
     {
       temp_result = MSG_TEST_PARAM_HANDLING_ERROR;
     }
@@ -411,7 +411,7 @@ int test_verify_signature_helper(size_t test_data_in_len,
     verify_data_len = verify_signature(test_signed_msg,
                                        test_ca_cert,
                                        test_buf_ptr);
-    if (verify_data_len != VERIFY_SIG_INVALID_PARAMETER)
+    if (verify_data_len != PELZ_MSG_VERIFY_PARAM_INVALID)
     {
       temp_result = MSG_TEST_PARAM_HANDLING_ERROR;
     }

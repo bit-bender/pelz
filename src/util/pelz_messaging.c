@@ -220,6 +220,50 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA * msg_data_in)
   return msg;
 }
 
+int serialize_pelz_asn1_msg(const PELZ_MSG *msg_in, unsigned char **bytes_out)
+{
+  int num_bytes_out = PELZ_MSG_UNKNOWN_ERROR;
+
+  num_bytes_out = i2d_PELZ_MSG(msg_in, bytes_out);
+  if ((bytes_out == NULL) || (num_bytes_out <= 0))
+  {
+    pelz_sgx_log(LOG_ERR, "DER formatting (serialization) of PELZ_MSG failed");
+    unsigned long e = ERR_get_error();
+    while (e != 0)
+    {
+      char estring[256] = { 0 };
+      ERR_error_string_n(e, estring, 256);
+      pelz_sgx_log(LOG_ERR, estring);
+      e = ERR_get_error();
+    }
+    return PELZ_MSG_SERIALIZE_ERROR;
+  }
+
+  return num_bytes_out;
+}
+
+PELZ_MSG *deserialize_pelz_asn1_msg(const unsigned char *bytes_in,
+                                    long bytes_in_len)
+{
+  PELZ_MSG *msg_out = d2i_PELZ_MSG(NULL, &bytes_in, bytes_in_len);
+  if (msg_out == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "DER to ASN.1 sequence conversion "
+                          "(deserialization) failed");
+    unsigned long e = ERR_get_error();
+    while (e != 0)
+    {
+      char estring[256] = { 0 };
+      ERR_error_string_n(e, estring, 256);
+      pelz_sgx_log(LOG_ERR, estring);
+      e = ERR_get_error();
+    }
+    return NULL;
+  }
+
+  return msg_out;
+}
+
 int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
 {
   // parse 'message type' and 'request type' message fields
@@ -407,7 +451,7 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
       ((data_out != NULL) && (*data_out != NULL)))
   {
     pelz_sgx_log(LOG_ERR, "verify_signature(): invalid input parameter");
-    return VERIFY_SIG_INVALID_PARAMETER;
+    return PELZ_MSG_VERIFY_PARAM_INVALID;
   }
 
   // create BIO to hold signature verification output data
@@ -430,7 +474,7 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
     pelz_sgx_log(LOG_ERR, "object is not of type pkcs7-signedData");
     BIO_free(verify_out_bio);
     X509_STORE_free(v_store);
-    return VERIFY_SIG_CONTENT_TYPE_ERROR;
+    return PELZ_MSG_VERIFY_CONTENT_ERROR;
   }
 
   // use OpenSSL's CMS API to verify the signed message
@@ -448,7 +492,7 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
     }
     BIO_free(verify_out_bio);
     X509_STORE_free(v_store);
-    return VERIFY_SIG_VERIFY_ERROR;
+    return PELZ_MSG_VERIFY_FAIL;
   }
   X509_STORE_free(v_store);
 
@@ -457,7 +501,7 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
   {
     pelz_sgx_log(LOG_ERR, "invalid or empty data result of CMS_verify()");
     BIO_free(verify_out_bio);
-    return VERIFY_SIG_INVALID_DATA_RESULT;
+    return PELZ_MSG_VERIFY_RESULT_INVALID;
   }
 
   if (data_out == NULL)
@@ -467,7 +511,7 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
     {
       pelz_sgx_log(LOG_ERR, "memory allocation of verified data buffer failed");
       BIO_free(verify_out_bio);
-      return VERIFY_SIG_MALLOC_ERROR;   
+      return PELZ_MSG_MALLOC_ERROR;
     }
   }
   *data_out = (uint8_t *) calloc((size_t) bio_data_size, sizeof(uint8_t));
@@ -475,7 +519,7 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
   {
     pelz_sgx_log(LOG_ERR, "memory allocation of verified data buffer failed");
     BIO_free(verify_out_bio);
-    return VERIFY_SIG_MALLOC_ERROR;
+    return PELZ_MSG_MALLOC_ERROR;
   }
 
   int data_out_size = BIO_read(verify_out_bio, *data_out, bio_data_size);
@@ -484,7 +528,7 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
     pelz_sgx_log(LOG_ERR, "BIO_read() error");
     free(*data_out);
     BIO_free(verify_out_bio);
-    return VERIFY_SIG_BIO_READ_ERROR;
+    return PELZ_MSG_BIO_READ_ERROR;
   }
 
   BIO_free(verify_out_bio);

@@ -39,27 +39,32 @@ enum PELZ_REQ_TYPE { REQ_TYPE_MIN = 1,
                      REQ_TYPE_MAX = 2 };
 
 #define PELZ_MSG_SUCCESS 0
-#define PELZ_MSG_TYPE_TAG_ERROR -1
-#define PELZ_MSG_TYPE_PARSE_ERROR -2
-#define PELZ_MSG_TYPE_PARSE_INVALID -3
-#define PELZ_MSG_KEY_ID_TAG_ERROR -4
-#define PELZ_MSG_KEY_ID_PARSE_ERROR -5
-#define PELZ_MSG_KEY_ID_PARSE_INVALID -6
-#define PELZ_MSG_DATA_TAG_ERROR -7
-#define PELZ_MSG_DATA_PARSE_ERROR -8
-#define PELZ_MSG_DATA_PARSE_INVALID -9
-#define PELZ_MSG_STATUS_TAG_ERROR -10
-#define PELZ_MSG_STATUS_PARSE_ERROR -11
-#define PELZ_MSG_STATUS_PARSE_INVALID -12
 
-#define VERIFY_SIG_SUCCESS 0
-#define VERIFY_SIG_UNKOWN_ERROR -16
-#define VERIFY_SIG_INVALID_PARAMETER -17
-#define VERIFY_SIG_CONTENT_TYPE_ERROR -18
-#define VERIFY_SIG_VERIFY_ERROR -19
-#define VERIFY_SIG_INVALID_DATA_RESULT -20
-#define VERIFY_SIG_MALLOC_ERROR -21
-#define VERIFY_SIG_BIO_READ_ERROR -22
+#define PELZ_MSG_UNKNOWN_ERROR -1
+
+#define PELZ_MSG_MALLOC_ERROR -2
+#define PELZ_MSG_BIO_READ_ERROR -3
+
+#define PELZ_MSG_TYPE_TAG_ERROR -4
+#define PELZ_MSG_TYPE_PARSE_ERROR -5
+#define PELZ_MSG_TYPE_PARSE_INVALID -6
+#define PELZ_MSG_KEY_ID_TAG_ERROR -7
+#define PELZ_MSG_KEY_ID_PARSE_ERROR -8
+#define PELZ_MSG_KEY_ID_PARSE_INVALID -9
+#define PELZ_MSG_DATA_TAG_ERROR -10
+#define PELZ_MSG_DATA_PARSE_ERROR -11
+#define PELZ_MSG_DATA_PARSE_INVALID -12
+#define PELZ_MSG_STATUS_TAG_ERROR -13
+#define PELZ_MSG_STATUS_PARSE_ERROR -14
+#define PELZ_MSG_STATUS_PARSE_INVALID -15
+
+#define PELZ_MSG_SERIALIZE_ERROR -16
+#define PELZ_MSG_DESERIALIZE_ERROR -17
+
+#define PELZ_MSG_VERIFY_PARAM_INVALID -18
+#define PELZ_MSG_VERIFY_CONTENT_ERROR -19
+#define PELZ_MSG_VERIFY_FAIL -20
+#define PELZ_MSG_VERIFY_RESULT_INVALID -21
 
 /**
  * <pre>
@@ -121,6 +126,11 @@ charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf ciph
  *            A NULL pointer is returned when an error is encountered.
  */
 PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA *msg_data_in);
+
+int serialize_pelz_asn1_msg(const PELZ_MSG *msg_in, unsigned char **bytes_out);
+
+PELZ_MSG *deserialize_pelz_asn1_msg(const unsigned char *bytes_in,
+                                    long bytes_in_len);
 
 /**
  * <pre>

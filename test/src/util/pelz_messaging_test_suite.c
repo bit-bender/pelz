@@ -54,6 +54,18 @@ int pelz_messaging_suite_add_tests(CU_pSuite suite)
     return 1;
   }
 
+  if (NULL == CU_add_test(suite, "Test DER encode of signed pelz message",
+                                 test_der_encode_pelz_signed_msg))
+  {
+    return (1);
+  }
+
+  if (NULL == CU_add_test(suite, "Test DER decode of signed pelz message",
+                                 test_der_decode_pelz_signed_msg))
+  {
+    return (1);
+  }
+
   return (0);
 }
 
@@ -723,5 +735,21 @@ void test_verify_signature(void)
   free(test_der_cert);
   free(test_der_key);
   free(test_der_ca_cert);
+}
+
+void test_der_encode_pelz_signed_msg(void)
+{
+  pelz_log(LOG_DEBUG, "Start der_encode_pelz_signed_msg() functionality test");
+
+  int result = 0;
+  
+}
+
+void test_der_decode_pelz_signed_msg(void)
+{
+  pelz_log(LOG_DEBUG, "Start der_decode_pelz_signed_msg() functionality test");
+
+  int result = 0;
+
 }
 

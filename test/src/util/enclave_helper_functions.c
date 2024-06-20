@@ -686,3 +686,29 @@ int test_verify_signature_helper(size_t test_data_in_len,
 
   return MSG_TEST_SUCCESS;
 }
+
+int test_der_encode_pelz_signed_msg_helper(uint16_t test_msg_type,
+                                           uint16_t test_req_type,
+                                           size_t test_key_id_len,
+                                           unsigned char * test_key_id,
+                                           size_t test_data_len,
+                                           unsigned char * test_data,
+                                           size_t test_status_len,
+                                           unsigned char * test_status,
+                                           uint8_t test_select)
+{
+  return MSG_TEST_SUCCESS;
+}
+
+int test_der_decode_pelz_signed_msg_helper(uint16_t test_msg_type,
+                                           uint16_t test_req_type,
+                                           size_t test_key_id_len,
+                                           unsigned char * test_key_id,
+                                           size_t test_data_len,
+                                           unsigned char * test_data,
+                                           size_t test_status_len,
+                                           unsigned char * test_status,
+                                           uint8_t test_select)
+{
+  return MSG_TEST_SUCCESS;
+}

@@ -570,6 +570,19 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
   return data_out_size;
 }
 
+int der_encode_pelz_signed_msg(const CMS_ContentInfo *msg_in, unsigned char **bytes_out)
+{
+  return PELZ_MSG_SUCCESS;
+}
+
+CMS_ContentInfo *der_decode_pelz_signed_msg(const unsigned char *bytes_in,
+                                            long bytes_in_len)
+{
+  CMS_ContentInfo *msg_out = NULL;
+
+  return msg_out;
+}
+
 int validate_signature(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf data, charbuf iv, charbuf tag, charbuf signature, charbuf cert)
 {
   int result = 1;

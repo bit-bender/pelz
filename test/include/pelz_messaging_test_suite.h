@@ -18,6 +18,8 @@ void test_der_decode_pelz_asn1_msg(void);
 void test_parse_pelz_asn1_msg(void);
 void test_create_signed_data_msg(void);
 void test_verify_signature(void);
+void test_der_encode_pelz_signed_msg(void);
+void test_der_decode_pelz_signed_msg(void);
 
 //void test_create_validate_signature_simple(void);
 //void test_create_validate_signature(void);

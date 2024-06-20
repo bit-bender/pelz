@@ -155,10 +155,9 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out);
  * format (PELZ_MSG) into a binary array of bytes (DER-formatted).
  * </pre>
  *
- * @param[in]  msg_in        A byte array (uint8_t *) containing the input
- *                           data to be used for the creation of a CMS
- *                           "SignedData" message. Cannot be NULL or have
- *                           an invalid (negative) or empty (zero) length.
+ * @param[in]  msg_in        A pointer to an ASN.1 formatted pelz message
+ *                           (PELZ_MSG *) to be converted to a binary byte
+ *                           array (DER) fprmat. Cannot be NULL.
  *
  * @param[out] bytes_out     A pointer to a pointer to the byte array where
  *                           the DER-formatted output bytes will be returned
@@ -194,8 +193,9 @@ PELZ_MSG *der_decode_pelz_asn1_msg(const unsigned char *bytes_in,
 
 /**
  * <pre>
- * Creates a CMS message of type 'pkcs7-signedData' for the data contained
- * in the input data buffer (byte array).
+ * Creates a Cryptographic Message Syntax (CMS) message of type
+ * 'pkcs7-signedData' for the data contained in the input data
+ * buffer (byte array).
  * </pre>
  *
  * @param[in] data_in        A byte array (uint8_t *) containing the input
@@ -259,6 +259,51 @@ CMS_ContentInfo *create_signed_data_msg(uint8_t *data_in,
 int verify_signature(CMS_ContentInfo *signed_msg_in,
                      X509 *ca_cert,
                      uint8_t **data_out);
+
+/**
+ * <pre>
+ * Encodes an input CMS_ContentInfo struct containing a 'pkcs7-signedData'
+ * pelz message payload using Distinguished Encoding Rules (DER) formatting.
+ * In other words, this function serializes a signed CMS pelz message from
+ * an internal OpenSSL format (CMS_ContentInfo) into a binary array of bytes
+ * (DER-formatted).
+ * </pre>
+ *
+ * @param[in]  msg_in        Pointer to a CMS_ContentInfo struct specifying
+ *                           the input CMS "SignedData" message.
+ *                           Cannot be NULL.
+ *
+ * @param[out] bytes_out     A pointer to a pointer to the byte array where
+ *                           the DER-formatted output bytes will be returned
+ *                           to the caller. The byte array is allocated within
+ *                           this function. Therefore, a NULL byte array
+ *                           pointer should be passed in. The caller is
+ *                           responsible for freeing this buffer when done
+ *                           with it.
+ *
+ * @return number of data bytes allocated/written to the 'bytes_out' buffer
+ *         on success; error code (negative integer) otherwise
+ */
+int der_encode_pelz_signed_msg(const CMS_ContentInfo *msg_in, unsigned char **bytes_out);
+
+/**
+ * <pre>
+ * Decodes an input DER-formatted byte array into its original internal
+ * signed pelz CMS message (CMS_ContentInfo) format. In other words, this
+ * function de-serializes a DER-encoded, signed CMS pelz message
+ * to enable parsing the message using a structured format.
+ * </pre>
+ *
+ * @param[in] bytes_in      Pointer to the input buffer containing the
+ *                          DER-formatted byte array
+ *
+ * @param[in] bytes_in_len  Size (in bytes) of the input byte buffer
+ *
+ * @return    Pointer to the resultant pelz signed CMS mesaage struct.
+ *            A NULL pointer is returned when an error is encountered.
+ */
+CMS_ContentInfo *der_decode_pelz_signed_msg(const unsigned char *bytes_in,
+                                            long bytes_in_len);
 
 /**
  * <pre>

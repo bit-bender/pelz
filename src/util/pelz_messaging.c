@@ -158,29 +158,29 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA * msg_data_in)
   if ((msg_data_in->msg_type < MSG_TYPE_MIN) ||
       (msg_data_in->msg_type > MSG_TYPE_MAX))
   {
-    pelz_sgx_log(LOG_ERR, "error: unsupported input message type");
+    pelz_sgx_log(LOG_ERR, "ASN.1 create: unsupported input message type");
     return NULL;
   }
   if ((msg_data_in->req_type < REQ_TYPE_MIN) ||
       (msg_data_in->req_type > REQ_TYPE_MAX))
   {
-    pelz_sgx_log(LOG_ERR, "error: unsupported input request type");
+    pelz_sgx_log(LOG_ERR, "ASN.1 create: unsupported input request type");
     return NULL;
   }
   if ((msg_data_in->key_id.chars == NULL) ||
       (msg_data_in->key_id.len == 0))
   {
-    pelz_sgx_log(LOG_ERR, "error: NULL/empty input key ID");
+    pelz_sgx_log(LOG_ERR, "ASN.1 create: NULL/empty input key ID");
     return NULL;
   }
   if ((msg_data_in->data.chars == NULL) || (msg_data_in->data.len == 0))
   {
-    pelz_sgx_log(LOG_ERR, "error: NULL/empty input data buffer");
+    pelz_sgx_log(LOG_ERR, "ASN.1 create: NULL/empty input data buffer");
     return NULL;
   }
   if ((msg_data_in->status.chars == NULL) || (msg_data_in->status.len == 0))
   {
-    pelz_sgx_log(LOG_ERR, "error: NULL/empty message status string");
+    pelz_sgx_log(LOG_ERR, "ASN.1 create: NULL/empty message status string");
     return NULL;
   }
 
@@ -191,7 +191,7 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA * msg_data_in)
   type_val += msg_data_in->req_type;
   if (ASN1_INTEGER_set_uint64(msg->type, type_val) != 1)
   {
-    pelz_sgx_log(LOG_ERR, "error setting type message field");
+    pelz_sgx_log(LOG_ERR, "ASN.1 create: set type field error");
     return NULL;
   }
 
@@ -199,83 +199,25 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA * msg_data_in)
                       msg_data_in->key_id.chars,
                       (int) msg_data_in->key_id.len) != 1)
   {
-    pelz_sgx_log(LOG_ERR, "error setting message 'key ID' field");
+    pelz_sgx_log(LOG_ERR, "ASN.1 create: set 'key ID' field error");
     return NULL;
   }
   if (ASN1_OCTET_STRING_set(msg->data,
                             msg_data_in->data.chars,
                             (int) msg_data_in->data.len) != 1)
   {
-    pelz_sgx_log(LOG_ERR, "error setting message data field");
+    pelz_sgx_log(LOG_ERR, "ASN.1 create: set data field error");
     return NULL;
   }
   if (ASN1_STRING_set((ASN1_STRING *) msg->status,
                       msg_data_in->status.chars,
                       (int) msg_data_in->status.len) != 1)
   {
-    pelz_sgx_log(LOG_ERR, "error setting message status field");
+    pelz_sgx_log(LOG_ERR, "ASN.1 create: set status field error");
     return NULL;
   }
 
   return msg;
-}
-
-int der_encode_pelz_asn1_msg(const PELZ_MSG *msg_in, unsigned char **bytes_out)
-{
-  int num_bytes_out = PELZ_MSG_UNKNOWN_ERROR;
-
-  // check output buffer pointer parameter passed
-  //   - if pointer to byte array pointer is NULL, error
-  //   - if byte array previously allocated, free so we can allocate correctly
-  if (bytes_out == NULL)
-  {
-    pelz_sgx_log(LOG_ERR, "NULL output buffer pointer parameter");
-    return PELZ_MSG_PARAM_INVALID;
-  }
-  if (*bytes_out != NULL)
-  {
-    free(*bytes_out);
-    *bytes_out = NULL;
-  }
-
-  // DER-encode input message
-  num_bytes_out = i2d_PELZ_MSG(msg_in, bytes_out);
-  if ((bytes_out == NULL) || (num_bytes_out <= 0))
-  {
-    pelz_sgx_log(LOG_ERR, "DER encode of PELZ_MSG (ASN.1 sequence) failed");
-    unsigned long e = ERR_get_error();
-    while (e != 0)
-    {
-      char estring[256] = { 0 };
-      ERR_error_string_n(e, estring, 256);
-      pelz_sgx_log(LOG_ERR, estring);
-      e = ERR_get_error();
-    }
-    return PELZ_MSG_SERIALIZE_ERROR;
-  }
-
-  return num_bytes_out;
-}
-
-PELZ_MSG *der_decode_pelz_asn1_msg(const unsigned char *bytes_in,
-                                   long bytes_in_len)
-{
-  PELZ_MSG *msg_out = d2i_PELZ_MSG(NULL, &bytes_in, bytes_in_len);
-  if (msg_out == NULL)
-  {
-    pelz_sgx_log(LOG_ERR, "DER decode of PELZ_MSG ASN.1 sequence failed");
-    unsigned long e = ERR_get_error();
-    while (e != 0)
-    {
-      char estring[256] = { 0 };
-      ERR_error_string_n(e, estring, 256);
-      pelz_sgx_log(LOG_ERR, estring);
-      e = ERR_get_error();
-    }
-    return NULL;
-  }
-
-  return msg_out;
 }
 
 int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
@@ -287,14 +229,14 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   int tag = ASN1_STRING_type(msg_in->type);
   if (tag != V_ASN1_INTEGER)
   {
-    pelz_sgx_log(LOG_ERR, "invalid type message field format");
+    pelz_sgx_log(LOG_ERR, "ASN.1 parse: invalid 'type' field format");
     return PELZ_MSG_TYPE_TAG_ERROR;
   }
   int retval = ASN1_INTEGER_get_uint64(&type_val,
                                        (const ASN1_INTEGER *) msg_in->type);
   if (retval != 1)
   {
-    pelz_sgx_log(LOG_ERR, "error parsing type message field");
+    pelz_sgx_log(LOG_ERR, "ASN.1 parse: 'type' field parse error");
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -313,7 +255,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
       (parsed_msg_out->req_type < REQ_TYPE_MIN) ||
       (parsed_msg_out->req_type > REQ_TYPE_MAX))
   {
-    pelz_sgx_log(LOG_ERR, "parsed unsupported message type")
+    pelz_sgx_log(LOG_ERR, "ASN.1 parse: parsed 'type' result is unsupported");
     return PELZ_MSG_TYPE_PARSE_INVALID;
   }
 
@@ -321,7 +263,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   tag = ASN1_STRING_type(msg_in->key_id);
   if (tag != V_ASN1_UTF8STRING)
   {
-    pelz_sgx_log(LOG_ERR, "invalid key ID message field format");
+    pelz_sgx_log(LOG_ERR, "ASN.1 parse: invalid 'key ID' field format");
     return PELZ_MSG_KEY_ID_TAG_ERROR;
   }
   parsed_msg_out->key_id.len =
@@ -330,7 +272,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   if ((parsed_msg_out->key_id.chars == NULL) ||
       (parsed_msg_out->key_id.len == 0))
   {
-    pelz_sgx_log(LOG_ERR, "error parsing key ID message field");
+    pelz_sgx_log(LOG_ERR, "ASN.1 parse: 'key ID' field parse error");
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -346,14 +288,14 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   tag = ASN1_STRING_type(msg_in->data);
   if (tag != V_ASN1_OCTET_STRING)
   {
-    pelz_sgx_log(LOG_ERR, "invalid data message field format");
+    pelz_sgx_log(LOG_ERR, "ASN.1 parse: invalid 'data' field format");
     return PELZ_MSG_DATA_TAG_ERROR;
   }
   parsed_msg_out->data.len = (size_t) ASN1_STRING_length(msg_in->data);
   parsed_msg_out->data.chars = ASN1_STRING_get0_data(msg_in->data);
   if ((parsed_msg_out->data.chars == NULL) || (parsed_msg_out->data.len == 0))
   {
-    pelz_sgx_log(LOG_ERR, "error parsing data message field");
+    pelz_sgx_log(LOG_ERR, "ASN.1 parse: 'data' field parse error");
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -369,7 +311,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   tag = ASN1_STRING_type(msg_in->status);
   if (tag != V_ASN1_UTF8STRING)
   {
-    pelz_sgx_log(LOG_ERR, "invalid status message field format");
+    pelz_sgx_log(LOG_ERR, "ASN.1 parse: invalid 'status' field format");
     return PELZ_MSG_STATUS_TAG_ERROR;
   }
   parsed_msg_out->status.len =
@@ -378,7 +320,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   if ((parsed_msg_out->status.chars == NULL) ||
       (parsed_msg_out->status.len == 0))
   {
-    pelz_sgx_log(LOG_ERR, "error parsing data message field");
+    pelz_sgx_log(LOG_ERR, "ASN.1 parse: 'status' field parse error");
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -391,6 +333,78 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   }
 
   return PELZ_MSG_SUCCESS;
+}
+
+int der_encode_pelz_asn1_msg(const PELZ_MSG *msg_in, unsigned char **bytes_out)
+{
+  int num_bytes_out = PELZ_MSG_UNKNOWN_ERROR;
+
+  // if NULL input message pointer passed in, nothing to encode
+  if (msg_in == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "DER encode: NULL input message");
+    return PELZ_MSG_PARAM_INVALID;
+  }
+
+  // check output buffer pointer parameter passed
+  //   - if pointer to byte array pointer is NULL, error
+  //   - if byte array previously allocated, free so we can allocate correctly
+  if (bytes_out == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "DER encode: NULL output buffer pointer parameter");
+    return PELZ_MSG_PARAM_INVALID;
+  }
+  if (*bytes_out != NULL)
+  {
+    free(*bytes_out);
+    *bytes_out = NULL;
+  }
+
+  // DER-encode input message
+  num_bytes_out = i2d_PELZ_MSG(msg_in, bytes_out);
+  if ((bytes_out == NULL) || (num_bytes_out <= 0))
+  {
+    pelz_sgx_log(LOG_ERR, "DER encode: PELZ_MSG encode failed");
+    unsigned long e = ERR_get_error();
+    while (e != 0)
+    {
+      char estring[256] = { 0 };
+      ERR_error_string_n(e, estring, 256);
+      pelz_sgx_log(LOG_ERR, estring);
+      e = ERR_get_error();
+    }
+    return PELZ_MSG_SERIALIZE_ERROR;
+  }
+
+  return num_bytes_out;
+}
+
+PELZ_MSG *der_decode_pelz_asn1_msg(const unsigned char *bytes_in,
+                                   long bytes_in_len)
+{
+  // handle invalid input byte array (NULL pointer, empty, or invalid length)
+  if ((bytes_in == NULL) || (bytes_in_len <= 0))
+  {
+    pelz_sgx_log(LOG_ERR, "DER decode: invalid input byte buffer");
+    return NULL;
+  }
+
+  PELZ_MSG *msg_out = d2i_PELZ_MSG(NULL, &bytes_in, bytes_in_len);
+  if (msg_out == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "DER decode: PELZ_MSG decode failed");
+    unsigned long e = ERR_get_error();
+    while (e != 0)
+    {
+      char estring[256] = { 0 };
+      ERR_error_string_n(e, estring, 256);
+      pelz_sgx_log(LOG_ERR, estring);
+      e = ERR_get_error();
+    }
+    return NULL;
+  }
+
+  return msg_out;
 }
 
 CMS_ContentInfo *create_signed_data_msg(uint8_t *data_in,

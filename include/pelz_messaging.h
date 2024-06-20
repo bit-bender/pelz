@@ -40,31 +40,34 @@ enum PELZ_REQ_TYPE { REQ_TYPE_MIN = 1,
 
 #define PELZ_MSG_SUCCESS 0
 
+// General pelz messaging errors
 #define PELZ_MSG_UNKNOWN_ERROR -1
-
 #define PELZ_MSG_PARAM_INVALID -2
 #define PELZ_MSG_MALLOC_ERROR -3
 #define PELZ_MSG_BIO_READ_ERROR -4
 
-#define PELZ_MSG_TYPE_TAG_ERROR -5
-#define PELZ_MSG_TYPE_PARSE_ERROR -6
-#define PELZ_MSG_TYPE_PARSE_INVALID -7
-#define PELZ_MSG_KEY_ID_TAG_ERROR -8
-#define PELZ_MSG_KEY_ID_PARSE_ERROR -9
-#define PELZ_MSG_KEY_ID_PARSE_INVALID -10
-#define PELZ_MSG_DATA_TAG_ERROR -11
-#define PELZ_MSG_DATA_PARSE_ERROR -12
-#define PELZ_MSG_DATA_PARSE_INVALID -13
-#define PELZ_MSG_STATUS_TAG_ERROR -14
-#define PELZ_MSG_STATUS_PARSE_ERROR -15
-#define PELZ_MSG_STATUS_PARSE_INVALID -16
+// PELZ_MSG ASN.1 sequence create/parse errors
+#define PELZ_MSG_TYPE_TAG_ERROR -16
+#define PELZ_MSG_TYPE_PARSE_ERROR -17
+#define PELZ_MSG_TYPE_PARSE_INVALID -18
+#define PELZ_MSG_KEY_ID_TAG_ERROR -19
+#define PELZ_MSG_KEY_ID_PARSE_ERROR -20
+#define PELZ_MSG_KEY_ID_PARSE_INVALID -21
+#define PELZ_MSG_DATA_TAG_ERROR -22
+#define PELZ_MSG_DATA_PARSE_ERROR -23
+#define PELZ_MSG_DATA_PARSE_INVALID -24
+#define PELZ_MSG_STATUS_TAG_ERROR -25
+#define PELZ_MSG_STATUS_PARSE_ERROR -26
+#define PELZ_MSG_STATUS_PARSE_INVALID -27
 
-#define PELZ_MSG_SERIALIZE_ERROR -17
-#define PELZ_MSG_DESERIALIZE_ERROR -18
+// pelz messaging der encode/decode errors
+#define PELZ_MSG_SERIALIZE_ERROR -32
+#define PELZ_MSG_DESERIALIZE_ERROR -33
 
-#define PELZ_MSG_VERIFY_CONTENT_ERROR -19
-#define PELZ_MSG_VERIFY_FAIL -20
-#define PELZ_MSG_VERIFY_RESULT_INVALID -21
+// pelz messaging sign/verify errors
+#define PELZ_MSG_VERIFY_CONTENT_ERROR -48
+#define PELZ_MSG_VERIFY_FAIL -49
+#define PELZ_MSG_VERIFY_RESULT_INVALID -50
 
 /**
  * <pre>
@@ -129,6 +132,23 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA *msg_data_in);
 
 /**
  * <pre>
+ * Parses a PELZ_MSG ASN.1 sequesnce into a set of output parameters
+ * containing the message field values.
+ * </pre>
+ *
+ * @param[in] msg_in           Pointer to the input PELZ_MSG ASN.1 sequence
+ *                             to be parsed.
+ *
+ * @param[out] parsed_msg_out  Pointer to the output PELZ_MSG_DATA struct to
+ *                             hold the parsed message field values.
+ *
+ * @return                     Zero (0) on success, non-zero error code
+ *                             on failure
+ */
+int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out);
+
+/**
+ * <pre>
  * Encodes an input PELZ_MSG ASN.1 sequence using Distinguished Encoding
  * Rules (DER) formatting. In other words, this function serializes a
  * raw (unsigned, unencrypted) pelz message from an internal OpenSSL
@@ -171,23 +191,6 @@ int der_encode_pelz_asn1_msg(const PELZ_MSG *msg_in, unsigned char **bytes_out);
  */
 PELZ_MSG *der_decode_pelz_asn1_msg(const unsigned char *bytes_in,
                                    long bytes_in_len);
-
-/**
- * <pre>
- * Parses a PELZ_MSG ASN.1 sequesnce into a set of output parameters
- * containing the message field values.
- * </pre>
- *
- * @param[in] msg_in           Pointer to the input PELZ_MSG ASN.1 sequence
- *                             to be parsed.
- *
- * @param[out] parsed_msg_out  Pointer to the output PELZ_MSG_DATA struct to
- *                             hold the parsed message field values.
- *
- * @return                     Zero (0) on success, non-zero error code
- *                             on failure
- */
-int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out);
 
 /**
  * <pre>

@@ -13,6 +13,8 @@ int pelz_messaging_suite_add_tests(CU_pSuite suite);
 
 // Tests
 void test_create_pelz_asn1_msg(void);
+void test_der_encode_pelz_asn1_msg(void);
+void test_der_decode_pelz_asn1_msg(void);
 void test_parse_pelz_asn1_msg(void);
 void test_create_signed_data_msg(void);
 void test_verify_signature(void);

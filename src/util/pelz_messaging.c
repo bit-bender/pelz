@@ -335,107 +335,6 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   return PELZ_MSG_SUCCESS;
 }
 
-int der_encode_pelz_msg(const void *msg_in,
-                        unsigned char **bytes_out,
-                        MSG_FORMAT msg_format)
-{
-  int num_bytes_out = PELZ_MSG_UNKNOWN_ERROR;
-
-  // if NULL input message pointer passed in, nothing to encode
-  if (msg_in == NULL)
-  {
-    pelz_sgx_log(LOG_ERR, "DER encode: NULL input message");
-    return PELZ_MSG_PARAM_INVALID;
-  }
-
-  // check output buffer pointer parameter passed
-  //   - if pointer to byte array pointer is NULL, error
-  //   - if byte array previously allocated, free so we can allocate correctly
-  if (bytes_out == NULL)
-  {
-    pelz_sgx_log(LOG_ERR, "DER encode: NULL output buffer pointer parameter");
-    return PELZ_MSG_PARAM_INVALID;
-  }
-  if (*bytes_out != NULL)
-  {
-    free(*bytes_out);
-    *bytes_out = NULL;
-  }
-
-  // DER-encode input message
-  switch (msg_format)
-  {
-  case RAW:
-    num_bytes_out = i2d_PELZ_MSG((const PELZ_MSG *) msg_in, bytes_out);
-    break;
-  case CMS:
-    num_bytes_out = i2d_CMS_ContentInfo((const CMS_ContentInfo *) msg_in, bytes_out);
-    break;
-  default:
-    return PELZ_MSG_PARAM_INVALID;
-  }
-
-  // check result
-  if ((*bytes_out == NULL) || (num_bytes_out <= 0))
-  {
-    pelz_sgx_log(LOG_ERR, "DER encode: PELZ_MSG encode failed");
-    unsigned long e = ERR_get_error();
-    while (e != 0)
-    {
-      char estring[256] = { 0 };
-      ERR_error_string_n(e, estring, 256);
-      pelz_sgx_log(LOG_ERR, estring);
-      e = ERR_get_error();
-    }
-    return PELZ_MSG_SERIALIZE_ERROR;
-  }
-
-  return num_bytes_out;
-}
-
-void *der_decode_pelz_msg(const unsigned char *bytes_in,
-                          long bytes_in_len,
-                          MSG_FORMAT msg_format)
-{
-  void *msg_out = NULL;
-
-  // handle invalid input byte array (NULL pointer, empty, or invalid length)
-  if ((bytes_in == NULL) || (bytes_in_len <= 0))
-  {
-    pelz_sgx_log(LOG_ERR, "DER decode: invalid input byte buffer");
-    return NULL;
-  }
-
-  switch(msg_format)
-  {
-  case RAW:
-    msg_out = (void *) d2i_PELZ_MSG(NULL, &bytes_in, bytes_in_len);
-    break;
-  case CMS:
-    msg_out = (void *) d2i_CMS_ContentInfo(NULL, &bytes_in, bytes_in_len);
-    break; 
-  default:
-    pelz_sgx_log(LOG_ERR, "DER decode: invalid output message format");
-    return NULL;
-  }
-
-  if (msg_out == NULL)
-  {
-    pelz_sgx_log(LOG_ERR, "DER decode: PELZ_MSG decode failed");
-    unsigned long e = ERR_get_error();
-    while (e != 0)
-    {
-      char estring[256] = { 0 };
-      ERR_error_string_n(e, estring, 256);
-      pelz_sgx_log(LOG_ERR, estring);
-      e = ERR_get_error();
-    }
-    return NULL;
-  }
-
-  return msg_out;
-}
-
 CMS_ContentInfo *create_signed_data_msg(uint8_t *data_in,
                                         int data_in_len,
                                         X509 *signer_cert,
@@ -655,6 +554,107 @@ CMS_ContentInfo *der_decode_pelz_cms_msg(const unsigned char *bytes_in,
   }
 
   CMS_ContentInfo *msg_out = d2i_CMS_ContentInfo(NULL, &bytes_in, bytes_in_len);
+  if (msg_out == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "DER decode: PELZ_MSG decode failed");
+    unsigned long e = ERR_get_error();
+    while (e != 0)
+    {
+      char estring[256] = { 0 };
+      ERR_error_string_n(e, estring, 256);
+      pelz_sgx_log(LOG_ERR, estring);
+      e = ERR_get_error();
+    }
+    return NULL;
+  }
+
+  return msg_out;
+}
+
+int der_encode_pelz_msg(const void *msg_in,
+                        unsigned char **bytes_out,
+                        MSG_FORMAT msg_format)
+{
+  int num_bytes_out = PELZ_MSG_UNKNOWN_ERROR;
+
+  // if NULL input message pointer passed in, nothing to encode
+  if (msg_in == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "DER encode: NULL input message");
+    return PELZ_MSG_PARAM_INVALID;
+  }
+
+  // check output buffer pointer parameter passed
+  //   - if pointer to byte array pointer is NULL, error
+  //   - if byte array previously allocated, free so we can allocate correctly
+  if (bytes_out == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "DER encode: NULL output buffer pointer parameter");
+    return PELZ_MSG_PARAM_INVALID;
+  }
+  if (*bytes_out != NULL)
+  {
+    free(*bytes_out);
+    *bytes_out = NULL;
+  }
+
+  // DER-encode input message
+  switch (msg_format)
+  {
+  case RAW:
+    num_bytes_out = i2d_PELZ_MSG((const PELZ_MSG *) msg_in, bytes_out);
+    break;
+  case CMS:
+    num_bytes_out = i2d_CMS_ContentInfo((const CMS_ContentInfo *) msg_in, bytes_out);
+    break;
+  default:
+    return PELZ_MSG_PARAM_INVALID;
+  }
+
+  // check result
+  if ((*bytes_out == NULL) || (num_bytes_out <= 0))
+  {
+    pelz_sgx_log(LOG_ERR, "DER encode: PELZ_MSG encode failed");
+    unsigned long e = ERR_get_error();
+    while (e != 0)
+    {
+      char estring[256] = { 0 };
+      ERR_error_string_n(e, estring, 256);
+      pelz_sgx_log(LOG_ERR, estring);
+      e = ERR_get_error();
+    }
+    return PELZ_MSG_SERIALIZE_ERROR;
+  }
+
+  return num_bytes_out;
+}
+
+void *der_decode_pelz_msg(const unsigned char *bytes_in,
+                          long bytes_in_len,
+                          MSG_FORMAT msg_format)
+{
+  void *msg_out = NULL;
+
+  // handle invalid input byte array (NULL pointer, empty, or invalid length)
+  if ((bytes_in == NULL) || (bytes_in_len <= 0))
+  {
+    pelz_sgx_log(LOG_ERR, "DER decode: invalid input byte buffer");
+    return NULL;
+  }
+
+  switch(msg_format)
+  {
+  case RAW:
+    msg_out = (void *) d2i_PELZ_MSG(NULL, &bytes_in, bytes_in_len);
+    break;
+  case CMS:
+    msg_out = (void *) d2i_CMS_ContentInfo(NULL, &bytes_in, bytes_in_len);
+    break; 
+  default:
+    pelz_sgx_log(LOG_ERR, "DER decode: invalid output message format");
+    return NULL;
+  }
+
   if (msg_out == NULL)
   {
     pelz_sgx_log(LOG_ERR, "DER decode: PELZ_MSG decode failed");

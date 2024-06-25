@@ -38,6 +38,11 @@ enum PELZ_REQ_TYPE { REQ_TYPE_MIN = 1,
                      AES_KEY_UNWRAP = 2,
                      REQ_TYPE_MAX = 2 };
 
+typedef enum MSG_FORMAT { MSG_FORMAT_MIN = 1,
+                          RAW = 1,
+                          CMS = 2,
+                          MSG_FORMAT_MAX = 2 } MSG_FORMAT;
+
 #define PELZ_MSG_SUCCESS 0
 
 // General pelz messaging errors
@@ -166,30 +171,39 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out);
  *                           pointer should be passed in. The caller is
  *                           responsible for freeing this buffer when done
  *                           with it.
+ * 
+ * @param[in]  msg_format
  *
  * @return number of data bytes allocated/written to the 'bytes_out' buffer
  *         on success; error code (negative integer) otherwise
  */
-int der_encode_pelz_asn1_msg(const PELZ_MSG *msg_in, unsigned char **bytes_out);
+int der_encode_pelz_msg(const void *msg_in,
+                        unsigned char **bytes_out,
+                        MSG_FORMAT msg_format);
 
 /**
  * <pre>
  * Decodes an input DER-formatted byte array into its original internal
- * (PELZ_MSG ASN.1 sequence) format. In other words, this function
- * de-serializes a DER-encoded, raw (unsigned, unencrypted) pelz message
- * to enable parsing the message using a structured format.
+ * (PELZ_MSG ASN.1 sequence or CMS message) format. In other words, this
+ * function de-serializes a DER-encoded, raw array of bytes to enable
+ * parsing the message using a structured format.
  * </pre>
  *
- * @param[in] bytes_in      Pointer to the input buffer containing the
+ * @param[in]  bytes_in     Pointer to the input buffer containing the
  *                          DER-formatted byte array
  *
- * @param[in] bytes_in_len  Size (in bytes) of the input byte buffer
+ * @param[in]  bytes_in_len Size (in bytes) of the input byte buffer
+ * 
+ * @param[in]  msg_format   Enumerated format specification indicating
+ *                          what output format the DER-encoded input
+ *                          buffer should be converted to
  *
- * @return    Pointer to the resultant 'PELZ_MSG' ASN.1 message sequence.
+ * @return    Pointer to the resultant internally formatted struct value.
  *            A NULL pointer is returned when an error is encountered.
  */
-PELZ_MSG *der_decode_pelz_asn1_msg(const unsigned char *bytes_in,
-                                   long bytes_in_len);
+void *der_decode_pelz_msg(const unsigned char *bytes_in,
+                          long bytes_in_len,
+                          MSG_FORMAT msg_format);
 
 /**
  * <pre>
@@ -262,16 +276,15 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
 
 /**
  * <pre>
- * Encodes an input CMS_ContentInfo struct containing a 'pkcs7-signedData'
- * pelz message payload using Distinguished Encoding Rules (DER) formatting.
+ * Encodes an input CMS_ContentInfo struct containing a pelz message
+ * payload using Distinguished Encoding Rules (DER) formatting.
  * In other words, this function serializes a signed CMS pelz message from
  * an internal OpenSSL format (CMS_ContentInfo) into a binary array of bytes
  * (DER-formatted).
  * </pre>
  *
  * @param[in]  msg_in        Pointer to a CMS_ContentInfo struct specifying
- *                           the input CMS "SignedData" message.
- *                           Cannot be NULL.
+ *                           the input CMS message. Cannot be NULL.
  *
  * @param[out] bytes_out     A pointer to a pointer to the byte array where
  *                           the DER-formatted output bytes will be returned
@@ -284,14 +297,15 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
  * @return number of data bytes allocated/written to the 'bytes_out' buffer
  *         on success; error code (negative integer) otherwise
  */
-int der_encode_pelz_signed_msg(const CMS_ContentInfo *msg_in, unsigned char **bytes_out);
+int der_encode_pelz_cms_msg(const CMS_ContentInfo *msg_in,
+                            unsigned char **bytes_out);
 
 /**
  * <pre>
  * Decodes an input DER-formatted byte array into its original internal
- * signed pelz CMS message (CMS_ContentInfo) format. In other words, this
- * function de-serializes a DER-encoded, signed CMS pelz message
- * to enable parsing the message using a structured format.
+ * pelz CMS message (CMS_ContentInfo) format. In other words, this
+ * function de-serializes a DER-encoded, CMS pelz message to enable
+ * parsing the message using a structured format.
  * </pre>
  *
  * @param[in] bytes_in      Pointer to the input buffer containing the
@@ -299,11 +313,11 @@ int der_encode_pelz_signed_msg(const CMS_ContentInfo *msg_in, unsigned char **by
  *
  * @param[in] bytes_in_len  Size (in bytes) of the input byte buffer
  *
- * @return    Pointer to the resultant pelz signed CMS mesaage struct.
+ * @return    Pointer to the resultant pelz CMS mesaage struct.
  *            A NULL pointer is returned when an error is encountered.
  */
-CMS_ContentInfo *der_decode_pelz_signed_msg(const unsigned char *bytes_in,
-                                            long bytes_in_len);
+CMS_ContentInfo *der_decode_pelz_cms_msg(const unsigned char *bytes_in,
+                                         long bytes_in_len);
 
 /**
  * <pre>

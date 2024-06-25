@@ -1,4 +1,5 @@
-enclave {
+enclave
+{
   from "sgx_tsgxssl.edl" import *;
   from "sgx_pthread.edl" import *;
   from "pelz_enclave.edl" import *;
@@ -6,7 +7,8 @@ enclave {
   include "common_table.h"
   include "charbuf.h"
 
-  trusted {
+  trusted
+  {
     public TableResponseStatus test_table_lookup(TableType type,
                                                  charbuf id,
                                                  [out] size_t *index);
@@ -48,7 +50,7 @@ enclave {
       [in, size=test_status_len] unsigned char * test_status,
       uint8_t test_select);
 
-    public int test_der_encode_pelz_asn1_msg_helper(
+    public int test_der_encode_pelz_msg_helper(
       uint16_t test_msg_type,
       uint16_t test_req_type,
       size_t test_key_id_len,
@@ -59,7 +61,7 @@ enclave {
       [in, size=test_status_len] unsigned char * test_status,
       uint8_t test_select);
 
-    public int test_der_decode_pelz_asn1_msg_helper(
+    public int test_der_decode_pelz_msg_helper(
       uint16_t test_msg_type,
       uint16_t test_req_type,
       size_t test_key_id_len,
@@ -87,29 +89,5 @@ enclave {
       [in, size=test_der_signer_priv_len] const uint8_t *test_der_signer_priv,
       size_t test_der_ca_cert_len,
       [in, size=test_der_ca_cert_len] const uint8_t *test_der_ca_cert);
-
-    public int test_der_encode_pelz_signed_msg_helper(
-      uint16_t test_msg_type,
-      uint16_t test_req_type,
-      size_t test_key_id_len,
-      [in, size=test_key_id_len] unsigned char * test_key_id,
-      size_t test_data_len,
-      [in, size=test_data_len] unsigned char * test_data,
-      size_t test_status_len,
-      [in, size=test_status_len] unsigned char * test_status,
-      uint8_t test_select);
-
-    public int test_der_decode_pelz_signed_msg_helper(
-      uint16_t test_msg_type,
-      uint16_t test_req_type,
-      size_t test_key_id_len,
-      [in, size=test_key_id_len] unsigned char * test_key_id,
-      size_t test_data_len,
-      [in, size=test_data_len] unsigned char * test_data,
-      size_t test_status_len,
-      [in, size=test_status_len] unsigned char * test_status,
-      uint8_t test_select);
-
-
   };
 };

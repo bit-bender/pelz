@@ -21,31 +21,31 @@ int pelz_messaging_suite_add_tests(CU_pSuite suite)
   if (NULL == CU_add_test(suite, "Test pelz ASN.1 formatted message creation",
                                  test_create_pelz_asn1_msg))
   {
-    return (1);
+    return 1;
   }
   
   if (NULL == CU_add_test(suite, "Test pelz ASN.1 formatted message parsing",
                                  test_parse_pelz_asn1_msg))
   {
-    return (1);
+    return 1;
   }
 
-  if (NULL == CU_add_test(suite, "Test DER encode of pelz ASN.1 message",
-                                 test_der_encode_pelz_asn1_msg))
+  if (NULL == CU_add_test(suite, "Test pelz message DER encode functionality",
+                                 test_der_encode_pelz_msg))
   {
-    return (1);
+    return 1;
   }
 
-  if (NULL == CU_add_test(suite, "Test DER decode of pelz ASN.1 message",
-                                 test_der_decode_pelz_asn1_msg))
+  if (NULL == CU_add_test(suite, "Test pelz message DER decode functionality",
+                                 test_der_decode_pelz_msg))
   {
-    return (1);
+    return 1;
   }
 
   if (NULL == CU_add_test(suite, "Test pelz signed CMS message creation",
                                  test_create_signed_data_msg))
   {
-    return (1);
+    return 1;
   }
 
   if (NULL == CU_add_test(suite, "Test pelz signed CMS message verification",
@@ -54,19 +54,7 @@ int pelz_messaging_suite_add_tests(CU_pSuite suite)
     return 1;
   }
 
-  if (NULL == CU_add_test(suite, "Test DER encode of signed pelz message",
-                                 test_der_encode_pelz_signed_msg))
-  {
-    return (1);
-  }
-
-  if (NULL == CU_add_test(suite, "Test DER decode of signed pelz message",
-                                 test_der_decode_pelz_signed_msg))
-  {
-    return (1);
-  }
-
-  return (0);
+  return 0;
 }
 
 
@@ -354,115 +342,145 @@ void test_parse_pelz_asn1_msg(void)
 
 }
 
-void test_der_encode_pelz_asn1_msg(void)
+void test_der_encode_pelz_msg(void)
 {
-  pelz_log(LOG_DEBUG, "Start der_encode_pelz_asn1_msg() functionality test");
+  pelz_log(LOG_DEBUG, "Start pelz message DER encoding functionality test");
 
   int result = 0;
 
   // test that NULL input message is handled as expected
-  test_der_encode_pelz_asn1_msg_helper(eid,
-                                       &result,
-                                       REQUEST,
-                                       AES_KEY_WRAP,
-                                       15,
-                                       (uint8_t *) "file://test.key",
-                                       25,
-                                       (uint8_t *) "ASN1 DER-encode test data",
-                                       17,
-                                       (uint8_t *) "DER-encode status",
-                                       DER_ENCODE_PELZ_MSG_NULL_MSG_IN_TEST);
+  test_der_encode_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  AES_KEY_WRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  25,
+                                  (uint8_t *) "ASN1 DER-encode test data",
+                                  17,
+                                  (uint8_t *) "DER-encode status",
+                                  DER_ENCODE_PELZ_MSG_NULL_MSG_IN_TEST);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // test that NULL pointer to output buffer pointer is handled as expected
-  test_der_encode_pelz_asn1_msg_helper(eid,
-                                       &result,
-                                       REQUEST,
-                                       AES_KEY_WRAP,
-                                       15,
-                                       (uint8_t *) "file://test.key",
-                                       25,
-                                       (uint8_t *) "ASN1 DER-encode test data",
-                                       17,
-                                       (uint8_t *) "DER-encode status",
-                                       DER_ENCODE_PELZ_MSG_NULL_OUT_BUF_TEST);
+  test_der_encode_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  AES_KEY_WRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  25,
+                                  (uint8_t *) "ASN1 DER-encode test data",
+                                  17,
+                                  (uint8_t *) "DER-encode status",
+                                  DER_ENCODE_PELZ_MSG_NULL_OUT_BUF_TEST);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
-  // basic test with valid test input should produce expected encoded result
-  test_der_encode_pelz_asn1_msg_helper(eid,
-                                       &result,
-                                       REQUEST,
-                                       AES_KEY_WRAP,
-                                       15,
-                                       (uint8_t *) "file://test.key",
-                                       25,
-                                       (uint8_t *) "ASN1 DER-encode test data",
-                                       17,
-                                       (uint8_t *) "DER-encode status",
-                                       DER_ENCODE_PELZ_MSG_BASIC_TEST);
+  // basic test with valid (raw PELZ_MSG encoded) test input
+  // should produce expected encoded result
+  test_der_encode_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  AES_KEY_WRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  25,
+                                  (uint8_t *) "ASN1 DER-encode test data",
+                                  17,
+                                  (uint8_t *) "DER-encode status",
+                                  DER_ENCODE_RAW_PELZ_MSG_BASIC_TEST);
+  CU_ASSERT(result == MSG_TEST_SUCCESS);
+
+  // basic test (CMS encoded message input) with valid test input
+  // should produce expected encoded result
+  test_der_encode_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  AES_KEY_WRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  25,
+                                  (uint8_t *) "ASN1 DER-encode test data",
+                                  17,
+                                  (uint8_t *) "DER-encode status",
+                                  DER_ENCODE_CMS_PELZ_MSG_BASIC_TEST);
   CU_ASSERT(result == MSG_TEST_SUCCESS);
 }
 
-void test_der_decode_pelz_asn1_msg(void)
+void test_der_decode_pelz_msg(void)
 {
-  pelz_log(LOG_DEBUG, "Start der_decode_pelz_asn1_msg() functionality test");
+  pelz_log(LOG_DEBUG, "Start der_decode_pelz_msg() functionality test");
 
   int result = 0;
 
   // test that NULL pointer to input byte array is handled as expected
-  test_der_decode_pelz_asn1_msg_helper(eid,
-                                       &result,
-                                       REQUEST,
-                                       AES_KEY_WRAP,
-                                       15,
-                                       (uint8_t *) "file://test.key",
-                                       25,
-                                       (uint8_t *) "ASN1 DER-decode test data",
-                                       17,
-                                       (uint8_t *) "DER-decode status",
-                                       DER_DECODE_PELZ_MSG_NULL_BYTES_IN_TEST);
+  test_der_decode_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  AES_KEY_WRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  25,
+                                  (uint8_t *) "ASN1 DER-decode test data",
+                                  17,
+                                  (uint8_t *) "DER-decode status",
+                                  DER_DECODE_PELZ_MSG_NULL_BYTES_IN_TEST);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // test that empty input byte array is handled as expected
-  test_der_decode_pelz_asn1_msg_helper(eid,
-                                       &result,
-                                       REQUEST,
-                                       AES_KEY_WRAP,
-                                       15,
-                                       (uint8_t *) "file://test.key",
-                                       25,
-                                       (uint8_t *) "ASN1 DER-decode test data",
-                                       17,
-                                       (uint8_t *) "DER-decode status",
-                                       DER_DECODE_PELZ_MSG_EMPTY_BYTES_IN_TEST);
+  test_der_decode_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  AES_KEY_WRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  25,
+                                  (uint8_t *) "ASN1 DER-decode test data",
+                                  17,
+                                  (uint8_t *) "DER-decode status",
+                                  DER_DECODE_PELZ_MSG_EMPTY_BYTES_IN_TEST);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // test that negative length input byte array is handled as expected
-  test_der_decode_pelz_asn1_msg_helper(eid,
-                                       &result,
-                                       REQUEST,
-                                       AES_KEY_WRAP,
-                                       15,
-                                       (uint8_t *) "file://test.key",
-                                       25,
-                                       (uint8_t *) "ASN1 DER-decode test data",
-                                       17,
-                                       (uint8_t *) "DER-decode status",
-                                       DER_DECODE_PELZ_MSG_NEG_BYTES_IN_LEN_TEST);
+  test_der_decode_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  AES_KEY_WRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  25,
+                                  (uint8_t *) "ASN1 DER-decode test data",
+                                  17,
+                                  (uint8_t *) "DER-decode status",
+                                  DER_DECODE_PELZ_MSG_NEG_BYTES_IN_LEN_TEST);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // basic test with valid input should produce expected message output
-  test_der_decode_pelz_asn1_msg_helper(eid,
-                                       &result,
-                                       REQUEST,
-                                       AES_KEY_WRAP,
-                                       15,
-                                       (uint8_t *) "file://test.key",
-                                       25,
-                                       (uint8_t *) "ASN1 DER-decode test data",
-                                       17,
-                                       (uint8_t *) "DER-decode status",
-                                       DER_DECODE_PELZ_MSG_BASIC_TEST);
+  test_der_decode_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  AES_KEY_WRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  25,
+                                  (uint8_t *) "ASN1 DER-decode test data",
+                                  17,
+                                  (uint8_t *) "DER-decode status",
+                                  DER_DECODE_RAW_PELZ_MSG_BASIC_TEST);
+  CU_ASSERT(result == MSG_TEST_SUCCESS);
+
+  // basic test with valid input should produce expected message output
+  test_der_decode_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  AES_KEY_WRAP,
+                                  15,
+                                  (uint8_t *) "file://test.key",
+                                  25,
+                                  (uint8_t *) "ASN1 DER-decode test data",
+                                  17,
+                                  (uint8_t *) "DER-decode status",
+                                  DER_DECODE_CMS_PELZ_MSG_BASIC_TEST);
   CU_ASSERT(result == MSG_TEST_SUCCESS);
 }
 
@@ -736,20 +754,3 @@ void test_verify_signature(void)
   free(test_der_key);
   free(test_der_ca_cert);
 }
-
-void test_der_encode_pelz_signed_msg(void)
-{
-  pelz_log(LOG_DEBUG, "Start der_encode_pelz_signed_msg() functionality test");
-
-  int result = 0;
-  
-}
-
-void test_der_decode_pelz_signed_msg(void)
-{
-  pelz_log(LOG_DEBUG, "Start der_decode_pelz_signed_msg() functionality test");
-
-  int result = 0;
-
-}
-

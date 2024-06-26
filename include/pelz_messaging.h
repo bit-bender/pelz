@@ -74,6 +74,9 @@ typedef enum MSG_FORMAT { MSG_FORMAT_MIN = 1,
 #define PELZ_MSG_VERIFY_FAIL -49
 #define PELZ_MSG_VERIFY_RESULT_INVALID -50
 
+// pelz messaging CMS encrypt/decrypt errors
+#define PELZ_MSG_DECRYPT_FAIL -64
+
 /**
  * <pre>
  * Serializes request data so the signature can be validated.
@@ -155,8 +158,8 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out);
 /**
  * <pre>
  * Creates a Cryptographic Message Syntax (CMS) message of type
- * 'pkcs7-signedData' for the data contained in the input data
- * buffer (byte array).
+ * 'signedData' for the data contained in the input data buffer
+ * (byte array).
  * </pre>
  *
  * @param[in] data_in        A byte array (uint8_t *) containing the input
@@ -192,13 +195,13 @@ CMS_ContentInfo *create_signed_data_msg(uint8_t *data_in,
 
 /**
  * <pre>
- * Verifies the signature for a CMS message of type 'pkcs7-signedData'
+ * Verifies the signature for a CMS message of type 'signedData'
  * </pre>
  *
  * @param[in] signed_msg_in  The struct containing the CMS "SignedData"
  *                           content to be validated (pointer to a
  *                           CMS_ContentInfo struct with a content type
- *                           of 'pkcs7-signedData'). Cannot be NULL or
+ *                           of 'signedData'). Cannot be NULL or
  *                           have a different content type.
  *
  * @param[in] ca_cert        Pointer to X509 certificate for CA that
@@ -220,6 +223,47 @@ CMS_ContentInfo *create_signed_data_msg(uint8_t *data_in,
 int verify_signature(CMS_ContentInfo *signed_msg_in,
                      X509 *ca_cert,
                      uint8_t **data_out);
+
+/**
+ * <pre>
+ * Creates a Cryptographic Message Syntax (CMS) message of type
+ * 'authEnvelopedData' for the data contained in the input data
+ * buffer (byte array). As the cipher mode is AES-256 GCM, the
+ * payload will be symmetrically encrypted. The encryption key
+ * will be encrypted using the public key in the provided X509
+ * certification input parameter and included in the message.
+ * </pre>
+ *
+ * @param[in] data_in        A byte array (uint8_t *) containing the input
+ *                           data to be used for the creation of a CMS
+ *                           "SignedData" message. Cannot be NULL or have
+ *                           an invalid (negative) or empty (zero) length.
+ * 
+ * @param[in] data_in_len    An integer specifying the size (in bytes)
+ *                           of the input byte buffer (data_in).
+ *
+ * @param[in] encrypt_cert   Pointer to X509 certificate for the message
+ *                           recipient. This cert will be incorporated in
+ *                           the CMS message content. The recipient's private
+ *                           key can then be used to unwrap the symmetric
+ *                           encryption key and decrypt the message payload.
+ *                           Although not needed to decrypt the message, this
+ *                           cert is included to specify the recipient.
+ * 
+ * @param[in] encrypt_priv   Pointer to EVP_PKEY struct containing the
+ *                           message creator's private key that will be
+ *                           used to encrypt the message.
+ *
+ * @return                   Pointer to the resultant CMS_ContentInfo struct
+ *                           with 'pkcs7-signedData' content for the input
+ *                           parameters provided by the caller. This struct
+ *                           is allocated within this function, but must be
+ *                           freed by the caller. A NULL pointer is returned
+ *                           when an error is encountered.
+ */
+CMS_ContentInfo *create_enveloped_data_msg(uint8_t *data_in,
+                                           int data_in_len,
+                                           X509 *encrypt_cert);
 
 /**
  * <pre>

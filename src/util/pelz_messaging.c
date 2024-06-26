@@ -498,65 +498,38 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
   return data_out_size;
 }
 
-int der_encode_pelz_cms_msg(const CMS_ContentInfo *msg_in,
-                            unsigned char **bytes_out)
+CMS_ContentInfo *create_enveloped_data_msg(uint8_t *data_in,
+                                           int data_in_len,
+                                           X509 *encrypt_cert)
 {
-  int num_bytes_out = PELZ_MSG_UNKNOWN_ERROR;
+  CMS_ContentInfo *msg_out = NULL;
 
-  // if NULL input message pointer passed in, nothing to encode
-  if (msg_in == NULL)
+  // check input data is not NULL, empty, or of invalid length
+  if ((data_in == NULL) || (data_in_len <= 0) || (encrypt_cert == NULL))
   {
-    pelz_sgx_log(LOG_ERR, "DER encode: NULL input message");
-    return PELZ_MSG_PARAM_INVALID;
-  }
-
-  // check output buffer pointer parameter passed
-  //   - if pointer to byte array pointer is NULL, error
-  //   - if byte array previously allocated, free so we can allocate correctly
-  if (bytes_out == NULL)
-  {
-    pelz_sgx_log(LOG_ERR, "DER encode: NULL output buffer pointer parameter");
-    return PELZ_MSG_PARAM_INVALID;
-  }
-  if (*bytes_out != NULL)
-  {
-    free(*bytes_out);
-    *bytes_out = NULL;
-  }
-
-  // DER-encode input message
-  num_bytes_out = i2d_CMS_ContentInfo(msg_in, bytes_out);
-  if ((*bytes_out == NULL) || (num_bytes_out <= 0))
-  {
-    pelz_sgx_log(LOG_ERR, "DER encode: PELZ_MSG encode failed");
-    unsigned long e = ERR_get_error();
-    while (e != 0)
-    {
-      char estring[256] = { 0 };
-      ERR_error_string_n(e, estring, 256);
-      pelz_sgx_log(LOG_ERR, estring);
-      e = ERR_get_error();
-    }
-    return PELZ_MSG_SERIALIZE_ERROR;
-  }
-
-  return num_bytes_out;
-}
-
-CMS_ContentInfo *der_decode_pelz_cms_msg(const unsigned char *bytes_in,
-                                         long bytes_in_len)
-{
-  // handle invalid input byte array (NULL pointer, empty, or invalid length)
-  if ((bytes_in == NULL) || (bytes_in_len <= 0))
-  {
-    pelz_sgx_log(LOG_ERR, "DER decode: invalid input byte buffer");
+    pelz_sgx_log(LOG_ERR,
+                 "create_enveloped_data_msg(): invalid input parameter");
     return NULL;
   }
 
-  CMS_ContentInfo *msg_out = d2i_CMS_ContentInfo(NULL, &bytes_in, bytes_in_len);
+  STACK_OF(X509) * cert_stack = sk_X509_new_null();
+  sk_X509_push(cert_stack, encrypt_cert);
+  if (sk_X509_num(cert_stack) != 1)
+  {
+    pelz_sgx_log(LOG_ERR,
+                 "create_enveloped_data_msg(): X509 certificate stack error");
+    return NULL;
+  }
+  BIO *cms_enc_bio = BIO_new_mem_buf(data_in, data_in_len);
+
+  msg_out = CMS_encrypt(cert_stack,
+                        cms_enc_bio,
+                        EVP_aes_256_gcm(),
+                        CMS_BINARY);
   if (msg_out == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "DER decode: PELZ_MSG decode failed");
+    pelz_sgx_log(LOG_ERR,
+                 "create_enveloped_data_msg(): create CMS message error");
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -565,10 +538,61 @@ CMS_ContentInfo *der_decode_pelz_cms_msg(const unsigned char *bytes_in,
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return NULL;
   }
 
+  BIO_free(cms_enc_bio);
   return msg_out;
+}
+
+int decrypt_enveloped_data_msg(CMS_ContentInfo *msg_in,
+                               X509 *decrypt_cert,
+                               EVP_PKEY *decrypt_key,
+                               uint8_t **data_out)
+{
+  int retval = PELZ_MSG_UNKNOWN_ERROR;
+
+  // validate input parameters
+  if ((msg_in == NULL) ||
+      (decrypt_key == NULL) ||
+      (data_out == NULL) ||
+      ((data_out != NULL) && (*data_out != NULL)))
+  {
+    pelz_sgx_log(LOG_ERR,
+                 "decrypt_enveloped_data_msg(): invalid input parameter");
+    return PELZ_MSG_PARAM_INVALID;
+  }
+
+  // create BIO to hold decrypted message result
+  BIO * decrypt_out_bio = BIO_new(BIO_s_mem());
+
+  // decrypt input CMS enveloped message
+  int decrypt_retval = CMS_decrypt(msg_in,
+                                   decrypt_key,
+                                   decrypt_cert,
+                                   NULL,
+                                   decrypt_out_bio,
+                                   CMS_BINARY);
+  if (decrypt_retval != 1)
+  {
+    pelz_sgx_log(LOG_ERR, "decrypt_enveloped_data_msg(): CMS decrypt error");
+    unsigned long e = ERR_get_error();
+    while (e != 0)
+    {
+      char estring[256] = { 0 };
+      ERR_error_string_n(e, estring, 256);
+      pelz_sgx_log(LOG_ERR, estring);
+      e = ERR_get_error();
+    }
+    return PELZ_MSG_DECRYPT_FAIL;
+  }
+
+  // read decrypted message bytes out of BIO
+  int decrypt_out_bio_size = BIO_pending(decrypt_out_bio);
+  *data_out = calloc((size_t) decrypt_out_bio_size, sizeof(uint8_t));
+  retval = BIO_read(decrypt_out_bio, *data_out, decrypt_out_bio_size);
+  BIO_free(decrypt_out_bio);
+
+  return retval;
 }
 
 int der_encode_pelz_msg(const void *msg_in,

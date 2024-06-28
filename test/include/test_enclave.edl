@@ -30,8 +30,10 @@ enclave
       [out] unsigned char **outData);
 
     public int test_create_pelz_asn1_msg_helper(
-      uint16_t test_msg_type,
-      uint16_t test_req_type,
+      uint8_t test_msg_type,
+      uint8_t test_req_type,
+      size_t test_cipher_len,
+      [in, size=test_cipher_len] unsigned char * test_cipher,
       size_t test_key_id_len,
       [in, size=test_key_id_len] unsigned char * test_key_id,
       size_t test_data_len,
@@ -40,8 +42,10 @@ enclave
       [in, size=test_status_len] unsigned char * test_status);
 
     public int test_parse_pelz_asn1_msg_helper(
-      uint16_t test_msg_type,
-      uint16_t test_req_type,
+      uint8_t test_msg_type,
+      uint8_t test_req_type,
+      size_t test_cipher_len,
+      [in, size=test_cipher_len] unsigned char * test_cipher,
       size_t test_key_id_len,
       [in, size=test_key_id_len] unsigned char * test_key_id,
       size_t test_data_len,
@@ -50,7 +54,7 @@ enclave
       [in, size=test_status_len] unsigned char * test_status,
       uint8_t test_select);
 
-    public int test_create_signed_data_msg_helper(
+    public int test_create_pelz_signed_msg_helper(
       size_t test_data_in_len,
       [in, size=test_data_in_len] uint8_t *test_data_in,
       size_t test_der_signer_cert_len,
@@ -58,7 +62,7 @@ enclave
       size_t test_der_signer_priv_len,
       [in, size=test_der_signer_priv_len] const uint8_t *test_der_signer_priv);
 
-    public int test_verify_signature_helper(
+    public int test_verify_pelz_signed_msg_helper(
       size_t test_data_in_len,
       [in, size=test_data_in_len] uint8_t *test_data_in,
       size_t test_der_signer_cert_len,
@@ -67,10 +71,28 @@ enclave
       [in, size=test_der_signer_priv_len] const uint8_t *test_der_signer_priv,
       size_t test_der_ca_cert_len,
       [in, size=test_der_ca_cert_len] const uint8_t *test_der_ca_cert);
+
+    public int test_create_pelz_enveloped_msg_helper(
+      size_t test_data_in_len,
+      [in, size=test_data_in_len] uint8_t *test_data_in,
+      size_t test_der_signer_cert_len,
+      [in, size=test_der_signer_cert_len] const uint8_t *test_der_signer_cert,
+      size_t test_der_signer_priv_len,
+      [in, size=test_der_signer_priv_len] const uint8_t *test_der_signer_priv);
+
+    public int test_decrypt_pelz_enveloped_msg_helper(
+      size_t test_data_in_len,
+      [in, size=test_data_in_len] uint8_t *test_data_in,
+      size_t test_der_cert_len,
+      [in, size=test_der_cert_len] const uint8_t *test_der_cert,
+      size_t test_der_priv_len,
+      [in, size=test_der_priv_len] const uint8_t *test_der_priv);
     
     public int test_der_encode_pelz_msg_helper(
-      uint16_t test_msg_type,
-      uint16_t test_req_type,
+      uint8_t test_msg_type,
+      uint8_t test_req_type,
+      size_t test_cipher_len,
+      [in, size=test_cipher_len] unsigned char * test_cipher,
       size_t test_key_id_len,
       [in, size=test_key_id_len] unsigned char * test_key_id,
       size_t test_data_len,
@@ -80,8 +102,10 @@ enclave
       uint8_t test_select);
 
     public int test_der_decode_pelz_msg_helper(
-      uint16_t test_msg_type,
-      uint16_t test_req_type,
+      uint8_t test_msg_type,
+      uint8_t test_req_type,
+      size_t test_cipher_len,
+      [in, size=test_cipher_len] unsigned char * test_cipher,
       size_t test_key_id_len,
       [in, size=test_key_id_len] unsigned char * test_key_id,
       size_t test_data_len,

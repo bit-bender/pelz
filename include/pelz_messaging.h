@@ -13,33 +13,36 @@ extern "C"
 #include "pelz_request_handler.h"
 #include "pelz_enclave.h"
 
+typedef enum PELZ_MSG_TYPE { MSG_TYPE_MIN = 1,
+                             REQUEST = 1,
+                             RESPONSE = 2,
+                             MSG_TYPE_MAX = 2 } PELZ_MSG_TYPE;
+
+typedef enum PELZ_REQ_TYPE { REQ_TYPE_MIN = 1,
+                             KEY_WRAP = 1,
+                             KEY_UNWRAP = 2,
+                             REQ_TYPE_MAX = 2 } PELZ_REQ_TYPE;
+
 typedef struct PELZ_MSG_DATA {
-  uint16_t msg_type;
-  uint16_t req_type;
+  PELZ_MSG_TYPE msg_type;
+  PELZ_REQ_TYPE req_type;
+  charbuf cipher;
   charbuf key_id;
   fixed_charbuf data;
   charbuf status;
 } PELZ_MSG_DATA;
 
 typedef struct PELZ_MSG {
-  ASN1_INTEGER * type;
+  ASN1_ENUMERATED * msg_type;
+  ASN1_ENUMERATED * req_type;
+  ASN1_UTF8STRING * cipher;
   ASN1_UTF8STRING * key_id;
   ASN1_OCTET_STRING * data;
   ASN1_UTF8STRING * status;
 } PELZ_MSG;
 
-enum PELZ_MSG_TYPE { MSG_TYPE_MIN = 1,
-                     REQUEST = 1,
-                     RESPONSE = 2,
-                     MSG_TYPE_MAX = 2 };
-
-enum PELZ_REQ_TYPE { REQ_TYPE_MIN = 1,
-                     AES_KEY_WRAP = 1,
-                     AES_KEY_UNWRAP = 2,
-                     REQ_TYPE_MAX = 2 };
-
 typedef enum MSG_FORMAT { MSG_FORMAT_MIN = 1,
-                          RAW = 1,
+                          ASN1 = 1,
                           CMS = 2,
                           MSG_FORMAT_MAX = 2 } MSG_FORMAT;
 
@@ -52,30 +55,38 @@ typedef enum MSG_FORMAT { MSG_FORMAT_MIN = 1,
 #define PELZ_MSG_BIO_READ_ERROR -4
 
 // PELZ_MSG ASN.1 sequence create/parse errors
-#define PELZ_MSG_TYPE_TAG_ERROR -16
-#define PELZ_MSG_TYPE_PARSE_ERROR -17
-#define PELZ_MSG_TYPE_PARSE_INVALID -18
-#define PELZ_MSG_KEY_ID_TAG_ERROR -19
-#define PELZ_MSG_KEY_ID_PARSE_ERROR -20
-#define PELZ_MSG_KEY_ID_PARSE_INVALID -21
-#define PELZ_MSG_DATA_TAG_ERROR -22
-#define PELZ_MSG_DATA_PARSE_ERROR -23
-#define PELZ_MSG_DATA_PARSE_INVALID -24
-#define PELZ_MSG_STATUS_TAG_ERROR -25
-#define PELZ_MSG_STATUS_PARSE_ERROR -26
-#define PELZ_MSG_STATUS_PARSE_INVALID -27
+#define PELZ_MSG_MSG_TYPE_TAG_ERROR -32
+#define PELZ_MSG_MSG_TYPE_PARSE_ERROR -33
+#define PELZ_MSG_MSG_TYPE_PARSE_INVALID -34
+#define PELZ_MSG_REQ_TYPE_TAG_ERROR -35
+#define PELZ_MSG_REQ_TYPE_PARSE_ERROR -36
+#define PELZ_MSG_REQ_TYPE_PARSE_INVALID -37
+#define PELZ_MSG_CIPHER_TAG_ERROR -38
+#define PELZ_MSG_CIPHER_PARSE_ERROR -39
+#define PELZ_MSG_CIPHER_PARSE_INVALID -40
+#define PELZ_MSG_KEY_ID_TAG_ERROR -41
+#define PELZ_MSG_KEY_ID_PARSE_ERROR -42
+#define PELZ_MSG_KEY_ID_PARSE_INVALID -43
+#define PELZ_MSG_DATA_TAG_ERROR -44
+#define PELZ_MSG_DATA_PARSE_ERROR -45
+#define PELZ_MSG_DATA_PARSE_INVALID -46
+#define PELZ_MSG_STATUS_TAG_ERROR -47
+#define PELZ_MSG_STATUS_PARSE_ERROR -48
+#define PELZ_MSG_STATUS_PARSE_INVALID -49
 
 // pelz messaging der encode/decode errors
-#define PELZ_MSG_SERIALIZE_ERROR -32
-#define PELZ_MSG_DESERIALIZE_ERROR -33
+#define PELZ_MSG_SERIALIZE_ERROR -64
+#define PELZ_MSG_DESERIALIZE_ERROR -65
 
 // pelz messaging sign/verify errors
-#define PELZ_MSG_VERIFY_CONTENT_ERROR -48
-#define PELZ_MSG_VERIFY_FAIL -49
-#define PELZ_MSG_VERIFY_RESULT_INVALID -50
+#define PELZ_MSG_VERIFY_CONTENT_ERROR -96
+#define PELZ_MSG_VERIFY_FAIL -97
+#define PELZ_MSG_VERIFY_RESULT_INVALID -98
 
 // pelz messaging CMS encrypt/decrypt errors
-#define PELZ_MSG_DECRYPT_FAIL -64
+#define PELZ_MSG_DECRYPT_CONTENT_ERROR -128
+#define PELZ_MSG_DECRYPT_FAIL -129
+#define PELZ_MSG_DECRYPT_RESULT_INVALID -130
 
 /**
  * <pre>
@@ -170,14 +181,14 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out);
  * @param[in] data_in_len    An integer specifying the size (in bytes)
  *                           of the input byte buffer (data_in).
  *
- * @param[in] signer_cert    Pointer to X509 certificate for signer. This
+ * @param[in] sign_cert      Pointer to X509 certificate for signer. This
  *                           cert will be incorporated in the CMS message
  *                           content so that the recipient can use it to
  *                           validate the message. This cert must be signed
  *                           by the Certificate Authority (CA) specified by
  *                           the recipient, as this cert will be validated.
  *
- * @param[in] signer_priv    Pointer to EVP_PKEY struct containing the
+ * @param[in] sign_priv      Pointer to EVP_PKEY struct containing the
  *                           signer's private key that will be used to
  *                           create the signature.
  *
@@ -188,10 +199,10 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out);
  *                           freed by the caller. A NULL pointer is returned
  *                           when an error is encountered.
  */
-CMS_ContentInfo *create_signed_data_msg(uint8_t *data_in,
+CMS_ContentInfo *create_pelz_signed_msg(uint8_t *data_in,
                                         int data_in_len,
-                                        X509 *signer_cert,
-                                        EVP_PKEY *signer_priv);
+                                        X509 *sign_cert,
+                                        EVP_PKEY *sign_priv);
 
 /**
  * <pre>
@@ -220,9 +231,9 @@ CMS_ContentInfo *create_signed_data_msg(uint8_t *data_in,
  * @return number of data bytes allocated/written to the 'data_out' buffer
  *         on success; error code (negative integer) otherwise
  */
-int verify_signature(CMS_ContentInfo *signed_msg_in,
-                     X509 *ca_cert,
-                     uint8_t **data_out);
+int verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
+                           X509 *ca_cert,
+                           uint8_t **data_out);
 
 /**
  * <pre>
@@ -250,10 +261,6 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
  *                           Although not needed to decrypt the message, this
  *                           cert is included to specify the recipient.
  * 
- * @param[in] encrypt_priv   Pointer to EVP_PKEY struct containing the
- *                           message creator's private key that will be
- *                           used to encrypt the message.
- *
  * @return                   Pointer to the resultant CMS_ContentInfo struct
  *                           with 'pkcs7-signedData' content for the input
  *                           parameters provided by the caller. This struct
@@ -261,9 +268,48 @@ int verify_signature(CMS_ContentInfo *signed_msg_in,
  *                           freed by the caller. A NULL pointer is returned
  *                           when an error is encountered.
  */
-CMS_ContentInfo *create_enveloped_data_msg(uint8_t *data_in,
+CMS_ContentInfo *create_pelz_enveloped_msg(uint8_t *data_in,
                                            int data_in_len,
                                            X509 *encrypt_cert);
+
+/**
+ * <pre>
+ * Decrypts (unenvelops) a Cryptographic Message Syntax (CMS)
+ * message of type 'authEnvelopedData'. As the cipher mode is
+ * AES-256 GCM, the payload will be symmetrically decrypted.
+ * The decryption key will be unwrapped using the provided
+ * private asymmetric key.
+ * </pre>
+ *
+ * @param[in]  enveloped_msg_in
+ * 
+ * @param[in]  encrypt_cert     Pointer to X509 certificate for the message
+ *                              recipient. This cert will be incorporated in
+ *                              the CMS message content. The recipient's private
+ *                              key can then be used to unwrap the symmetric
+ *                              encryption key and decrypt the message payload.
+ *                              Although not needed to decrypt the message, this
+ *                              cert can be included to specify the recipient.
+ * 
+ * @param[in]  decrypt_priv     Pointer to EVP_PKEY struct containing the
+ *                              message creator's private key that will be
+ *                              used to unwrap the symmetric key needed to
+ *                              decrypt the message.
+ *
+ * @param[out] data_out         Pointer to the byte array where the decrypted
+ *                              output data will be placed
+ *
+ * @return                      Pointer to the resultant CMS_ContentInfo struct
+ *                              with 'authEnvelopedData' content for the input
+ *                              parameters provided by the caller. This struct
+ *                              is allocated within this function, but must be
+ *                              freed by the caller. A NULL pointer is returned
+ *                              when an error is encountered.
+ */
+int decrypt_pelz_enveloped_msg(CMS_ContentInfo *enveloped_msg_in,
+                               X509 *encrypt_cert,
+                               EVP_PKEY *decrypt_priv,
+                               uint8_t **data_out);
 
 /**
  * <pre>

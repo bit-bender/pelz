@@ -782,7 +782,7 @@ int test_der_encode_pelz_msg_helper(uint8_t test_msg_type,
     pelz_sgx_log(LOG_ERR, "error creating ASN.1 test message");
     return MSG_TEST_SETUP_ERROR;
   }
-  if ((test_select == DER_ENCODE_CMS_PELZ_MSG_BASIC_TEST))
+  if (test_select == DER_ENCODE_CMS_PELZ_MSG_BASIC_TEST)
   {
     der_test_msg_len = der_encode_pelz_msg((const void *) test_msg,
                                            &der_test_msg,
@@ -1073,6 +1073,9 @@ int test_der_decode_pelz_msg_helper(uint8_t test_msg_type,
     }
     if ((parsed_decoded_test_msg_data.msg_type != test_msg_data_in.msg_type) ||
         (parsed_decoded_test_msg_data.req_type != test_msg_data_in.req_type) ||
+        (memcmp(parsed_decoded_test_msg_data.cipher.chars,
+                test_msg_data_in.cipher.chars,
+                test_msg_data_in.cipher.len) != 0) ||
         (memcmp(parsed_decoded_test_msg_data.key_id.chars,
                 test_msg_data_in.key_id.chars,
                 test_msg_data_in.key_id.len) != 0) ||

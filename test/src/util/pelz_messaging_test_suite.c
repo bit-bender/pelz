@@ -605,10 +605,23 @@ void test_verify_pelz_signed_msg(void)
 {
   pelz_log(LOG_DEBUG, "Start verify_pelz_signed_msg() functionality test");
 
+  TableResponseStatus status;
+  uint64_t handle = 0;
   int result = 0;
 
   char *test_data = "some signed data\0";
   size_t test_data_len = (size_t) (strlen(test_data) + 1);
+
+  if (pelz_load_file_to_enclave("test/data/ca_pub.der.nkl", &handle) == 0)
+  {
+    add_cert_to_table(eid, &status, CA_TABLE, handle);
+    CU_ASSERT(status == OK);
+    pelz_log(LOG_INFO, "CA Table add complete");
+    handle = 0;
+  }
+  size_t ca_cnt = 0;
+  table_id_count(eid, &status, CA_TABLE, &ca_cnt);
+  pelz_log(LOG_DEBUG, "CA table size = %zu", ca_cnt);
 
   BIO *test_cert_bio = BIO_new_file("test/data/msg_test_req_pub.pem", "r");
   if (test_cert_bio == NULL)
@@ -650,27 +663,7 @@ void test_verify_pelz_signed_msg(void)
   }
   EVP_PKEY_free(test_key);
 
-  BIO *test_ca_cert_bio = BIO_new_file("test/data/ca_pub.pem", "r");
-  if (test_ca_cert_bio == NULL)
-  {
-    CU_FAIL("error creating BIO for reading test CA cert from file");
-  }
-  X509 *test_ca_cert = PEM_read_bio_X509(test_ca_cert_bio, NULL, 0, NULL);
-  if (test_ca_cert == NULL)
-  {
-    CU_FAIL("error creating X509 certificate for test CA");
-  }
-  BIO_free(test_ca_cert_bio);
-  int test_der_ca_cert_len = -1;
-  uint8_t *test_der_ca_cert = NULL;
-  test_der_ca_cert_len = i2d_X509(test_ca_cert, &test_der_ca_cert);
-  if ((test_der_ca_cert == NULL) || (test_der_ca_cert_len <= 0))
-  {
-    CU_FAIL("error creating DER-formatted test CA certificate");
-  }
-  X509_free(test_ca_cert);
-
-  // NULL input data should run NULL signed message input test case
+  // NULL signed message input test case
   test_verify_pelz_signed_msg_helper(eid,
                                      &result,
                                      test_data_len,
@@ -679,11 +672,10 @@ void test_verify_pelz_signed_msg(void)
                                      test_der_cert,
                                      test_der_key_len,
                                      test_der_key,
-                                     (size_t) test_der_ca_cert_len,
-                                     NULL);
+                                     VERIFY_PELZ_SIGNED_MSG_NULL_IN_MSG_TEST);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
-  // NULL CA cert case should run remaining invalid parameter tests
+  // NULL output buffer double pointer test case
   test_verify_pelz_signed_msg_helper(eid,
                                      &result,
                                      test_data_len,
@@ -692,8 +684,19 @@ void test_verify_pelz_signed_msg(void)
                                      test_der_cert,
                                      test_der_key_len,
                                      test_der_key,
-                                     (size_t) test_der_ca_cert_len,
-                                     NULL);
+                                     VERIFY_PELZ_SIGNED_MSG_NULL_OUT_BUF_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // pre-allocated output buffer test case
+  test_verify_pelz_signed_msg_helper(eid,
+                                     &result,
+                                     test_data_len,
+                                     (uint8_t *) test_data,
+                                     (size_t) test_der_cert_len,
+                                     test_der_cert,
+                                     test_der_key_len,
+                                     test_der_key,
+                                     VERIFY_PELZ_SIGNED_MSG_PREALLOC_OUT_BUF_TEST);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // valid test data should invoke succcessful signature verification test case
@@ -705,11 +708,26 @@ void test_verify_pelz_signed_msg(void)
                                      test_der_cert,
                                      test_der_key_len,
                                      test_der_key,
-                                     (size_t) test_der_ca_cert_len,
-                                     test_der_ca_cert);
+                                     VERIFY_PELZ_SIGNED_MSG_BASIC_TEST);
   CU_ASSERT(result == MSG_TEST_SUCCESS);
 
   // Incorrect CA cert should fail
+  if (empty_CA_table(eid, NULL) != 0)
+  {
+    CU_FAIL("error emptying CA table");
+  }
+  if (pelz_load_file_to_enclave("test/data/msg_test_req_pub.der.nkl",
+                                &handle) == 0)
+  {
+    add_cert_to_table(eid, &status, CA_TABLE, handle);
+    CU_ASSERT(status == OK);
+    pelz_log(LOG_INFO, "CA Table add complete");
+    handle = 0;
+  }
+  ca_cnt = 0;
+  table_id_count(eid, &status, CA_TABLE, &ca_cnt);
+  pelz_log(LOG_DEBUG, "CA table size = %zu", ca_cnt);
+
   test_verify_pelz_signed_msg_helper(eid,
                                      &result,
                                      test_data_len,
@@ -718,14 +736,16 @@ void test_verify_pelz_signed_msg(void)
                                      test_der_cert,
                                      test_der_key_len,
                                      test_der_key,
-                                     (size_t) test_der_cert_len,
-                                     test_der_cert);
+                                     VERIFY_PELZ_SIGNED_MSG_BASIC_TEST);
   CU_ASSERT(result == MSG_TEST_VERIFY_ERROR);
 
   // Clean-up
+  if (empty_CA_table(eid, NULL) != 0)
+  {
+    CU_FAIL("error emptying CA table");
+  }
   free(test_der_cert);
   free(test_der_key);
-  free(test_der_ca_cert);
 }
 
 void test_create_pelz_enveloped_msg(void)

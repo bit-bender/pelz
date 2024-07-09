@@ -94,9 +94,12 @@ void test_table_add(void)
   uint64_t handle = 0;
   uint64_t cert_handle = 0;
   char prefix[6] = "file:";
-  char valid_id[6][28] =
-    { "/test/data/key1.txt", "test/data/key1.txt.nkl", "7", "test/data/proxy_pub.der.nkl",
-    "test/data/node_priv.der.nkl", "test/data/node_pub.der.nkl"  };
+  char valid_id[6][28] = { "/test/data/key1.txt",
+                           "test/data/key1.txt.nkl",
+                           "7",
+                           "test/data/proxy_pub.der.nkl",
+                           "test/data/node_priv.der.nkl",
+                           "test/data/node_pub.der.nkl" };
   char key_str[33] = "KIENJCDNHVIJERLMALIDFEKIUFDALJFG";
 
   pelz_log(LOG_DEBUG, "Test Table Add Function Start");

@@ -22,11 +22,11 @@
 #include "ec_key_cert_unmarshal.h"
 #include "server_table.h"
 
-pelz_identity_t pelz_id = {.private_pkey = NULL,
-			   .cert         = NULL,
-			   .common_name  = NULL};
+pelz_identity_t pelz_id = { .private_pkey = NULL,
+                            .cert         = NULL,
+                            .common_name  = NULL };
 
-static charbuf get_common_name_from_cert(X509* cert);
+static charbuf get_common_name_from_cert(X509 *cert);
 
 TableResponseStatus add_cert_to_table(TableType type, uint64_t handle)
 {
@@ -142,7 +142,8 @@ TableResponseStatus private_pkey_add(uint64_t pkey_handle, uint64_t cert_handle)
     pelz_sgx_log(LOG_ERR, "Failure to retrieve data from unseal table.");
     return RET_FAIL;
   }
-  if (unmarshal_ec_der_to_pkey(data, data_size, &(pelz_id.private_pkey)) != EXIT_SUCCESS)
+  int ret = unmarshal_ec_der_to_pkey(data, data_size, &(pelz_id.private_pkey));
+  if (ret != EXIT_SUCCESS)
   {
     pelz_sgx_log(LOG_ERR, "Failure to unmarshal ec_der to pkey");
     free(data);
@@ -151,12 +152,13 @@ TableResponseStatus private_pkey_add(uint64_t pkey_handle, uint64_t cert_handle)
 
   data_size = 0;
   data_size = retrieve_from_unseal_table(cert_handle, &data);
-  if(data_size == 0)
+  if (data_size == 0)
   {
     pelz_sgx_log(LOG_ERR, "Failed to retrieve pelz cert from unseal table.");
     return RET_FAIL;
   }
-  if(unmarshal_ec_der_to_x509(data, data_size, &(pelz_id.cert)))
+  ret = unmarshal_ec_der_to_x509(data, data_size, &(pelz_id.cert));
+  if (ret != EXIT_SUCCESS)
   {
     free(data);
     pelz_sgx_log(LOG_ERR, "Failed to parse pelz cert.");
@@ -173,13 +175,15 @@ TableResponseStatus private_pkey_add(uint64_t pkey_handle, uint64_t cert_handle)
   charbuf common_name = get_common_name_from_cert(pelz_id.cert);
   if(common_name.chars == NULL || common_name.len == 0)
   {
-    pelz_sgx_log(LOG_ERR, "Failed to extract pelz common name from certificate.");
+    pelz_sgx_log(LOG_ERR, "Failed to extract pelz common name from cert.");
     private_pkey_free();
     return RET_FAIL;
   }
   
   pelz_id.common_name = calloc(common_name.len+1, sizeof(char));
-  pelz_id.common_name = memcpy(pelz_id.common_name, common_name.chars, common_name.len);
+  pelz_id.common_name = memcpy(pelz_id.common_name,
+                               common_name.chars,
+                               common_name.len);
   free_charbuf(&common_name);
   return OK;
 }

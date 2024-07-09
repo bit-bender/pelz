@@ -95,9 +95,9 @@ void *unsecure_socket_process(void *arg)
   pthread_mutex_t lock = processArgs->lock;
 
   charbuf request;
-  charbuf message;
+  charbuf response;
+  sgx_status_t ecall_ret;
   RequestResponseStatus status;
-  const char *err_message;
 
   while (!pelz_key_socket_check(new_socket))
   {
@@ -115,6 +115,21 @@ void *unsecure_socket_process(void *arg)
 
     pelz_log(LOG_DEBUG, "%d::Request & Length: %.*s, %d", new_socket, (int) request.len, request.chars, (int) request.len);
 
+    pthread_mutex_lock(&lock);
+    ecall_ret = pelz_request_msg_handler(eid,
+                                         &status,
+                                         request.len,
+                                         request.chars,
+                                         &(response.len),
+                                         &(response.chars));
+    pthread_mutex_unlock(&lock);
+    if ((ecall_ret != SGX_SUCCESS) || (status != REQUEST_OK))
+    {
+      pelz_log(LOG_ERR, "pelz request handling error");
+      return NULL;
+    }
+    
+/*
     RequestType request_type = REQ_UNK;
 
     charbuf key_id;
@@ -129,6 +144,7 @@ void *unsecure_socket_process(void *arg)
     
     //Parse request for processing
     if (request_decoder(request, &request_type, &key_id, &cipher_name, &iv, &tag, &input_data, &request_sig, &requestor_cert))
+    
     {
       err_message = "Missing Data";
       error_message_encoder(&message, err_message);
@@ -217,13 +233,17 @@ void *unsecure_socket_process(void *arg)
     free_charbuf(&iv);
     free_charbuf(&tag);
     free_charbuf(&cipher_name);
-
-    pelz_log(LOG_DEBUG, "%d::Message & Length: %.*s, %d", new_socket, (int) message.len, message.chars, (int) message.len);
+*/
+    pelz_log(LOG_DEBUG, "%d::Message & Length: %.*s, %d",
+                        new_socket,
+                        (int) response.len,
+                        response.chars,
+                        (int) response.len);
     //Send processed request back to client
-    if (pelz_key_socket_send(new_socket, message))
+    if (pelz_key_socket_send(new_socket, response))
     {
       pelz_log(LOG_ERR, "%d::Socket Send Error", new_socket);
-      free_charbuf(&message);
+      free_charbuf(&response);
       while (!pelz_key_socket_check(new_socket))
       {
         continue;
@@ -231,7 +251,7 @@ void *unsecure_socket_process(void *arg)
       pelz_key_socket_close(new_socket);
       return NULL;
     }
-    free_charbuf(&message);
+    free_charbuf(&response);
   }
   pelz_key_socket_close(new_socket);
   return NULL;

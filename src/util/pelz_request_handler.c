@@ -13,12 +13,68 @@
 #include ENCLAVE_HEADER_TRUSTED
 
 
-RequestResponseStatus pelz_request_msg_handler(charbuf request_msg, int32_t session_id)
+RequestResponseStatus pelz_request_msg_handler(size_t req_in_len,
+                                               uint8_t *req_in,
+                                               size_t *resp_out_len,
+                                               uint8_t **resp_out)
 {
-  if(request_msg.chars == NULL || request_msg.len == 0)
+  if((req_in == NULL) || (req_in_len == 0))
   {
     pelz_sgx_log(LOG_ERR, "Invalid pelz request message input buffer");
     return CHARBUF_ERROR;
+  }
+
+  // DER-decode signed, enveloped CMS pelz request message
+  CMS_ContentInfo *env_req = NULL;
+  env_req = (CMS_ContentInfo *) der_decode_pelz_msg(
+                                  (const unsigned char *) req_in,
+                                  (long) req_in_len,
+                                  CMS);
+  if (env_req == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error DER-decoding enveloped pelz CMS request");
+    return DER_DECODE_ERROR;
+  }
+
+  // CMS decrypt enveloped pelz request message
+  uint8_t *der_signed_req = NULL;
+  int der_signed_req_len = -1;
+  der_signed_req_len = decrypt_pelz_enveloped_msg(env_req,
+                                                  pelz_id.cert,
+                                                  pelz_id.private_pkey,
+                                                  &der_signed_req);
+  CMS_ContentInfo_free(env_req);
+  if ((der_signed_req == NULL) || (der_signed_req_len <= 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error decrypting enveloped pelz CMS request");
+    return CMS_DECRYPT_ERROR;
+  }
+
+  // DER-decode decrypted, signed CMS pelz request message
+  CMS_ContentInfo *signed_req = NULL;
+  signed_req = (CMS_ContentInfo *) der_decode_pelz_msg(
+                                     (const unsigned char *) der_signed_req,
+                                     (long) der_signed_req_len,
+                                     CMS);
+  free(der_signed_req);
+  if (signed_req == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error DER-decoding decrypted, signed pelz request");
+    return DER_DECODE_ERROR;
+  }
+
+  // verify signed CMS pelz request message
+  uint8_t *der_asn1_req = NULL;
+  int der_asn1_req_len = -1;
+  X509 *req_cert = X509_new();
+  der_asn1_req_len = verify_pelz_signed_msg(signed_req,
+                                            &req_cert,
+                                            &der_asn1_req);
+  CMS_ContentInfo_free(signed_req);
+  if ((der_asn1_req == NULL) || (der_asn1_req_len <= 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error verifying signed pelz CMS request");
+    return CMS_VERIFY_ERROR;
   }
 
   return REQUEST_OK;

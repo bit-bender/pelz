@@ -463,12 +463,11 @@ CMS_ContentInfo *create_pelz_signed_msg(uint8_t *data_in,
 }
 
 int verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
-                           X509 *ca_cert,
+                           X509 **requestor_cert,
                            uint8_t **data_out)
 {
   // validate input parameters
   if ((signed_msg_in == NULL) ||
-      (ca_cert == NULL) ||
       (data_out == NULL) ||
       ((data_out != NULL) && (*data_out != NULL)))
   {
@@ -493,8 +492,7 @@ int verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
   // contained in the CMS message being verified (i.e., need the certificate
   // for the Certification Authority that we are requiring any supplied
   // certificates to be signed by)
-  X509_STORE *v_store = X509_STORE_new();
-  X509_STORE_add_cert(v_store, ca_cert);
+  X509_STORE *v_store = get_CA_cert_store();
 
   // use OpenSSL's CMS API to verify the signed message
   int ret = CMS_verify(signed_msg_in, NULL, v_store, NULL, verify_out_bio, 0);
@@ -512,6 +510,21 @@ int verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
     }
     BIO_free(verify_out_bio);
     return PELZ_MSG_VERIFY_FAIL;
+  }
+
+  // get the requestor's certificate from the signed message
+  STACK_OF(X509) *signer_cert_stack = sk_X509_new_null();
+  signer_cert_stack = CMS_get0_signers(signed_msg_in);
+  if (sk_X509_num(signer_cert_stack) != 1)
+  {
+    pelz_sgx_log(LOG_ERR, "count of signer certs is not one, as expected");
+    BIO_free(verify_out_bio);
+    return PELZ_MSG_VERIFY_SIGNER_CERT_ERROR;
+  }
+  *requestor_cert = sk_X509_pop(signer_cert_stack);
+  if (*requestor_cert == NULL) 
+  {
+    pelz_sgx_log(LOG_ERR, "error retrieving signer cert");
   }
 
   int bio_data_size = BIO_pending(verify_out_bio);
@@ -779,6 +792,98 @@ void *der_decode_pelz_msg(const unsigned char *bytes_in,
   }
 
   return msg_out;
+}
+
+int decode_rcvd_pelz_request(charbuf rcvd_msg_buf,
+                             X509 ** requestor_cert,
+                             PELZ_MSG_DATA *decode_result)
+{
+  if((rcvd_msg_buf.chars == NULL) || (rcvd_msg_buf.len == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "Invalid received pelz request message buffer");
+    return PELZ_MSG_PARAM_INVALID;
+  }
+
+  // DER-decode signed, enveloped CMS pelz request message
+  CMS_ContentInfo *env_req = NULL;
+  env_req = (CMS_ContentInfo *) der_decode_pelz_msg(
+                                  (const unsigned char *) rcvd_msg_buf.chars,
+                                  (long) rcvd_msg_buf.len,
+                                  CMS);
+  if (env_req == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error DER-decoding enveloped pelz CMS request");
+    return PELZ_MSG_DESERIALIZE_ERROR;
+  }
+
+  // CMS decrypt enveloped pelz request message
+  uint8_t *der_signed_req = NULL;
+  int der_signed_req_len = -1;
+  der_signed_req_len = decrypt_pelz_enveloped_msg(env_req,
+                                                  pelz_id.cert,
+                                                  pelz_id.private_pkey,
+                                                  &der_signed_req);
+  CMS_ContentInfo_free(env_req);
+  if ((der_signed_req == NULL) || (der_signed_req_len <= 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error decrypting enveloped pelz CMS request");
+    return PELZ_MSG_DECRYPT_FAIL;
+  }
+
+  // DER-decode decrypted, signed CMS pelz request message
+  CMS_ContentInfo *signed_req = NULL;
+  signed_req = (CMS_ContentInfo *) der_decode_pelz_msg(
+                                     (const unsigned char *) der_signed_req,
+                                     (long) der_signed_req_len,
+                                     CMS);
+  free(der_signed_req);
+  if (signed_req == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error DER-decoding decrypted, signed pelz request");
+    return PELZ_MSG_DESERIALIZE_ERROR;
+  }
+
+  // verify signed CMS pelz request message
+  uint8_t *der_asn1_req = NULL;
+  int der_asn1_req_len = -1;
+  der_asn1_req_len = verify_pelz_signed_msg(signed_req,
+                                            requestor_cert,
+                                            &der_asn1_req);
+  CMS_ContentInfo_free(signed_req);
+  if ((der_asn1_req == NULL) || (der_asn1_req_len <= 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error verifying signed pelz CMS request");
+    return PELZ_MSG_VERIFY_FAIL;
+  }
+
+  // DER-decode ASN.1 formatted pelz request message
+  PELZ_MSG *asn1_req = NULL;
+  asn1_req = (PELZ_MSG *) der_decode_pelz_msg(
+                            (const unsigned char *) der_asn1_req,
+                            (long) der_asn1_req_len,
+                            ASN1);
+  free(der_asn1_req);
+  if (asn1_req == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error DER-decoding ASN.1 pelz request");
+    return PELZ_MSG_DESERIALIZE_ERROR;
+  }
+
+  // parse ASN.1 formatted pelz request message
+  int parse_result = parse_pelz_asn1_msg(asn1_req, decode_result);
+  PELZ_MSG_free(asn1_req);
+  if (parse_result != PELZ_MSG_SUCCESS)
+  {
+    pelz_sgx_log(LOG_ERR, "error parsing ASN.1 pelz request");
+    return parse_result;
+  }
+
+  return PELZ_MSG_SUCCESS;
+}
+
+unsigned char * encode_pelz_response(PELZ_MSG_DATA resp_msg_data)
+{
+  return NULL;
 }
 
 int validate_signature(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf data, charbuf iv, charbuf tag, charbuf signature, charbuf cert)

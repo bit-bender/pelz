@@ -58,7 +58,11 @@ int main(int argc, char **argv)
   long a = 0;
   bool secure = false;
 
-  while ((options = getopt_long(argc, argv, "m:p:a:hsv", longopts, &option_index)) != -1)
+  while ((options = getopt_long(argc,
+                                argv,
+                                "m:p:a:hsv",
+                                longopts,
+                                &option_index)) != -1)
   {
     switch (options)
     {
@@ -67,39 +71,43 @@ int main(int argc, char **argv)
       return 0;
     case 'm':
       mr = strtol(optarg, NULL, 10);
-      if(mr > 0 && mr < INT_MAX)
-        {
-          max_requests = (int) mr;
-          break;
-        }
+      if (mr > 0 && mr < INT_MAX)
+      {
+        max_requests = (int) mr;
+        break;
+      }
       else
-        {
-          pelz_log(LOG_ERR, "max_request must be an integer. Received invalid option '%s'", optarg);
-          return 1;
-        }
+      {
+        pelz_log(LOG_ERR, "max_request must be an integer. Received invalid option '%s'", optarg);
+        return 1;
+      }
     case 'p':
       p = strtol(optarg, NULL, 10);
-	    if(p > 0 && p < UINT16_MAX)
-	    {
-	      port_open = (int) p;
-	      break;
-	    }
-	    else
-	    {
-	      pelz_log(LOG_ERR, "Open port must be an integer. Received invalid open port option '%s'", optarg);
-	      return 1;
-	    }
+	  if ((p > 0) && (p < UINT16_MAX))
+	  {
+	    port_open = (int) p;
+	    break;
+	  }
+	  else
+	  {
+	    pelz_log(LOG_ERR, "Open port must be an integer. "
+                          "Received invalid open port option '%s'",
+                          optarg);
+	    return 1;
+	  }
     case 'a':
-	    a = strtol(optarg, NULL, 10);
-	    if(a > 0 && a < UINT16_MAX)
-	    {
-	      port_attested = (int) a;
-	      break;
-	    }
-	    else
-	    {
-	      pelz_log(LOG_ERR, "Attested port must be an integer. Received invalid atteseted port option '%s'", optarg);
-	      return 1;
+	  a = strtol(optarg, NULL, 10);
+	  if ((a > 0) && (a < UINT16_MAX))
+	  {
+	    port_attested = (int) a;
+	    break;
+	  }
+	  else
+	  {
+	    pelz_log(LOG_ERR, "Attested port must be an integer. "
+                          "Received invalid atteseted port option '%s'",
+                          optarg);
+	    return 1;
       }
     case 's':
       secure = true;
@@ -128,34 +136,48 @@ int main(int argc, char **argv)
   TableResponseStatus status;
   int ret;
 
-  sgx_status = sgx_create_enclave(ENCLAVE_PATH, SGX_DEBUG_FLAG, NULL, NULL, &eid, NULL);
-  if (sgx_status != SGX_SUCCESS) {
+  sgx_status = sgx_create_enclave(ENCLAVE_PATH,
+                                  SGX_DEBUG_FLAG,
+                                  NULL,
+                                  NULL,
+                                  &eid,
+                                  NULL);
+  if (sgx_status != SGX_SUCCESS)
+  {
     pelz_log(LOG_ERR, "Failed to load enclave %s, error code is 0x%x.\n", ENCLAVE_PATH, sgx_status);
     return (1);
   }
 
   sgx_status = kmyth_unsealed_data_table_initialize(eid, &ret);
-  if (sgx_status != SGX_SUCCESS || ret != OK)
+  if ((sgx_status != SGX_SUCCESS) || (ret != OK))
   {
-    pelz_log(LOG_ERR, "Unseal Table Init Failure, sgx_status: %#X, table_status: %d", sgx_status, status);
+    pelz_log(LOG_ERR, "Unseal Table Init Failure, "
+                      "sgx_status: %#X, table_status: %d",
+                      sgx_status,
+                      status);
     sgx_destroy_enclave(eid);
     return (1);
   }
 
   sgx_status = private_pkey_init(eid, &status);
-  if (sgx_status != SGX_SUCCESS || status != OK)
+  if ((sgx_status != SGX_SUCCESS) || (status != OK))
   {
-    pelz_log(LOG_ERR, "PKEY Init Failure, sgx_status: %#X, table_status: %d", sgx_status, status);
+    pelz_log(LOG_ERR, "PKEY Init Failure, sgx_status: %#X, table_status: %d",
+                      sgx_status,
+                      status);
     kmyth_unsealed_data_table_cleanup(eid, &ret);
     sgx_destroy_enclave(eid);
     return (1);
   }
 
-  pelz_service((const int) max_requests, (const int) port_open, (const int) port_attested, secure);
+  pelz_service((const int) max_requests,
+               (const int) port_open,
+               (const int) port_attested,
+               secure);
 
   pelz_log(LOG_INFO, "Shutdown Clean-up Start");
   sgx_status = private_pkey_free(eid, &status);
-  if (sgx_status != SGX_SUCCESS || status != OK)
+  if ((sgx_status != SGX_SUCCESS) || (status != OK))
   {
     pelz_log(LOG_ERR, "PKEY Free Failure");
   }

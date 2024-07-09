@@ -676,23 +676,28 @@ int unwrap_decrypt_search(uint8_t *file_data, size_t content_len, char *search_t
 
 int establish_secure_channel()
 {
-    uint32_t ret_status;
-    sgx_status_t status;
+  uint32_t ret_status;
+  sgx_status_t status;
 
-    // Establish the socket connection that will be used to communicate with pelz
-    if (connect_to_remote(REMOTE_ADDR, REMOTE_PORT) == -1) {
-        printf("failed to connect to pelz.\n");
-        return -1;
-    }
+  // Establish the socket connection that will be used to communicate with pelz
+  if (connect_to_remote(REMOTE_ADDR, REMOTE_PORT) == -1)
+  {
+    printf("failed to connect to pelz.\n");
+    return -1;
+  }
 
-    // establish an ECDH session with the responder enclave running in another process
-    status = test_create_session(initiator_enclave_id, &ret_status);
-    if (status != SGX_SUCCESS || ret_status != 0) {
-        printf("failed to establish secure channel: ECALL return 0x%x, error code is 0x%x.\n", status, ret_status);
-        return -1;
-    }
-    printf("Established secure channel.\n");
-    return 0;
+  // establish an ECDH session with the responder enclave running in another process
+  status = test_create_session(initiator_enclave_id, &ret_status);
+  if ((status != SGX_SUCCESS) || (ret_status != 0))
+  {
+    printf("failed to establish secure channel: "
+           "ECALL return 0x%x, error code is 0x%x.\n",
+           status,
+           ret_status);
+    return -1;
+  }
+  printf("Established secure channel.\n");
+  return 0;
 }
 
 int close_secure_channel()
@@ -823,28 +828,37 @@ int execute_command(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
-    int update = 0;
-    sgx_launch_token_t token = {0};
-    sgx_status_t status;
+  int update = 0;
+  sgx_launch_token_t token = {0};
+  sgx_status_t status;
 
-    status = sgx_create_enclave(ENCLAVE_INITIATOR_NAME, SGX_DEBUG_FLAG, &token, &update, &initiator_enclave_id, NULL);
-    if (status != SGX_SUCCESS) {
-        printf("failed to load enclave %s, error code is 0x%x.\n", ENCLAVE_INITIATOR_NAME, status);
-        return -1;
-    }
-    printf("Loaded enclave %s\n", ENCLAVE_INITIATOR_NAME);
+  status = sgx_create_enclave(ENCLAVE_INITIATOR_NAME,
+                              SGX_DEBUG_FLAG,
+                              &token,
+                              &update,
+                              &initiator_enclave_id,
+                              NULL);
+  if (status != SGX_SUCCESS)
+  {
+    printf("failed to load enclave %s, error code is 0x%x.\n",
+           ENCLAVE_INITIATOR_NAME,
+           status);
+    return -1;
+  }
+  printf("Loaded enclave %s\n", ENCLAVE_INITIATOR_NAME);
 
-    if (establish_secure_channel())
-    {
-        sgx_destroy_enclave(initiator_enclave_id);
-        printf("Make sure the pelz-service is running on this machine, then try again.\n");
-        return -1;
-    }
-
-    int ret = execute_command(argc, argv);
-
-    close_secure_channel();
+  if (establish_secure_channel())
+  {
     sgx_destroy_enclave(initiator_enclave_id);
+    printf("Make sure the pelz-service is running on this machine, "
+           "then try again.\n");
+    return -1;
+  }
 
-    return ret;
+  int ret = execute_command(argc, argv);
+
+  close_secure_channel();
+  sgx_destroy_enclave(initiator_enclave_id);
+
+  return ret;
 }

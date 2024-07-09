@@ -28,12 +28,12 @@
 #include "pelz_loaders.h"
 
 static const char* cipher_names[] = {"AES/KeyWrap/RFC3394NoPadding/256",
-				     "AES/KeyWrap/RFC3394NoPadding/192",
-				     "AES/KeyWrap/RFC3394NoPadding/128",
-				     "AES/GCM/NoPadding/256",
-				     "AES/GCM/NoPadding/192",
-				     "AES/GCM/NoPadding/128",
-				     NULL};
+                                     "AES/KeyWrap/RFC3394NoPadding/192",
+                                     "AES/KeyWrap/RFC3394NoPadding/128",
+                                     "AES/GCM/NoPadding/256",
+                                     "AES/GCM/NoPadding/192",
+                                     "AES/GCM/NoPadding/128",
+                                     NULL};
 
 // Bit of a kludge, we need the correct key lengths to test the
 // encrypt/decrypt cycle, but the code to extract them from the cipher
@@ -43,31 +43,43 @@ static const size_t cipher_key_bytes[] = {32, 24, 16, 32, 24, 16, 0};
 // Adds all request handler tests to main test runner.
 int request_suite_add_tests(CU_pSuite suite)
 {
-  if (NULL == CU_add_test(suite, "Test Pelz Request Invalid Key ID", test_invalid_key_id))
+  if (NULL == CU_add_test(suite,
+                          "Test Pelz Request Invalid Key ID",
+                          test_invalid_key_id))
   {
     return (1);
   }
-  if (NULL == CU_add_test(suite, "Test Pelz Encrypt/Decrypt", test_encrypt_decrypt))
+  if (NULL == CU_add_test(suite,
+                          "Test Pelz Encrypt/Decrypt",
+                          test_encrypt_decrypt))
   {
     return 1;
   }
-  if (NULL == CU_add_test(suite, "Test Pelz Request Missing Key ID", test_missing_key_id))
+  if (NULL == CU_add_test(suite,
+                          "Test Pelz Request Missing Key ID",
+                          test_missing_key_id))
   {
     return 1;
   }
-  if (NULL == CU_add_test(suite, "Test Pelz Request Invalid or Missing Cipher Name", test_invalid_cipher_name))
+  if (NULL == CU_add_test(suite,
+                          "Test Pelz Request Invalid or Missing Cipher Name",
+                          test_invalid_cipher_name))
   {
     return 1;
   }
-  if (NULL == CU_add_test(suite, "Test Pelz Request Missing Input Data", test_missing_input_data))
+  if (NULL == CU_add_test(suite,
+                          "Test Pelz Request Missing Input Data",
+                          test_missing_input_data))
   {
     return 1;
   }
-  if (NULL == CU_add_test(suite, "Test Pelz Signed Request Handling", test_signed_request_handling))
+  if (NULL == CU_add_test(suite,
+                          "Test Pelz Signed Request Handling",
+                          test_signed_request_handling))
   {
     return 1;
   }
-  return (0);
+  return 0;
 }
 
 void test_invalid_key_id(void)
@@ -279,7 +291,6 @@ void test_invalid_cipher_name(void)
   memcpy(key_data.chars, full_key_data, key_data.len);
   key_table_add_key(eid, &table_status, key_id, key_data);
 
-     
   charbuf iv = new_charbuf(0);
   charbuf tag = new_charbuf(0);
   charbuf ciphertext = new_charbuf(0);
@@ -288,7 +299,7 @@ void test_invalid_cipher_name(void)
   charbuf cert = new_charbuf(0);
   // Test with an empty cipher name
   charbuf cipher_name = new_charbuf(0);
-  
+
   pelz_encrypt_request_handler(eid, &request_status, REQ_ENC, key_id, cipher_name, plaintext, &ciphertext, &iv, &tag, signature, cert, 0);
   CU_ASSERT(request_status == ENCRYPT_ERROR);
   CU_ASSERT(iv.chars == NULL);
@@ -308,7 +319,6 @@ void test_invalid_cipher_name(void)
   CU_ASSERT(tag.len == 0);
   CU_ASSERT(ciphertext.chars == NULL);
   CU_ASSERT(ciphertext.len == 0);
-
 
   // Now we test with an invalid (but non-empty) cipher name
   const char* cipher_name_str = "fakeciphername";
@@ -333,7 +343,7 @@ void test_invalid_cipher_name(void)
   CU_ASSERT(tag.len == 0);
   CU_ASSERT(ciphertext.chars == NULL);
   CU_ASSERT(ciphertext.len == 0);
-  
+
   free_charbuf(&iv);
   free_charbuf(&tag);
   free_charbuf(&ciphertext);
@@ -345,7 +355,6 @@ void test_invalid_cipher_name(void)
   free_charbuf(&key_data);
   pelz_log(LOG_DEBUG, "Finish Invalid Cipher Name Test");
 }
-
 
 void test_missing_input_data(void)
 {
@@ -397,14 +406,14 @@ void test_missing_input_data(void)
     CU_ASSERT(iv.len == 0);
     CU_ASSERT(tag.chars == NULL);
     CU_ASSERT(tag.len == 0);
-    
+
     free_charbuf(&iv);
     free_charbuf(&tag);
     free_charbuf(&output_data);
     free_charbuf(&cipher_name);
     table_destroy(eid, &table_status, KEY);
   }
-  
+
   free_charbuf(&plaintext);
   free_charbuf(&key_id);
   pelz_log(LOG_DEBUG, "Finish Missing Input Data Test");
@@ -428,7 +437,7 @@ void test_signed_request_handling(void)
   charbuf key_data = new_charbuf(cipher_key_bytes[0]);
   memcpy(key_data.chars, full_key_data, key_data.len);
   key_table_add_key(eid, &table_status, key_id, key_data);
-  
+
   const char* data_str = "abcdefghijklmnopqrstuvwxyz012345";
   charbuf data = new_charbuf(strlen(data_str));
   memcpy(data.chars, data_str, data.len);
@@ -476,11 +485,11 @@ void test_signed_request_handling(void)
   pelz_encrypt_request_handler(eid, &response_status, REQ_ENC_SIGNED, key_id, cipher_name, data, &output, &iv, &tag, enc_signature, der, 0);
   CU_ASSERT(response_status == SIGNATURE_ERROR);
   pelz_decrypt_request_handler(eid, &response_status, REQ_DEC_SIGNED, key_id, cipher_name, cipher_data, iv, tag, &output, dec_signature, der, 0);
-  CU_ASSERT(response_status == SIGNATURE_ERROR)
+  CU_ASSERT(response_status == SIGNATURE_ERROR);
 
   // Add an authority to the CA table
   uint64_t handle;
-  pelz_load_file_to_enclave((char*)"test/data/ca_pub.der.nkl", &handle);
+  pelz_load_file_to_enclave((char*) "test/data/ca_pub.der.nkl", &handle);
   add_cert_to_table(eid, &table_status, CA_TABLE, handle);
 
   // Test a good signature for encrypt
@@ -503,7 +512,7 @@ void test_signed_request_handling(void)
 
   // Test with an invalid thing for the cert
   pelz_decrypt_request_handler(eid, &response_status, REQ_DEC_SIGNED, key_id, cipher_name, cipher_data, iv, tag, &output, dec_signature, dec_signature, 0);
-  CU_ASSERT(response_status == SIGNATURE_ERROR)
+  CU_ASSERT(response_status == SIGNATURE_ERROR);
 
   // Test with a signature that should fail
   pelz_encrypt_request_handler(eid, &response_status, REQ_ENC_SIGNED, key_id, cipher_name, data, &output, &iv, &tag, der, der, 0);
@@ -511,7 +520,7 @@ void test_signed_request_handling(void)
 
   // Test with a signature that should fail
   pelz_decrypt_request_handler(eid, &response_status, REQ_DEC_SIGNED, key_id, cipher_name, cipher_data, iv, tag, &output, der, der, 0);
-  CU_ASSERT(response_status == SIGNATURE_ERROR)
+  CU_ASSERT(response_status == SIGNATURE_ERROR);
   
   table_destroy(eid, &table_status, KEY);
   table_destroy(eid, &table_status, CA_TABLE);

@@ -41,6 +41,8 @@ typedef enum
 { 
   KEY,      /**< Table to store KEKs*/
   SERVER,   /**< Table to store server public certificates*/
+  MSG_CERT, /**< Table to store pelz public cert (paired to MSG_PRIV) for messaging */
+  MSG_PRIV, /**< Table to store pelz private key (paired to MSG_CERT) for messaging */
   CA_TABLE, /**< Table to store CA certificates*/
   TEST      /**< Testing value for table functions*/
 } TableType;

@@ -69,8 +69,7 @@ enclave
       [in, size=test_der_signer_cert_len] const uint8_t *test_der_signer_cert,
       size_t test_der_signer_priv_len,
       [in, size=test_der_signer_priv_len] const uint8_t *test_der_signer_priv,
-      size_t test_der_ca_cert_len,
-      [in, size=test_der_ca_cert_len] const uint8_t *test_der_ca_cert);
+      uint8_t test_select);
 
     public int test_create_pelz_enveloped_msg_helper(
       size_t test_data_in_len,

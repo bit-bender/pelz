@@ -361,14 +361,30 @@ int test_verify_pelz_signed_msg_helper(size_t test_data_in_len,
                                        const uint8_t *test_der_sign_cert,
                                        size_t test_der_sign_priv_len,
                                        const uint8_t *test_der_sign_priv,
-                                       size_t test_der_ca_cert_len,
-                                       const uint8_t *test_der_ca_cert)
+                                       uint8_t test_select)
 {
+  X509 *req_cert_out = X509_new();
   uint8_t *verify_data = NULL;
   int verify_data_len = -1;
+  uint8_t * prealloc_buf = NULL;
 
-  // convert input DER-formatted signing key byte array to internal format
-  // need this to create signed test message
+  // if test_data input is null or empty, perform null input msg test
+  // and output buffer tests
+  if (test_select == VERIFY_PELZ_SIGNED_MSG_NULL_IN_MSG_TEST)
+  {
+    verify_data_len = verify_pelz_signed_msg(NULL,
+                                             &req_cert_out,
+                                             &verify_data);
+    if (verify_data_len != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+  }
+
+  // create signer key/cert needed to create signed test message:
+  //   - convert input DER-formatted signing key byte array to internal format
+  //   - convert input DER-formatted signer cert byte array to internal format
   EVP_PKEY *test_msg_priv = NULL;
   if ((test_der_sign_priv != NULL) && (test_der_sign_priv_len != 0))
   {
@@ -381,9 +397,6 @@ int test_verify_pelz_signed_msg_helper(size_t test_data_in_len,
   {
     return MSG_TEST_SETUP_ERROR;
   }
-
-  // convert input DER-formatted sign cert byte array to internal format
-  // need this to created signed test message
   X509 *test_msg_cert = NULL;
   if ((test_der_sign_cert != NULL) && (test_der_sign_cert_len != 0))
   {
@@ -392,29 +405,6 @@ int test_verify_pelz_signed_msg_helper(size_t test_data_in_len,
   if (test_msg_cert == NULL)
   {
     return MSG_TEST_SETUP_ERROR;
-  }
-
-  // convert input DER-formatted CA cert byte array to internal format
-  // if result is NULL cert, perform NULL cert parameter test
-  X509 *test_ca_cert = NULL;
-  if ((test_der_ca_cert != NULL) && (test_der_ca_cert_len != 0))
-  {
-    d2i_X509(&test_ca_cert, &test_der_ca_cert, (int) test_der_ca_cert_len);
-  }
-
-  // if test_data input is null or empty, perform null input msg test
-  // and output buffer tests
-  if ((test_data_in == NULL) || (test_data_in_len == 0))
-  {
-
-    verify_data_len = verify_pelz_signed_msg(NULL,
-                                             test_ca_cert,
-                                             &verify_data);
-    if (verify_data_len != PELZ_MSG_PARAM_INVALID)
-    {
-      return MSG_TEST_PARAM_HANDLING_ERROR;
-    }
-    return MSG_TEST_PARAM_HANDLING_OK;
   }
 
   // create signed test message
@@ -427,63 +417,60 @@ int test_verify_pelz_signed_msg_helper(size_t test_data_in_len,
     return MSG_TEST_SETUP_ERROR;
   }
 
-  // if CA cert is NULL, perform invalid parameter tests
-  if (test_ca_cert == NULL)
+  switch (test_select)
   {
-    int temp_result = MSG_TEST_PARAM_HANDLING_OK;
-
-    // first test is that NULL CA cert returns invalid parameter error
+  // test verification functionality using a valid set of parameters
+  case VERIFY_PELZ_SIGNED_MSG_BASIC_TEST:
     verify_data_len = verify_pelz_signed_msg(signed_test_msg,
-                                             NULL,
+                                             &req_cert_out,
                                              &verify_data);
-    if (verify_data_len != PELZ_MSG_PARAM_INVALID)
+    if ((verify_data_len != (int) test_data_in_len) ||
+        (memcmp(test_data_in, verify_data, test_data_in_len) != 0) ||
+        (X509_cmp(req_cert_out, test_msg_cert) != 0))
     {
-      temp_result = MSG_TEST_PARAM_HANDLING_ERROR;
+      return MSG_TEST_VERIFY_ERROR;
     }
+    return MSG_TEST_SUCCESS;
+    break;
 
+  // test NULL output data buffer double pointer parameter is handled
+  case VERIFY_PELZ_SIGNED_MSG_NULL_OUT_BUF_TEST:
     verify_data_len = verify_pelz_signed_msg(signed_test_msg,
-                                             test_ca_cert,
+                                             &req_cert_out,
                                              NULL);
     if (verify_data_len != PELZ_MSG_PARAM_INVALID)
     {
-      temp_result = MSG_TEST_PARAM_HANDLING_ERROR;
+      return MSG_TEST_PARAM_HANDLING_ERROR;
     }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
 
-    // second test is that NULL output data buffer double pointer errors
+  // test that pre-allocated output buffer parameter errors and is handled
+  case VERIFY_PELZ_SIGNED_MSG_PREALLOC_OUT_BUF_TEST:
+    prealloc_buf = malloc(1);
+    if (prealloc_buf == NULL)
+    {
+      return MSG_TEST_SETUP_ERROR;
+    }
     verify_data_len = verify_pelz_signed_msg(signed_test_msg,
-                                             test_ca_cert,
-                                             NULL);
+                                             &req_cert_out,
+                                             &prealloc_buf);
+    free(prealloc_buf);
     if (verify_data_len != PELZ_MSG_PARAM_INVALID)
     {
-      temp_result = MSG_TEST_PARAM_HANDLING_ERROR;
+      return MSG_TEST_PARAM_HANDLING_ERROR;
     }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
 
-    // third test is that pre-allocated output buffer parameter returns error
-    uint8_t * test_buf = malloc(1);
-    uint8_t ** test_buf_ptr = &test_buf;
-    verify_data_len = verify_pelz_signed_msg(signed_test_msg,
-                                             test_ca_cert,
-                                             test_buf_ptr);
-    if (verify_data_len != PELZ_MSG_PARAM_INVALID)
-    {
-      temp_result = MSG_TEST_PARAM_HANDLING_ERROR;
-    }
-    free(test_buf);
-
-    return temp_result;
+  // invalid test selection
+  default:
+    pelz_sgx_log(LOG_ERR, "invalid test selection");
+    return MSG_TEST_SETUP_ERROR;
   }
 
-  // perform signature verification test
-  verify_data_len = verify_pelz_signed_msg(signed_test_msg,
-                                           test_ca_cert,
-                                           &verify_data);
-  if ((verify_data_len != (int) test_data_in_len) ||
-      (memcmp(test_data_in, verify_data, test_data_in_len) != 0))
-  {
-    return MSG_TEST_VERIFY_ERROR;
-  }
-
-  return MSG_TEST_SUCCESS;
+  // should never reach this statement
+  return MSG_TEST_UNKNOWN_ERROR;
 }
 
 int test_create_pelz_enveloped_msg_helper(size_t test_data_in_len,

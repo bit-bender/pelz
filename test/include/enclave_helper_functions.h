@@ -7,6 +7,12 @@
 #define DER_ENCODE_PELZ_MSG_NULL_MSG_IN_TEST              0x03
 #define DER_ENCODE_PELZ_MSG_NULL_OUT_BUF_TEST             0x04
 
+// test_verify_pelz_signed_msg_helper() test select options
+#define VERIFY_PELZ_SIGNED_MSG_BASIC_TEST                 0x01
+#define VERIFY_PELZ_SIGNED_MSG_NULL_IN_MSG_TEST           0x02
+#define VERIFY_PELZ_SIGNED_MSG_NULL_OUT_BUF_TEST          0x03
+#define VERIFY_PELZ_SIGNED_MSG_PREALLOC_OUT_BUF_TEST      0x04
+
 // test_der_decode_pelz_asn1_msg_helper() test select options
 #define DER_DECODE_ASN1_PELZ_MSG_BASIC_TEST               0x01
 #define DER_DECODE_CMS_PELZ_MSG_BASIC_TEST                0x02

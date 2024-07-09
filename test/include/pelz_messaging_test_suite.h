@@ -6,6 +6,8 @@
 #define PELZ_MESSAGING_SUITE_H_
 
 #include "pelz_messaging.h"
+#include "ca_table.h"
+#include "pelz_loaders.h"
 #include <CUnit/CUnit.h>
 
 // Adds all tests to suite in main test runner

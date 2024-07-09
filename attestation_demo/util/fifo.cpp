@@ -56,74 +56,71 @@ static int remote_sock_fd = -1;
 // linux-sgx/SampleCode/SampleAttestedTLS/non_enc_client/client.cpp
 int connect_to_remote(const char* remote_name, const char* remote_port)
 {
-    int sockfd = -1;
-    struct addrinfo hints, *dest_info, *curr_di;
-    int res;
+  int sockfd = -1;
+  struct addrinfo hints, *dest_info, *curr_di;
+  int res;
 
-    hints = {0};
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
+  hints = {0};
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
 
-    if ((res = getaddrinfo(remote_name, remote_port, &hints, &dest_info)) != 0)
+  if ((res = getaddrinfo(remote_name, remote_port, &hints, &dest_info)) != 0)
+  {
+    printf("Error: Cannot resolve hostname %s. %s\n",
+           remote_name,
+           gai_strerror(res));
+    goto done;
+  }
+
+  curr_di = dest_info;
+  while (curr_di)
+  {
+    if (curr_di->ai_family == AF_INET)
     {
-        printf(
-            "Error: Cannot resolve hostname %s. %s\n",
-            remote_name,
-            gai_strerror(res));
-        goto done;
+      break;
     }
 
-    curr_di = dest_info;
-    while (curr_di)
-    {
-        if (curr_di->ai_family == AF_INET)
-        {
-            break;
-        }
+    curr_di = curr_di->ai_next;
+  }
 
-        curr_di = curr_di->ai_next;
-    }
+  if (!curr_di)
+  {
+    printf("Error: Cannot get address for hostname %s.\n",
+           remote_name);
+    goto done;
+  }
 
-    if (!curr_di)
-    {
-        printf(
-            "Error: Cannot get address for hostname %s.\n",
-            remote_name);
-        goto done;
-    }
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockfd == -1)
+  {
+    printf("Error: Cannot create socket %d.\n", errno);
+    goto done;
+  }
 
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1)
-    {
-        printf("Error: Cannot create socket %d.\n", errno);
-        goto done;
-    }
-
-    if (connect(
-            sockfd,
-            (struct sockaddr*)curr_di->ai_addr,
-            sizeof(struct sockaddr)) == -1)
-    {
-        printf(
-            "failed to connect to %s:%s (errno=%d)\n",
-            remote_name,
-            remote_port,
-            errno);
-        close(sockfd);
-        sockfd = -1;
-        goto done;
-    }
-    printf("Connected to %s:%s\n", remote_name, remote_port);
+  if (connect(sockfd,
+              (struct sockaddr*) curr_di->ai_addr,
+              sizeof(struct sockaddr)) == -1)
+  {
+    printf("failed to connect to %s:%s (errno=%d)\n",
+           remote_name,
+           remote_port,
+           errno);
+    close(sockfd);
+    sockfd = -1;
+    goto done;
+  }
+  printf("Connected to %s:%s\n", remote_name, remote_port);
 
 done:
-    if (dest_info)
-        freeaddrinfo(dest_info);
+  if (dest_info)
+  {
+    freeaddrinfo(dest_info);
+  }
 
-    remote_sock_fd = sockfd;
+  remote_sock_fd = sockfd;
 
-    return sockfd;
+  return sockfd;
 }
-
 
 /* Function Description: this is for client to send request message and receive response message
  * Parameter Description:
@@ -134,63 +131,69 @@ done:
  * */
 int client_send_receive(FIFO_MSG *fiforequest, size_t fiforequest_size, FIFO_MSG **fiforesponse, size_t *fiforesponse_size)
 {
-    int ret = 0;
-    long byte_num;
-    char recv_msg[BUFFER_SIZE + 1] = {0};
-    FIFO_MSG * response = NULL;
+  int ret = 0;
+  long byte_num;
+  char recv_msg[BUFFER_SIZE + 1] = {0};
+  FIFO_MSG * response = NULL;
 
-    // The original version of this function created a new UNIX socket connection here.
+  // The original version of this function created a new UNIX socket connection
 
-    if (remote_sock_fd == -1)
+  if (remote_sock_fd == -1)
+  {
+      printf("ERROR, trying to send a message before connecting to the remote");
+  }
+
+  byte_num = send(remote_sock_fd,
+                  reinterpret_cast<char *>(fiforequest),
+                  static_cast<int>(fiforequest_size),
+                  0);
+  if (byte_num == -1)
+  {
+    printf("connection error, %s, line %d..\n", strerror(errno), __LINE__);
+    ret = -1;
+    goto CLEAN;
+  }
+
+  byte_num = recv(remote_sock_fd,
+                  reinterpret_cast<char *>(recv_msg),
+                  BUFFER_SIZE,
+                  0);
+  if (byte_num > 0)
+  {
+    if (byte_num > BUFFER_SIZE)
     {
-        printf("ERROR, trying to send a message before connecting to the remote");
+      byte_num = BUFFER_SIZE;
     }
 
-    if ((byte_num = send(remote_sock_fd, reinterpret_cast<char *>(fiforequest), static_cast<int>(fiforequest_size), 0)) == -1)
+    recv_msg[byte_num] = '\0';
+
+    response = (FIFO_MSG *)malloc((size_t)byte_num);
+    if (!response)
     {
-        printf("connection error, %s, line %d..\n", strerror(errno), __LINE__);
-        ret = -1;
-        goto CLEAN;
+      printf("memory allocation failure.\n");
+      ret = -1;
+      goto CLEAN;
     }
+    memset(response, 0, (size_t)byte_num);
 
-    byte_num = recv(remote_sock_fd, reinterpret_cast<char *>(recv_msg), BUFFER_SIZE, 0);
-    if (byte_num > 0)
-    {
-        if (byte_num > BUFFER_SIZE)
-        {
-            byte_num = BUFFER_SIZE;
-        }
+    memcpy(response, recv_msg, (size_t)byte_num);
 
-        recv_msg[byte_num] = '\0';
+    *fiforesponse = response;
+    *fiforesponse_size = (size_t)byte_num;
 
-        response = (FIFO_MSG *)malloc((size_t)byte_num);
-        if (!response)
-        {
-            printf("memory allocation failure.\n");
-            ret = -1;
-            goto CLEAN;
-        }
-        memset(response, 0, (size_t)byte_num);
-
-        memcpy(response, recv_msg, (size_t)byte_num);
-
-        *fiforesponse = response;
-        *fiforesponse_size = (size_t)byte_num;
-
-        ret = 0;
-    }
-    else if(byte_num < 0)
-    {
-        printf("remote service error, error message is %s!\n", strerror(errno));
-        ret = -1;
-    }
-    else
-    {
-        printf("remote service exit!\n");
-        ret = -1;
-    }
+    ret = 0;
+  }
+  else if(byte_num < 0)
+  {
+    printf("remote service error, error message is %s!\n", strerror(errno));
+    ret = -1;
+  }
+  else
+  {
+    printf("remote service exit!\n");
+    ret = -1;
+  }
 
 CLEAN:
-    return ret;
+  return ret;
 }
-

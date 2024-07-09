@@ -47,17 +47,34 @@ int main(void)
 {
   int status;
 
-  const char *key_file_id[6] =
-    { "test/data/key1.txt", "test/data/key2.txt", "test/data/key3.txt", "test/data/key4.txt", "test/data/key5.txt",
-    "test/data/key6.txt"
-  };
-  const char *key[6] = { "KIENJCDNHVIJERLMALIDFEKIUFDALJFG", "KALIENGVBIZSAIXKDNRUEHFMDDUHVKAN", "HVIJERLMALIDFKDN",
-    "NGVBIZSAIXKDNRUE", "EKIUFDALVBIZSAIXKDNRUEHV", "ALIENGVBCDNHVIJESAIXEKIU"
-  };
+  const char *key_file_id[6] = { "test/data/key1.txt",
+                                 "test/data/key2.txt",
+                                 "test/data/key3.txt",
+                                 "test/data/key4.txt",
+                                 "test/data/key5.txt",
+                                 "test/data/key6.txt" };
+  const char *key[6] = { "KIENJCDNHVIJERLMALIDFEKIUFDALJFG",
+                         "KALIENGVBIZSAIXKDNRUEHFMDDUHVKAN",
+                         "HVIJERLMALIDFKDN",
+                         "NGVBIZSAIXKDNRUE",
+                         "EKIUFDALVBIZSAIXKDNRUEHV",
+                         "ALIENGVBCDNHVIJESAIXEKIU" };
 
-  char unsealed_cert_name[5][29] = { "test/data/node_pub.der", "test/data/node_priv.der", "test/data/proxy_pub.der", "test/data/ca_pub.der", "test/data/key1.txt" };
+  char unsealed_cert_name[7][32] = { "test/data/node_pub.der",
+                                     "test/data/node_priv.der",
+                                     "test/data/proxy_pub.der",
+                                     "test/data/ca_pub.der",
+                                     "test/data/msg_test_req_pub.der",
+                                     "test/data/msg_test_resp_pub.der",
+                                     "test/data/key1.txt" };
 
-  char sealed_cert_name[5][29] = { "test/data/node_pub.der.nkl", "test/data/node_priv.der.nkl", "test/data/proxy_pub.der.nkl", "test/data/ca_pub.der.nkl", "test/data/key1.txt.nkl" };
+  char sealed_cert_name[7][36] = { "test/data/node_pub.der.nkl",
+                                   "test/data/node_priv.der.nkl",
+                                   "test/data/proxy_pub.der.nkl",
+                                   "test/data/ca_pub.der.nkl",
+                                   "test/data/msg_test_req_pub.der.nkl",
+                                   "test/data/msg_test_resp_pub.der.nkl",
+                                   "test/data/key1.txt.nkl" };
 
   set_app_name("pelz");
   set_app_version("0.0.0");
@@ -74,9 +91,12 @@ int main(void)
   }
 
   //Seal test items
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 7; i++)
   {
-    if (seal_for_testing(unsealed_cert_name[i], sealed_cert_name[i], (strlen(sealed_cert_name[i]) + 1), false))
+    if (seal_for_testing(unsealed_cert_name[i],
+                         sealed_cert_name[i],
+                         (strlen(sealed_cert_name[i]) + 1),
+                         false))
     {
       pelz_log(LOG_ERR, "Failure to seal cert.");
       return (1);

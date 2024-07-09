@@ -82,6 +82,8 @@ enclave
      */
     public TableResponseStatus add_cert_to_table(TableType type, uint64_t handle);
 
+    public int empty_CA_table(void);
+    
     /**
      * <pre>
      * This function initializes a pkey.
@@ -202,7 +204,11 @@ enclave
      * This function is used to pass a received pelz request message into the
      * enclave for parsing and processing.
      */
-    public RequestResponseStatus pelz_request_msg_handler(charbuf request_msg, int32_t session_id);
+    public RequestResponseStatus pelz_request_msg_handler(
+                                   size_t req_in_len,
+                                   [in, size=req_in_len] uint8_t *req_in,
+                                   [out] size_t *resp_out_len,
+                                   [out] uint8_t **resp_out);
 
     /**
      * <pre>

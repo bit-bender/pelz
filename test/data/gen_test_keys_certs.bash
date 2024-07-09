@@ -126,6 +126,12 @@ openssl ecparam -name secp521r1 \
                 -noout \
                 -out msg_test_req_priv.pem
 
+openssl ec -inform pem \
+           -in msg_test_req_priv.pem \
+           -outform der \
+           -out msg_test_req_priv.der
+
+
 openssl req -new \
             -config msg_test_requestor.cnf \
             -key msg_test_req_priv.pem \
@@ -141,11 +147,21 @@ openssl x509 -req \
              -days 365 \
              -out msg_test_req_pub.pem
 
+openssl x509 -inform pem \
+             -in msg_test_req_pub.pem \
+             -outform der \
+             -out msg_test_req_pub.der
+
 # create key and certificate for messaging tests "responder"
 openssl ecparam -name secp521r1 \
                 -genkey \
                 -noout \
                 -out msg_test_resp_priv.pem
+
+openssl ec -inform pem \
+            -in msg_test_resp_priv.pem \
+            -outform der \
+            -out msg_test_resp_priv.der
 
 openssl req -new \
             -config msg_test_responder.cnf \
@@ -161,3 +177,8 @@ openssl x509 -req \
              -CAcreateserial \
              -days 365 \
              -out msg_test_resp_pub.pem
+
+openssl x509 -inform pem \
+             -in msg_test_resp_pub.pem \
+             -outform der \
+             -out msg_test_resp_pub.der

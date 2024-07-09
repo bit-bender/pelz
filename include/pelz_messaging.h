@@ -82,6 +82,7 @@ typedef enum MSG_FORMAT { MSG_FORMAT_MIN = 1,
 #define PELZ_MSG_VERIFY_CONTENT_ERROR -96
 #define PELZ_MSG_VERIFY_FAIL -97
 #define PELZ_MSG_VERIFY_RESULT_INVALID -98
+#define PELZ_MSG_VERIFY_SIGNER_CERT_ERROR -99
 
 // pelz messaging CMS encrypt/decrypt errors
 #define PELZ_MSG_DECRYPT_CONTENT_ERROR -128
@@ -215,7 +216,7 @@ CMS_ContentInfo *create_pelz_signed_msg(uint8_t *data_in,
  *                           of 'signedData'). Cannot be NULL or
  *                           have a different content type.
  *
- * @param[in] ca_cert        Pointer to X509 certificate for CA that
+ * @param[in] requestor_cert Pointer to X509 certificate for CA that
  *                           requestor's cert must be signed by. Needed
  *                           to complete the certificate chain and validate
  *                           the peer's certificate embedded in the
@@ -232,7 +233,7 @@ CMS_ContentInfo *create_pelz_signed_msg(uint8_t *data_in,
  *         on success; error code (negative integer) otherwise
  */
 int verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
-                           X509 *ca_cert,
+                           X509 **requestor_cert,
                            uint8_t **data_out);
 
 /**
@@ -366,6 +367,31 @@ int der_encode_pelz_msg(const void *msg_in,
 void *der_decode_pelz_msg(const unsigned char *bytes_in,
                           long bytes_in_len,
                           MSG_FORMAT msg_format);
+
+/**
+ * <pre>
+ * Decodes an input DER-formatted byte array into its original internal
+ * (PELZ_MSG ASN.1 sequence or CMS message) format. In other words, this
+ * function de-serializes a DER-encoded, raw array of bytes to enable
+ * parsing the message using a structured format.
+ * </pre>
+ *
+ * @param[in]  bytes_in     Pointer to the input buffer containing the
+ *                          DER-formatted byte array
+ *
+ * @param[in]  bytes_in_len Size (in bytes) of the input byte buffer
+ * 
+ * @param[in]  msg_format   Enumerated format specification indicating
+ *                          what output format the DER-encoded input
+ *                          buffer should be converted to. Currently
+ *                          supported values are: RAW and CMS.
+ *
+ * @return    Pointer to the resultant internally formatted struct value.
+ *            A NULL pointer is returned when an error is encountered.
+ */
+int decode_rcvd_pelz_request(charbuf rcvd_msg_buf,
+                             X509 ** requestor_cert,
+                             PELZ_MSG_DATA * decode_result);
 
 /**
  * <pre>

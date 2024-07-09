@@ -751,6 +751,67 @@ void test_verify_pelz_signed_msg(void)
 void test_create_pelz_enveloped_msg(void)
 {
   pelz_log(LOG_DEBUG, "Start create_pelz_enveloped_msg() functionality test");
+
+  int result = 0;
+
+  char *test_data = "pelz enveloped test message data";
+  size_t test_data_len = (size_t) strlen(test_data);
+
+  BIO *test_cert_bio = BIO_new_file("test/data/msg_test_resp_pub.pem", "r");
+  if (test_cert_bio == NULL)
+  {
+    CU_FAIL("error creating BIO for reading test cert from file");
+  }
+  X509 *test_cert = PEM_read_bio_X509(test_cert_bio, NULL, 0, NULL);
+  if (test_cert == NULL)
+  {
+    CU_FAIL("error creating test X509 certificate");
+  }
+  BIO_free(test_cert_bio);
+  int test_der_cert_len = -1;
+  uint8_t *test_der_cert = NULL;
+  test_der_cert_len = i2d_X509(test_cert, &test_der_cert);
+  if ((test_der_cert == NULL) || (test_der_cert_len <= 0))
+  {
+    CU_FAIL("error creating DER-formatted test certificate");
+  }
+  X509_free(test_cert);
+
+  // NULL input data should be handled as invalid parameter
+  test_create_pelz_enveloped_msg_helper(eid,
+                                        &result,
+                                        test_data_len,
+                                        NULL,
+                                        (size_t) test_der_cert_len,
+                                        test_der_cert);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // empty input data should be handled as invalid parameter
+  test_create_pelz_enveloped_msg_helper(eid,
+                                        &result,
+                                        0,
+                                        (uint8_t *) test_data,
+                                        (size_t) test_der_cert_len,
+                                        test_der_cert);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // NULL input certificate should be handled as invalid parameter
+  test_create_pelz_enveloped_msg_helper(eid,
+                                        &result,
+                                        test_data_len,
+                                        (uint8_t *) test_data,
+                                        (size_t) test_der_cert_len,
+                                        NULL);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // valid test case should pass
+  test_create_pelz_enveloped_msg_helper(eid,
+                                        &result,
+                                        test_data_len,
+                                        (uint8_t *) test_data,
+                                        (size_t) test_der_cert_len,
+                                        test_der_cert);
+  CU_ASSERT(result == MSG_TEST_SUCCESS);
 }
 
 void test_decrypt_pelz_enveloped_msg(void)

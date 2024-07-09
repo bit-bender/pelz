@@ -75,9 +75,7 @@ enclave
       size_t test_data_in_len,
       [in, size=test_data_in_len] uint8_t *test_data_in,
       size_t test_der_signer_cert_len,
-      [in, size=test_der_signer_cert_len] const uint8_t *test_der_signer_cert,
-      size_t test_der_signer_priv_len,
-      [in, size=test_der_signer_priv_len] const uint8_t *test_der_signer_priv);
+      [in, size=test_der_signer_cert_len] const uint8_t *test_der_signer_cert);
 
     public int test_decrypt_pelz_enveloped_msg_helper(
       size_t test_data_in_len,

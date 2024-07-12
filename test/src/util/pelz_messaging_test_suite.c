@@ -675,6 +675,30 @@ void test_verify_pelz_signed_msg(void)
                                      VERIFY_PELZ_SIGNED_MSG_NULL_IN_MSG_TEST);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
+  // NULL output certificate double pointer test case
+  test_verify_pelz_signed_msg_helper(eid,
+                                     &result,
+                                     test_data_len,
+                                     (uint8_t *) test_data,
+                                     (size_t) test_der_cert_len,
+                                     test_der_cert,
+                                     test_der_key_len,
+                                     test_der_key,
+                                     VERIFY_PELZ_SIGNED_MSG_NULL_OUT_CERT_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // pre-allocated output cert test case
+  test_verify_pelz_signed_msg_helper(eid,
+                                     &result,
+                                     test_data_len,
+                                     (uint8_t *) test_data,
+                                     (size_t) test_der_cert_len,
+                                     test_der_cert,
+                                     test_der_key_len,
+                                     test_der_key,
+                                     VERIFY_PELZ_SIGNED_MSG_PREALLOC_OUT_CERT_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
   // NULL output buffer double pointer test case
   test_verify_pelz_signed_msg_helper(eid,
                                      &result,

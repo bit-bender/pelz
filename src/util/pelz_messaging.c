@@ -463,13 +463,15 @@ CMS_ContentInfo *create_pelz_signed_msg(uint8_t *data_in,
 }
 
 int verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
-                           X509 **requestor_cert,
+                           X509 **peer_cert,
                            uint8_t **data_out)
 {
   // validate input parameters
   if ((signed_msg_in == NULL) ||
+      (peer_cert == NULL) ||
+      (*peer_cert != NULL) ||
       (data_out == NULL) ||
-      ((data_out != NULL) && (*data_out != NULL)))
+      (*data_out != NULL))
   {
     pelz_sgx_log(LOG_ERR, "invalid input parameter");
     return PELZ_MSG_PARAM_INVALID;
@@ -520,10 +522,12 @@ int verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
     BIO_free(verify_out_bio);
     return PELZ_MSG_VERIFY_SIGNER_CERT_ERROR;
   }
-  *requestor_cert = sk_X509_pop(signer_cert_stack);
-  if (*requestor_cert == NULL) 
+  *peer_cert = X509_new();
+  *peer_cert = sk_X509_pop(signer_cert_stack);
+  if (*peer_cert == NULL) 
   {
-    pelz_sgx_log(LOG_ERR, "error retrieving signer cert");
+    pelz_sgx_log(LOG_ERR, "error extracting signer cert");
+    return PELZ_MSG_EXTRACT_SIGNER_CERT_ERROR;
   }
 
   int bio_data_size = BIO_pending(verify_out_bio);
@@ -534,10 +538,6 @@ int verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
     return PELZ_MSG_VERIFY_RESULT_INVALID;
   }
 
-  if (*data_out != NULL)
-  {
-    free(*data_out);
-  }
   *data_out = (uint8_t *) calloc((size_t) bio_data_size, sizeof(uint8_t));
   if (*data_out == NULL)
   {

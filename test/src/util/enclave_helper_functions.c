@@ -309,6 +309,8 @@ int test_create_pelz_signed_msg_helper(size_t test_data_in_len,
                                                9,
                                                test_cert,
                                                test_priv);
+    X509_free(test_cert);
+    EVP_PKEY_free(test_priv);
     if (null_key_cert_msg != NULL)
     {
         return MSG_TEST_PARAM_HANDLING_ERROR;
@@ -316,31 +318,33 @@ int test_create_pelz_signed_msg_helper(size_t test_data_in_len,
     return MSG_TEST_PARAM_HANDLING_OK;
   }
 
-  CMS_ContentInfo *signed_test_msg = NULL;
-  signed_test_msg = create_pelz_signed_msg(test_data_in,
-                                           (int) test_data_in_len,
-                                           test_cert,
-                                           test_priv);
+  CMS_ContentInfo *sign_test_msg = NULL;
+  sign_test_msg = create_pelz_signed_msg(test_data_in,
+                                         (int) test_data_in_len,
+                                         test_cert,
+                                         test_priv);
+  X509_free(test_cert);
+  EVP_PKEY_free(test_priv);
 
-  if (signed_test_msg == NULL)
+  if (sign_test_msg == NULL)
   {
     return MSG_TEST_SIGN_ERROR;
   }
 
-  if (OBJ_obj2nid(CMS_get0_type(signed_test_msg)) != NID_pkcs7_signed)
+  if (OBJ_obj2nid(CMS_get0_type(sign_test_msg)) != NID_pkcs7_signed)
   {
+    CMS_ContentInfo_free(sign_test_msg);
     return MSG_TEST_INVALID_SIGN_RESULT;
   }
 
-  ASN1_OCTET_STRING *signed_content = NULL;
-  signed_content = *(CMS_get0_content(signed_test_msg));
+  const ASN1_OCTET_STRING *signed_content = *(CMS_get0_content(sign_test_msg));
+  CMS_ContentInfo_free(sign_test_msg);
   if (signed_content == NULL)
   {
     return MSG_TEST_SETUP_ERROR;
   }
-  const unsigned char * signed_data = NULL;
-  int signed_data_len = ASN1_STRING_length((const ASN1_STRING *) signed_content);
-  signed_data = ASN1_STRING_get0_data((const ASN1_STRING *) signed_content);
+  int signed_data_len = ASN1_STRING_length(signed_content);
+  const uint8_t * signed_data = ASN1_STRING_get0_data(signed_content);
   if ((signed_data == NULL) || (signed_data_len <= 0))
   {
     return MSG_TEST_SETUP_ERROR;
@@ -352,7 +356,6 @@ int test_create_pelz_signed_msg_helper(size_t test_data_in_len,
   }
 
   return MSG_TEST_SUCCESS;
-
 }
 
 int test_verify_pelz_signed_msg_helper(size_t test_data_in_len,
@@ -363,9 +366,10 @@ int test_verify_pelz_signed_msg_helper(size_t test_data_in_len,
                                        const uint8_t *test_der_sign_priv,
                                        uint8_t test_select)
 {
-  X509 *req_cert_out = X509_new();
+  X509 *req_cert_out = NULL;
   uint8_t *verify_data = NULL;
   int verify_data_len = -1;
+  X509 * prealloc_cert = NULL;
   uint8_t * prealloc_buf = NULL;
 
   // if test_data input is null or empty, perform null input msg test
@@ -404,6 +408,7 @@ int test_verify_pelz_signed_msg_helper(size_t test_data_in_len,
   }
   if (test_msg_cert == NULL)
   {
+    EVP_PKEY_free(test_msg_priv);
     return MSG_TEST_SETUP_ERROR;
   }
 
@@ -412,6 +417,8 @@ int test_verify_pelz_signed_msg_helper(size_t test_data_in_len,
                                                             (int) test_data_in_len,
                                                             test_msg_cert,
                                                             test_msg_priv);
+  EVP_PKEY_free(test_msg_priv);
+  X509_free(test_msg_cert);
   if (signed_test_msg == NULL)
   {
     return MSG_TEST_SETUP_ERROR;
@@ -424,6 +431,7 @@ int test_verify_pelz_signed_msg_helper(size_t test_data_in_len,
     verify_data_len = verify_pelz_signed_msg(signed_test_msg,
                                              &req_cert_out,
                                              &verify_data);
+    CMS_ContentInfo_free(signed_test_msg);
     if ((verify_data_len != (int) test_data_in_len) ||
         (memcmp(test_data_in, verify_data, test_data_in_len) != 0) ||
         (X509_cmp(req_cert_out, test_msg_cert) != 0))
@@ -433,11 +441,44 @@ int test_verify_pelz_signed_msg_helper(size_t test_data_in_len,
     return MSG_TEST_SUCCESS;
     break;
 
+  // test NULL output certificate double pointer parameter is handled
+  case VERIFY_PELZ_SIGNED_MSG_NULL_OUT_CERT_TEST:
+    verify_data_len = verify_pelz_signed_msg(signed_test_msg,
+                                             NULL,
+                                             &verify_data);
+    CMS_ContentInfo_free(signed_test_msg);
+    if (verify_data_len != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  // test that pre-allocated output cert parameter errors and is handled
+  case VERIFY_PELZ_SIGNED_MSG_PREALLOC_OUT_CERT_TEST:
+    prealloc_cert = X509_new();
+    if (prealloc_cert == NULL)
+    {
+      return MSG_TEST_SETUP_ERROR;
+    }
+    verify_data_len = verify_pelz_signed_msg(signed_test_msg,
+                                             &prealloc_cert,
+                                             &verify_data);
+    CMS_ContentInfo_free(signed_test_msg);
+    X509_free(prealloc_cert);
+    if (verify_data_len != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
   // test NULL output data buffer double pointer parameter is handled
   case VERIFY_PELZ_SIGNED_MSG_NULL_OUT_BUF_TEST:
     verify_data_len = verify_pelz_signed_msg(signed_test_msg,
                                              &req_cert_out,
                                              NULL);
+    CMS_ContentInfo_free(signed_test_msg);
     if (verify_data_len != PELZ_MSG_PARAM_INVALID)
     {
       return MSG_TEST_PARAM_HANDLING_ERROR;
@@ -455,6 +496,7 @@ int test_verify_pelz_signed_msg_helper(size_t test_data_in_len,
     verify_data_len = verify_pelz_signed_msg(signed_test_msg,
                                              &req_cert_out,
                                              &prealloc_buf);
+    CMS_ContentInfo_free(signed_test_msg);
     free(prealloc_buf);
     if (verify_data_len != PELZ_MSG_PARAM_INVALID)
     {
@@ -466,6 +508,7 @@ int test_verify_pelz_signed_msg_helper(size_t test_data_in_len,
   // invalid test selection
   default:
     pelz_sgx_log(LOG_ERR, "invalid test selection");
+    CMS_ContentInfo_free(signed_test_msg);
     return MSG_TEST_SETUP_ERROR;
   }
 
@@ -527,7 +570,6 @@ int test_create_pelz_enveloped_msg_helper(size_t test_data_in_len,
   // of the input data and differs in content
   const ASN1_OCTET_STRING *enveloped_content =
                              *(CMS_get0_content(enveloped_test_msg));
-  pelz_sgx_log(LOG_DEBUG, "extracted CMS content");
   if (enveloped_content == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error extracting enveloped message content")
@@ -537,32 +579,21 @@ int test_create_pelz_enveloped_msg_helper(size_t test_data_in_len,
   }
   int enc_data_len = -1;
   enc_data_len = ASN1_STRING_length(enveloped_content);
-  pelz_sgx_log(LOG_DEBUG, "got ASN1 string length");
   const uint8_t *enc_data = ASN1_STRING_get0_data(enveloped_content);
-  pelz_sgx_log(LOG_DEBUG, "got ASN1 string content");
   if ((enc_data == NULL) ||
       (enc_data_len != (int) test_data_in_len) ||
       (memcmp(test_data_in, enc_data, test_data_in_len) == 0))
   {
-    pelz_sgx_log(LOG_DEBUG, "failed content checks");
+    pelz_sgx_log(LOG_DEBUG, "failed created CMS message content checks");
     X509_free(test_cert);
     CMS_ContentInfo_free(enveloped_test_msg);
     return MSG_TEST_INVALID_ENCRYPT_RESULT;
   }
 
-  pelz_sgx_log(LOG_DEBUG, "cleanup starts");
+  // clean-up
   X509_free(test_cert);
-  pelz_sgx_log(LOG_DEBUG, "freed cert");
   CMS_ContentInfo_free(enveloped_test_msg);
-  pelz_sgx_log(LOG_DEBUG, "freed test message");
-  if (enveloped_content == NULL)
-  {
-    pelz_sgx_log(LOG_DEBUG, "enveloped_content is NULL");
-  }
-  else
-  {
-    pelz_sgx_log(LOG_DEBUG, "enveloped_content is not NULL");
-  }
+
   return MSG_TEST_SUCCESS;
 }
 
@@ -652,7 +683,7 @@ int test_decrypt_pelz_enveloped_msg_helper(size_t test_data_in_len,
   switch(test_select)
   {
   // valid set of parameters test case:
-  //   - input certificate should be optional
+  //   - input certificate recommended, but should be optional
   case DECRYPT_PELZ_ENVELOPED_MSG_NULL_CERT_TEST:
   case DECRYPT_PELZ_ENVELOPED_MSG_BASIC_TEST:
     if (test_select == DECRYPT_PELZ_ENVELOPED_MSG_NULL_CERT_TEST)
@@ -695,7 +726,7 @@ int test_decrypt_pelz_enveloped_msg_helper(size_t test_data_in_len,
     result = MSG_TEST_PARAM_HANDLING_OK;
     break;
 
-  // NULL double pointer to output buffer shoulg be handled as invalid param
+  // NULL double pointer to output buffer should be handled as invalid param
   case DECRYPT_PELZ_ENVELOPED_MSG_NULL_OUT_BUF_TEST:
     decrypt_data_len = decrypt_pelz_enveloped_msg(enveloped_test_msg,
                                                   test_cert,
@@ -781,7 +812,7 @@ int test_der_encode_pelz_msg_helper(uint8_t test_msg_type,
   }
   if (test_select == DER_ENCODE_CMS_PELZ_MSG_BASIC_TEST)
   {
-    der_test_msg_len = der_encode_pelz_msg((const void *) test_msg,
+    der_test_msg_len = der_encode_pelz_msg((const PELZ_MSG *) test_msg,
                                            &der_test_msg,
                                            ASN1);
     if ((der_test_msg_len <= 0) || (der_test_msg == NULL))
@@ -811,7 +842,7 @@ int test_der_encode_pelz_msg_helper(uint8_t test_msg_type,
   {
   // Basic test: verify DER-encoding of caller specified PELZ_MSG is correct
   case DER_ENCODE_ASN1_PELZ_MSG_BASIC_TEST:
-    der_test_msg_len = der_encode_pelz_msg((const void *) test_msg,
+    der_test_msg_len = der_encode_pelz_msg((const PELZ_MSG *) test_msg,
                                            &der_test_msg,
                                            ASN1);
     if ((der_test_msg_len <= 0) || (der_test_msg == NULL))
@@ -884,7 +915,7 @@ int test_der_encode_pelz_msg_helper(uint8_t test_msg_type,
     break;
 
   case DER_ENCODE_CMS_PELZ_MSG_BASIC_TEST:
-    retval = der_encode_pelz_msg((const void *) cms_test_msg,
+    retval = der_encode_pelz_msg((const CMS_ContentInfo *) cms_test_msg,
                                  &der_cms_test_msg,
                                  CMS);
     if ((retval <= 0) || (der_test_msg == NULL))
@@ -898,7 +929,7 @@ int test_der_encode_pelz_msg_helper(uint8_t test_msg_type,
     //  - five LSBs should contain tag (SEQUENCE = 16 or 0x10)
     if (der_cms_test_msg[index++] != 0x30)
     {
-      pelz_sgx_log(LOG_ERR, "DER-encode (cms) mismatch - message tag");
+      pelz_sgx_log(LOG_ERR, "DER-encode (CMS) mismatch - message tag");
       return MSG_TEST_DER_ENCODE_RESULT_MISMATCH;
     }
     // second byte represents the sequence length (i.e., 2 bytes less
@@ -906,7 +937,7 @@ int test_der_encode_pelz_msg_helper(uint8_t test_msg_type,
     // are not included in this length value)
     if (der_cms_test_msg[index++] != (retval - 2))
     {
-      pelz_sgx_log(LOG_ERR, "DER-encode (cms) mismatch - message length");
+      pelz_sgx_log(LOG_ERR, "DER-encode (CMS) mismatch - message length");
       return MSG_TEST_DER_ENCODE_RESULT_MISMATCH;
     }
     // third byte represents the type for the first element in the
@@ -914,7 +945,7 @@ int test_der_encode_pelz_msg_helper(uint8_t test_msg_type,
     // identifier (OID)
     if (der_cms_test_msg[index++] != V_ASN1_OBJECT)
     {
-      pelz_sgx_log(LOG_ERR, "DER-encode (cms) mismatch - OID tag");
+      pelz_sgx_log(LOG_ERR, "DER-encode (CMS) mismatch - OID tag");
       return MSG_TEST_DER_ENCODE_RESULT_MISMATCH;
     }
     // the sequence should end in the DER-encoded PELZ_MSG payload
@@ -923,7 +954,7 @@ int test_der_encode_pelz_msg_helper(uint8_t test_msg_type,
     {
       if (der_cms_test_msg[index + i] != der_test_msg[i])
       {
-        pelz_sgx_log(LOG_ERR, "DER-encode (cms) mismatch - PELZ_MSG payload");
+        pelz_sgx_log(LOG_ERR, "DER-encode (CMS) mismatch - PELZ_MSG payload");
         return MSG_TEST_DER_ENCODE_RESULT_MISMATCH;
       }
     }
@@ -937,7 +968,7 @@ int test_der_encode_pelz_msg_helper(uint8_t test_msg_type,
                                  ASN1);
     if (retval != PELZ_MSG_PARAM_INVALID)
     {
-        pelz_sgx_log(LOG_ERR, "error handling NULL 'msg_in' input parameter");
+        pelz_sgx_log(LOG_ERR, "NULL 'msg_in' input parameter handling error");
         return MSG_TEST_PARAM_HANDLING_ERROR;
     }
     return MSG_TEST_PARAM_HANDLING_OK;
@@ -945,12 +976,12 @@ int test_der_encode_pelz_msg_helper(uint8_t test_msg_type,
 
   // Check that NULL pointer to pointer to output buffer is handled correctly
   case DER_ENCODE_PELZ_MSG_NULL_OUT_BUF_TEST:
-    retval = der_encode_pelz_msg((const void *) test_msg,
+    retval = der_encode_pelz_msg((const PELZ_MSG *) test_msg,
                                  NULL,
                                  ASN1);
     if (retval != PELZ_MSG_PARAM_INVALID)
     {
-        pelz_sgx_log(LOG_ERR, "error handling NULL output buffer parameter");
+        pelz_sgx_log(LOG_ERR, "NULL output buffer parameter handling error");
         return MSG_TEST_PARAM_HANDLING_ERROR;
     }
     return MSG_TEST_PARAM_HANDLING_OK;
@@ -1015,7 +1046,7 @@ int test_der_decode_pelz_msg_helper(uint8_t test_msg_type,
     pelz_sgx_log(LOG_ERR, "error creating ASN.1 test message");
     return MSG_TEST_SETUP_ERROR;
   }
-  der_test_msg_len = der_encode_pelz_msg((const void *) test_msg,
+  der_test_msg_len = der_encode_pelz_msg((const PELZ_MSG *) test_msg,
                                          &der_test_msg,
                                          ASN1);
   if ((der_test_msg_len <= 0) || (der_test_msg == NULL))
@@ -1041,9 +1072,10 @@ int test_der_decode_pelz_msg_helper(uint8_t test_msg_type,
       pelz_sgx_log(LOG_ERR, "error creating CMS test message");
       return MSG_TEST_SETUP_ERROR;
     }
-    der_cms_test_msg_len = der_encode_pelz_msg((const void *) cms_test_msg,
-                                               &der_cms_test_msg,
-                                               CMS);
+    der_cms_test_msg_len =
+      der_encode_pelz_msg((const CMS_ContentInfo *) cms_test_msg,
+                          &der_cms_test_msg,
+                          CMS);
     if ((der_cms_test_msg_len <= 0) || (der_cms_test_msg == NULL))
     {
       pelz_sgx_log(LOG_ERR, "error DER-encoding CMS test message");
@@ -1090,7 +1122,9 @@ int test_der_decode_pelz_msg_helper(uint8_t test_msg_type,
     break;
 
   case DER_DECODE_CMS_PELZ_MSG_BASIC_TEST:
-    decoded_cms_msg = der_decode_pelz_msg(der_cms_test_msg, der_cms_test_msg_len, CMS);
+    decoded_cms_msg = der_decode_pelz_msg(der_cms_test_msg,
+                                          der_cms_test_msg_len,
+                                          CMS);
     if (decoded_cms_msg == NULL)
     {
       return MSG_TEST_DER_DECODE_ERROR;

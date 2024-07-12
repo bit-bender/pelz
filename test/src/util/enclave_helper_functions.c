@@ -493,11 +493,13 @@ int test_create_pelz_enveloped_msg_helper(size_t test_data_in_len,
     invalid_param_msg = create_pelz_enveloped_msg(test_data_in,
                                                   (int) test_data_in_len,
                                                   test_cert);
+    X509_free(test_cert);
     if (invalid_param_msg != NULL)
     {
       CMS_ContentInfo_free(invalid_param_msg);
       return MSG_TEST_PARAM_HANDLING_ERROR;
     }
+    CMS_ContentInfo_free(invalid_param_msg);
     return MSG_TEST_PARAM_HANDLING_OK;
   }
 
@@ -508,6 +510,7 @@ int test_create_pelz_enveloped_msg_helper(size_t test_data_in_len,
                                                  test_cert);
   if (enveloped_test_msg == NULL)
   {
+    X509_free(test_cert);
     return MSG_TEST_ENCRYPT_ERROR;
   }
 
@@ -515,25 +518,51 @@ int test_create_pelz_enveloped_msg_helper(size_t test_data_in_len,
   int test_msg_type = OBJ_obj2nid(CMS_get0_type(enveloped_test_msg));
   if (test_msg_type != NID_id_smime_ct_authEnvelopedData)
   {
-    pelz_sgx_log(LOG_DEBUG, "message type wrong");
+    X509_free(test_cert);
+    CMS_ContentInfo_free(enveloped_test_msg);
     return MSG_TEST_INVALID_ENCRYPT_RESULT;
   }
 
   // validate length of encrypted message content matches the length
-  // of the input data
-  ASN1_OCTET_STRING *enveloped_content = NULL;
-  enveloped_content = *(CMS_get0_content(enveloped_test_msg));
+  // of the input data and differs in content
+  const ASN1_OCTET_STRING *enveloped_content =
+                             *(CMS_get0_content(enveloped_test_msg));
+  pelz_sgx_log(LOG_DEBUG, "extracted CMS content");
   if (enveloped_content == NULL)
   {
+    pelz_sgx_log(LOG_ERR, "error extracting enveloped message content")
+    X509_free(test_cert);
+    CMS_ContentInfo_free(enveloped_test_msg);
     return MSG_TEST_SETUP_ERROR;
   }
   int enc_data_len = -1;
-  enc_data_len = ASN1_STRING_length((const ASN1_STRING *) enveloped_content);
-  if (enc_data_len != (int) test_data_in_len)
+  enc_data_len = ASN1_STRING_length(enveloped_content);
+  pelz_sgx_log(LOG_DEBUG, "got ASN1 string length");
+  const uint8_t *enc_data = ASN1_STRING_get0_data(enveloped_content);
+  pelz_sgx_log(LOG_DEBUG, "got ASN1 string content");
+  if ((enc_data == NULL) ||
+      (enc_data_len != (int) test_data_in_len) ||
+      (memcmp(test_data_in, enc_data, test_data_in_len) == 0))
   {
+    pelz_sgx_log(LOG_DEBUG, "failed content checks");
+    X509_free(test_cert);
+    CMS_ContentInfo_free(enveloped_test_msg);
     return MSG_TEST_INVALID_ENCRYPT_RESULT;
   }
 
+  pelz_sgx_log(LOG_DEBUG, "cleanup starts");
+  X509_free(test_cert);
+  pelz_sgx_log(LOG_DEBUG, "freed cert");
+  CMS_ContentInfo_free(enveloped_test_msg);
+  pelz_sgx_log(LOG_DEBUG, "freed test message");
+  if (enveloped_content == NULL)
+  {
+    pelz_sgx_log(LOG_DEBUG, "enveloped_content is NULL");
+  }
+  else
+  {
+    pelz_sgx_log(LOG_DEBUG, "enveloped_content is not NULL");
+  }
   return MSG_TEST_SUCCESS;
 }
 
@@ -542,10 +571,12 @@ int test_decrypt_pelz_enveloped_msg_helper(size_t test_data_in_len,
                                            size_t test_der_cert_len,
                                            const uint8_t *test_der_cert,
                                            size_t test_der_priv_len,
-                                           const uint8_t *test_der_priv)
+                                           const uint8_t *test_der_priv,
+                                           uint8_t test_select)
 {
   unsigned char *decrypt_data = NULL;
   int decrypt_data_len = -1;
+  int result = MSG_TEST_UNKNOWN_ERROR;
 
   // convert input DER-formatted private key byte array to internal format
   EVP_PKEY *test_priv = NULL;
@@ -569,121 +600,141 @@ int test_decrypt_pelz_enveloped_msg_helper(size_t test_data_in_len,
   }
   if (test_cert == NULL)
   {
+    EVP_PKEY_free(test_priv);
     return MSG_TEST_SETUP_ERROR;
   }
 
-  // if test_data input is null or empty, perform parameter tests
-  if ((test_data_in == NULL) || (test_data_in_len == 0))
+  // create authEnvelopedData CMS test message
+  CMS_ContentInfo *enveloped_test_msg = NULL;
+  enveloped_test_msg = create_pelz_enveloped_msg(test_data_in,
+                                                 (int) test_data_in_len,
+                                                 test_cert);
+  if (enveloped_test_msg == NULL)
   {
-    bool testFailed = false;
-    // NULL pointer to input message should be handled as invalid parameter
+    pelz_sgx_log(LOG_ERR, "error creating enveloped CMS test message");
+    EVP_PKEY_free(test_priv);
+    X509_free(test_cert);
+    return MSG_TEST_SETUP_ERROR;
+  }
+  // validate the message 'type' (authEnvelopedData)
+  int test_msg_type = OBJ_obj2nid(CMS_get0_type(enveloped_test_msg));
+  if (test_msg_type != NID_id_smime_ct_authEnvelopedData)
+  {
+    pelz_sgx_log(LOG_ERR, "created non-enveloped CMS test message");
+    EVP_PKEY_free(test_priv);
+    X509_free(test_cert);
+    return MSG_TEST_SETUP_ERROR;
+  }
+  const ASN1_OCTET_STRING * encrypted_content =
+                              *(CMS_get0_content(enveloped_test_msg));
+  if (encrypted_content == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error extracting content from CMS test message");
+    EVP_PKEY_free(test_priv);
+    X509_free(test_cert);
+    CMS_ContentInfo_free(enveloped_test_msg);
+    return MSG_TEST_SETUP_ERROR;
+  }
+  int enc_data_len = -1;
+  enc_data_len = ASN1_STRING_length(encrypted_content);
+  const uint8_t *enc_data = ASN1_STRING_get0_data(encrypted_content);
+  if ((enc_data == NULL) ||
+      (enc_data_len != (int) test_data_in_len) ||
+      (memcmp(test_data_in, enc_data, test_data_in_len) == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "unexpected CMS test message content");
+    EVP_PKEY_free(test_priv);
+    X509_free(test_cert);
+    CMS_ContentInfo_free(enveloped_test_msg);
+    return MSG_TEST_SETUP_ERROR;
+  }
+
+  switch(test_select)
+  {
+  // valid set of parameters test case:
+  //   - input certificate should be optional
+  case DECRYPT_PELZ_ENVELOPED_MSG_NULL_CERT_TEST:
+  case DECRYPT_PELZ_ENVELOPED_MSG_BASIC_TEST:
+    if (test_select == DECRYPT_PELZ_ENVELOPED_MSG_NULL_CERT_TEST)
+    {
+      decrypt_data_len = decrypt_pelz_enveloped_msg(enveloped_test_msg,
+                                                    NULL,
+                                                    test_priv,
+                                                    &decrypt_data);
+    }
+    else
+    {
+      decrypt_data_len = decrypt_pelz_enveloped_msg(enveloped_test_msg,
+                                                    test_cert,
+                                                    test_priv,
+                                                    &decrypt_data);
+    }
+    if ((decrypt_data == NULL) ||
+        (decrypt_data_len != (int) test_data_in_len) ||
+        (memcmp(test_data_in,
+                decrypt_data,
+                test_data_in_len) != 0))
+    {
+      result = MSG_TEST_DECRYPT_ERROR;
+      break;
+    }
+    result = MSG_TEST_SUCCESS;
+    break;
+
+  // NULL input message should be handled as invalid parameter
+  case DECRYPT_PELZ_ENVELOPED_MSG_NULL_IN_MSG_TEST:
     decrypt_data_len = decrypt_pelz_enveloped_msg(NULL,
                                                   test_cert,
                                                   test_priv,
                                                   &decrypt_data);
     if (decrypt_data_len != PELZ_MSG_PARAM_INVALID)
     {
-      testFailed = true;
-
-  // clear results of first test
-  memset(decrypt_data, 0, (size_t) decrypt_data_len);
-  free(decrypt_data);
-  decrypt_data = NULL;
-  decrypt_data_len = -1;
-
+      result = MSG_TEST_PARAM_HANDLING_ERROR;
+      break;
     }
-    // NULL pointer to output buffer should be handled as invalid parameter
-    CMS_ContentInfo *temp_msg = CMS_ContentInfo_new();
-    decrypt_data_len = decrypt_pelz_enveloped_msg(temp_msg,
+    result = MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  // NULL double pointer to output buffer shoulg be handled as invalid param
+  case DECRYPT_PELZ_ENVELOPED_MSG_NULL_OUT_BUF_TEST:
+    decrypt_data_len = decrypt_pelz_enveloped_msg(enveloped_test_msg,
                                                   test_cert,
                                                   test_priv,
                                                   NULL);
     if (decrypt_data_len != PELZ_MSG_PARAM_INVALID)
     {
-      testFailed = true;
+      result = MSG_TEST_PARAM_HANDLING_ERROR;
+      break;
     }
-    // NULL pointer to private key should be handled as invalid parameter
-    decrypt_data_len = decrypt_pelz_enveloped_msg(temp_msg,
+    result = MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  // NULL private key input should be handled as invalid parameter
+  case DECRYPT_PELZ_ENVELOPED_MSG_NULL_PRIV_TEST:
+    decrypt_data_len = decrypt_pelz_enveloped_msg(enveloped_test_msg,
                                                   test_cert,
                                                   NULL,
                                                   &decrypt_data);
     if (decrypt_data_len != PELZ_MSG_PARAM_INVALID)
     {
-      testFailed = true;
+      result = MSG_TEST_PARAM_HANDLING_ERROR;
+      break;
     }
-    CMS_ContentInfo_free(temp_msg);
-    if (testFailed)
-    {
-      return MSG_TEST_PARAM_HANDLING_ERROR;
-    }
-    return MSG_TEST_PARAM_HANDLING_OK;
+    result = MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  default:
+    pelz_sgx_log(LOG_ERR, "invalid test selection");
+    result = MSG_TEST_SETUP_ERROR;
   }
 
-  // create signed test message
-  CMS_ContentInfo *signed_test_msg = create_pelz_signed_msg(test_data_in,
-                                                            (int) test_data_in_len,
-                                                            test_cert,
-                                                            test_priv);
-  if (signed_test_msg == NULL)
-  {
-    return MSG_TEST_SETUP_ERROR;
-  }
-
-  // DER-encode signed test message
-  unsigned char *der_signed_test_msg = NULL;
-  int der_signed_test_msg_len = -1;
-  der_signed_test_msg_len = der_encode_pelz_msg((const void *) signed_test_msg,
-                                                &der_signed_test_msg,
-                                                CMS);
-  if ((der_signed_test_msg_len <= 0) || (der_signed_test_msg == NULL))
-  {
-    return MSG_TEST_SETUP_ERROR;
-  }
-
-  // create authEnvelopedData CMS message containing
-  // DER-encoded, signed test message
-  CMS_ContentInfo *enveloped_test_msg = NULL;
-  enveloped_test_msg = create_pelz_enveloped_msg(der_signed_test_msg,
-                                                 der_signed_test_msg_len,
-                                                 test_cert);
-  if (enveloped_test_msg == NULL)
-  {
-    return MSG_TEST_SETUP_ERROR;
-  }
-
-  // perform test on decryption of enveloped CMS test message
-  decrypt_data_len = decrypt_pelz_enveloped_msg(enveloped_test_msg,
-                                                test_cert,
-                                                test_priv,
-                                                &decrypt_data);
-  if ((decrypt_data_len != der_signed_test_msg_len) ||
-      (memcmp(der_signed_test_msg,
-              decrypt_data,
-              (size_t) der_signed_test_msg_len) != 0))
-  {
-    return MSG_TEST_DECRYPT_ERROR;
-  }
-
-  // clear results of first test
-  memset(decrypt_data, 0, (size_t) decrypt_data_len);
+  // clean-up
+  EVP_PKEY_free(test_priv);
+  X509_free(test_cert);
+  CMS_ContentInfo_free(enveloped_test_msg);
   free(decrypt_data);
-  decrypt_data = NULL;
-  decrypt_data_len = -1;
 
-  // decryption of enveloped CMS test message should not require input cert
-  decrypt_data_len = decrypt_pelz_enveloped_msg(enveloped_test_msg,
-                                                NULL,
-                                                test_priv,
-                                                &decrypt_data);
-  if ((decrypt_data_len != der_signed_test_msg_len) ||
-      (memcmp(der_signed_test_msg,
-              decrypt_data,
-              (size_t) der_signed_test_msg_len) != 0))
-  {
-    return MSG_TEST_DECRYPT_ERROR;
-  }
-
-  return MSG_TEST_SUCCESS;
+  return result;
 }
 
 

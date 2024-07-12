@@ -817,6 +817,151 @@ void test_create_pelz_enveloped_msg(void)
 void test_decrypt_pelz_enveloped_msg(void)
 {
   pelz_log(LOG_DEBUG, "Start decrypt_pelz_enveloped_msg() functionality test");
+
+  int result = 0;
+
+  char *test_data = "pelz enveloped test message data";
+  size_t test_data_len = (size_t) strlen(test_data);
+
+  BIO *test_cert_bio = BIO_new_file("test/data/msg_test_resp_pub.pem", "r");
+  if (test_cert_bio == NULL)
+  {
+    CU_FAIL("error creating BIO for reading test cert from file");
+  }
+  X509 *test_cert = PEM_read_bio_X509(test_cert_bio, NULL, 0, NULL);
+  if (test_cert == NULL)
+  {
+    CU_FAIL("error creating test X509 certificate");
+  }
+  BIO_free(test_cert_bio);
+  int test_der_cert_len = -1;
+  uint8_t *test_der_cert = NULL;
+  test_der_cert_len = i2d_X509(test_cert, &test_der_cert);
+  if ((test_der_cert == NULL) || (test_der_cert_len <= 0))
+  {
+    CU_FAIL("error creating DER-formatted test certificate");
+  }
+
+  BIO *test_priv_bio = BIO_new_file("test/data/msg_test_resp_priv.pem", "r");
+  if (test_priv_bio == NULL)
+  {
+    CU_FAIL("error creating BIO for reading test private key from file");
+  }
+  EVP_PKEY *test_priv = PEM_read_bio_PrivateKey(test_priv_bio, NULL, 0, NULL);
+  if (test_priv == NULL)
+  {
+    CU_FAIL("error creating test EC private key");
+  }
+  BIO_free(test_priv_bio);
+  int test_der_priv_len = -1;
+  uint8_t *test_der_priv = NULL;
+  test_der_priv_len = i2d_PrivateKey(test_priv, &test_der_priv);
+  if ((test_der_priv == NULL) || (test_der_priv_len <= 0))
+  {
+    CU_FAIL("error creating DER-formatted test private key");
+  }
+
+  BIO *wrong_priv_bio = BIO_new_file("test/data/msg_test_req_priv.pem", "r");
+  if (wrong_priv_bio == NULL)
+  {
+    CU_FAIL("error creating BIO to read test private (wrong) key from file");
+  }
+  EVP_PKEY *wrong_priv = PEM_read_bio_PrivateKey(wrong_priv_bio, NULL, 0, NULL);
+  if (wrong_priv == NULL)
+  {
+    CU_FAIL("error creating test EC private key");
+  }
+  BIO_free(wrong_priv_bio);
+  int wrong_der_priv_len = -1;
+  uint8_t *wrong_der_priv = NULL;
+  wrong_der_priv_len = i2d_PrivateKey(wrong_priv, &wrong_der_priv);
+  if ((wrong_der_priv == NULL) || (wrong_der_priv_len <= 0))
+  {
+    CU_FAIL("error creating DER-formatted test private (wrong) key");
+  }
+
+  // verify:
+  //  - 'test_cert' and 'test_priv' are a matched pair
+  //  - 'test_cert' and 'wrong_priv' are mismatched pair
+  CU_ASSERT(X509_check_private_key(test_cert, test_priv) == 1);
+  CU_ASSERT(X509_check_private_key(test_cert, wrong_priv) == 0);
+  
+  X509_free(test_cert);
+  EVP_PKEY_free(test_priv);
+  EVP_PKEY_free(wrong_priv);
+
+  // NULL input message test case
+  test_decrypt_pelz_enveloped_msg_helper(eid,
+                                         &result,
+                                         test_data_len,
+                                         (uint8_t *) test_data,
+                                         (size_t) test_der_cert_len,
+                                         test_der_cert,
+                                         (size_t) test_der_priv_len,
+                                         test_der_priv,
+                                         DECRYPT_PELZ_ENVELOPED_MSG_NULL_IN_MSG_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // NULL output buffer test case
+  test_decrypt_pelz_enveloped_msg_helper(eid,
+                                         &result,
+                                         test_data_len,
+                                         (uint8_t *) test_data,
+                                         (size_t) test_der_cert_len,
+                                         test_der_cert,
+                                         (size_t) test_der_priv_len,
+                                         test_der_priv,
+                                         DECRYPT_PELZ_ENVELOPED_MSG_NULL_OUT_BUF_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // NULL input private key test case
+  test_decrypt_pelz_enveloped_msg_helper(eid,
+                                         &result,
+                                         test_data_len,
+                                         (uint8_t *) test_data,
+                                         (size_t) test_der_cert_len,
+                                         test_der_cert,
+                                         (size_t) test_der_priv_len,
+                                         test_der_priv,
+                                         DECRYPT_PELZ_ENVELOPED_MSG_NULL_PRIV_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // NULL input cert test case
+  test_decrypt_pelz_enveloped_msg_helper(eid,
+                                         &result,
+                                         test_data_len,
+                                         (uint8_t *) test_data,
+                                         (size_t) test_der_cert_len,
+                                         test_der_cert,
+                                         (size_t) test_der_priv_len,
+                                         test_der_priv,
+                                         DECRYPT_PELZ_ENVELOPED_MSG_NULL_CERT_TEST);
+  CU_ASSERT(result == MSG_TEST_SUCCESS);
+
+  // valid test data should invoke succcessful CMS decryption test case
+  test_decrypt_pelz_enveloped_msg_helper(eid,
+                                         &result,
+                                         test_data_len,
+                                         (uint8_t *) test_data,
+                                         (size_t) test_der_cert_len,
+                                         test_der_cert,
+                                         (size_t) test_der_priv_len,
+                                         test_der_priv,
+                                         DECRYPT_PELZ_ENVELOPED_MSG_BASIC_TEST);
+  CU_ASSERT(result == MSG_TEST_SUCCESS);
+
+  // wrong input private decryption key test case
+  test_decrypt_pelz_enveloped_msg_helper(eid,
+                                         &result,
+                                         test_data_len,
+                                         (uint8_t *) test_data,
+                                         (size_t) test_der_cert_len,
+                                         test_der_cert,
+                                         (size_t) wrong_der_priv_len,
+                                         wrong_der_priv,
+                                         DECRYPT_PELZ_ENVELOPED_MSG_BASIC_TEST);
+  CU_ASSERT(result == MSG_TEST_DECRYPT_ERROR);
+
 }
 
 void test_der_encode_pelz_msg(void)

@@ -55,40 +55,43 @@ typedef enum MSG_FORMAT { MSG_FORMAT_MIN = 1,
 #define PELZ_MSG_BIO_READ_ERROR -4
 
 // PELZ_MSG ASN.1 sequence create/parse errors
-#define PELZ_MSG_MSG_TYPE_TAG_ERROR -32
-#define PELZ_MSG_MSG_TYPE_PARSE_ERROR -33
-#define PELZ_MSG_MSG_TYPE_PARSE_INVALID -34
-#define PELZ_MSG_REQ_TYPE_TAG_ERROR -35
-#define PELZ_MSG_REQ_TYPE_PARSE_ERROR -36
-#define PELZ_MSG_REQ_TYPE_PARSE_INVALID -37
-#define PELZ_MSG_CIPHER_TAG_ERROR -38
-#define PELZ_MSG_CIPHER_PARSE_ERROR -39
-#define PELZ_MSG_CIPHER_PARSE_INVALID -40
-#define PELZ_MSG_KEY_ID_TAG_ERROR -41
-#define PELZ_MSG_KEY_ID_PARSE_ERROR -42
-#define PELZ_MSG_KEY_ID_PARSE_INVALID -43
-#define PELZ_MSG_DATA_TAG_ERROR -44
-#define PELZ_MSG_DATA_PARSE_ERROR -45
-#define PELZ_MSG_DATA_PARSE_INVALID -46
-#define PELZ_MSG_STATUS_TAG_ERROR -47
-#define PELZ_MSG_STATUS_PARSE_ERROR -48
-#define PELZ_MSG_STATUS_PARSE_INVALID -49
+#define PELZ_MSG_ASN1_CREATE_ERROR -32
+#define PELZ_MSG_MSG_TYPE_TAG_ERROR -33
+#define PELZ_MSG_MSG_TYPE_PARSE_ERROR -34
+#define PELZ_MSG_MSG_TYPE_PARSE_INVALID -35
+#define PELZ_MSG_REQ_TYPE_TAG_ERROR -36
+#define PELZ_MSG_REQ_TYPE_PARSE_ERROR -37
+#define PELZ_MSG_REQ_TYPE_PARSE_INVALID -38
+#define PELZ_MSG_CIPHER_TAG_ERROR -39
+#define PELZ_MSG_CIPHER_PARSE_ERROR -40
+#define PELZ_MSG_CIPHER_PARSE_INVALID -41
+#define PELZ_MSG_KEY_ID_TAG_ERROR -42
+#define PELZ_MSG_KEY_ID_PARSE_ERROR -43
+#define PELZ_MSG_KEY_ID_PARSE_INVALID -44
+#define PELZ_MSG_DATA_TAG_ERROR -45
+#define PELZ_MSG_DATA_PARSE_ERROR -46
+#define PELZ_MSG_DATA_PARSE_INVALID -47
+#define PELZ_MSG_STATUS_TAG_ERROR -48
+#define PELZ_MSG_STATUS_PARSE_ERROR -49
+#define PELZ_MSG_STATUS_PARSE_INVALID -50
 
 // pelz messaging der encode/decode errors
 #define PELZ_MSG_SERIALIZE_ERROR -64
 #define PELZ_MSG_DESERIALIZE_ERROR -65
 
 // pelz messaging sign/verify errors
-#define PELZ_MSG_VERIFY_CONTENT_ERROR -96
-#define PELZ_MSG_VERIFY_FAIL -97
-#define PELZ_MSG_VERIFY_RESULT_INVALID -98
-#define PELZ_MSG_VERIFY_SIGNER_CERT_ERROR -99
-#define PELZ_MSG_EXTRACT_SIGNER_CERT_ERROR -100
+#define PELZ_MSG_SIGN_ERROR -96
+#define PELZ_MSG_VERIFY_CONTENT_ERROR -97
+#define PELZ_MSG_VERIFY_FAIL -98
+#define PELZ_MSG_VERIFY_RESULT_INVALID -99
+#define PELZ_MSG_VERIFY_SIGNER_CERT_ERROR -100
+#define PELZ_MSG_EXTRACT_SIGNER_CERT_ERROR -101
 
 // pelz messaging CMS encrypt/decrypt errors
-#define PELZ_MSG_DECRYPT_CONTENT_ERROR -128
-#define PELZ_MSG_DECRYPT_FAIL -129
-#define PELZ_MSG_DECRYPT_RESULT_INVALID -130
+#define PELZ_MSG_ENCRYPT_ERROR -128
+#define PELZ_MSG_DECRYPT_CONTENT_ERROR -129
+#define PELZ_MSG_DECRYPT_FAIL -130
+#define PELZ_MSG_DECRYPT_RESULT_INVALID -131
 
 /**
  * <pre>
@@ -163,8 +166,8 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA *msg_data_in);
  * @param[out] parsed_msg_out  Pointer to the output PELZ_MSG_DATA struct to
  *                             hold the parsed message field values.
  *
- * @return                     Zero (0) on success, non-zero error code
- *                             on failure
+ * @return                     Zero (0) on success,
+ *                             non-zero error code on failure
  */
 int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out);
 
@@ -371,28 +374,61 @@ void *der_decode_pelz_msg(const unsigned char *bytes_in,
 
 /**
  * <pre>
- * Decodes an input DER-formatted byte array into its original internal
- * (PELZ_MSG ASN.1 sequence or CMS message) format. In other words, this
- * function de-serializes a DER-encoded, raw array of bytes to enable
- * parsing the message using a structured format.
+ * Decodes a DER-formatted byte array containing received pelz request
+ * data.
  * </pre>
  *
- * @param[in]  bytes_in     Pointer to the input buffer containing the
- *                          DER-formatted byte array
+ * @param[in]  rcvd_msg_buf    Pointer to the input buffer containing the
+ *                             DER-formatted byte array representing the
+ *                             received, encrypted, signed, pelz message
+ *                             (request) data.
  *
- * @param[in]  bytes_in_len Size (in bytes) of the input byte buffer
+ * @param[out] requestor_cert  Double pointer to peer X509 certificate
+ *                             extracted from the received pelz CMS request
+ *                             message
  * 
- * @param[in]  msg_format   Enumerated format specification indicating
- *                          what output format the DER-encoded input
- *                          buffer should be converted to. Currently
- *                          supported values are: RAW and CMS.
+ * @param[out] decode_result   Pointer to decrypted, signature verified,
+ *                             and parsed pelz request message data struct
+ *                             (PELZ_MSG_DATA *).
  *
- * @return    Pointer to the resultant internally formatted struct value.
- *            A NULL pointer is returned when an error is encountered.
+ * @return                     Zero (PELZ_MSG_SUCCESS = 0) on success;
+ *                             error code (negative integer) otherwise
  */
 int decode_rcvd_pelz_request(charbuf rcvd_msg_buf,
                              X509 ** requestor_cert,
                              PELZ_MSG_DATA * decode_result);
+
+/**
+ * <pre>
+ * Encodes input pelz response data and creates a DER-formatted byte array
+ * that can be sent (transmitted) to the entity that submitted the pelz
+ * request.
+ * </pre>
+ *
+ * @param[in]  response_data   Pointer to the input buffer containing the
+ *                             DER-formatted byte array representing the
+ *                             raw (unencrypted, unsigned) pelz response
+ *                             message data.
+ *
+ * @param[in]  requestor_cert  Pointer to the requestor's X509 certificate
+ *                             that was extracted from the pelz request
+ *                             being processed. The public key in this
+ *                             certificate is needed to encrypt the request
+ *                             message in a manner that only the requestor
+ *                             can decrypt it (i.e. using his private key).
+ * 
+ * @param[in]  tx_msg_buf      Double-pointer to DER-encoded byte array
+ *                             representing the signed, encrypted, pelz
+ *                             response message data to be sent back to
+ *                             the requestor.
+ *
+ * @return                     number of data bytes allocated/written to the
+ *                             'tx_msg_buf' output buffer on success;
+ *                             error code (negative integer) otherwise
+ */
+int encode_pelz_response(PELZ_MSG_DATA *response_data,
+                         X509 *requestor_cert,
+                         unsigned char **tx_msg_buf);
 
 /**
  * <pre>

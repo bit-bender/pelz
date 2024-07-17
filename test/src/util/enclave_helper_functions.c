@@ -1179,3 +1179,57 @@ int test_der_decode_pelz_msg_helper(uint8_t test_msg_type,
   // should never reach this
   return MSG_TEST_UNKNOWN_ERROR;
 }
+
+int test_decode_rcvd_pelz_msg_helper(uint8_t test_msg_type,
+                                     uint8_t test_req_type,
+                                     size_t test_cipher_len,
+                                     unsigned char * test_cipher,
+                                     size_t test_key_id_len,
+                                     unsigned char * test_key_id,
+                                     size_t test_data_len,
+                                     unsigned char * test_data,
+                                     size_t test_status_len,
+                                     unsigned char * test_status,
+                                     uint8_t test_select)
+{
+  PELZ_MSG_DATA test_msg_data_in = { .msg_type = (PELZ_MSG_TYPE) test_msg_type,
+                                     .req_type = (PELZ_REQ_TYPE) test_req_type,
+                                     .cipher = { .chars = test_cipher,
+                                                 .len = test_cipher_len },
+                                     .key_id = { .chars = test_key_id,
+                                                 .len = test_key_id_len },
+                                     .data = { .chars = test_data,
+                                               .len = test_data_len },
+                                     .status = { .chars = test_status,
+                                                 .len = test_status_len } };
+
+  // should never reach this
+  return MSG_TEST_UNKNOWN_ERROR;
+}
+
+int test_encode_pelz_msg_helper(uint8_t test_msg_type,
+                                uint8_t test_req_type,
+                                size_t test_cipher_len,
+                                unsigned char * test_cipher,
+                                size_t test_key_id_len,
+                                unsigned char * test_key_id,
+                                size_t test_data_len,
+                                unsigned char * test_data,
+                                size_t test_status_len,
+                                unsigned char * test_status,
+                                uint8_t test_select)
+{
+  PELZ_MSG_DATA test_msg_data_in = { .msg_type = (PELZ_MSG_TYPE) test_msg_type,
+                                     .req_type = (PELZ_REQ_TYPE) test_req_type,
+                                     .cipher = { .chars = test_cipher,
+                                                 .len = test_cipher_len },
+                                     .key_id = { .chars = test_key_id,
+                                                 .len = test_key_id_len },
+                                     .data = { .chars = test_data,
+                                               .len = test_data_len },
+                                     .status = { .chars = test_status,
+                                                 .len = test_status_len } };
+
+  // should never reach this statement
+  return MSG_TEST_UNKNOWN_ERROR;
+}

@@ -375,60 +375,82 @@ void *der_decode_pelz_msg(const unsigned char *bytes_in,
 /**
  * <pre>
  * Decodes a DER-formatted byte array containing received pelz request
- * data.
+ * data and extracts the public X509 certificate for the message sender.
  * </pre>
  *
  * @param[in]  rcvd_msg_buf    Pointer to the input buffer containing the
  *                             DER-formatted byte array representing the
  *                             received, encrypted, signed, pelz message
- *                             (request) data.
+ *                             data.
  *
- * @param[out] requestor_cert  Double pointer to peer X509 certificate
- *                             extracted from the received pelz CMS request
- *                             message
+ * @param[in]  local_cert_in   Pointer to the message recipient's (local)
+ *                             X509 certificate. It contains the public key
+ *                             that should have been used to encrypt the
+ *                             received enveloped message.
+ *
+ * @param[in]  local_priv_in   Pointer to the message recipient's (local)
+ *                             private key. This private key is needed to
+ *                             decrypt the received enveloped message.
+ *
+ * @param[out] peer_cert_out   Double pointer to message sender's (peer)
+ *                             X509 certificate extracted from the received
+ *                             signed message.
  * 
  * @param[out] decode_result   Pointer to decrypted, signature verified,
- *                             and parsed pelz request message data struct
+ *                             and parsed pelz message data struct
  *                             (PELZ_MSG_DATA *).
  *
  * @return                     Zero (PELZ_MSG_SUCCESS = 0) on success;
  *                             error code (negative integer) otherwise
  */
-int decode_rcvd_pelz_request(charbuf rcvd_msg_buf,
-                             X509 ** requestor_cert,
+int decode_rcvd_pelz_message(charbuf rcvd_msg_buf,
+                             X509 * local_cert_in,
+                             EVP_PKEY * local_priv_in,
+                             X509 ** peer_cert_out,
                              PELZ_MSG_DATA * decode_result);
 
 /**
  * <pre>
- * Encodes input pelz response data and creates a DER-formatted byte array
- * that can be sent (transmitted) to the entity that submitted the pelz
- * request.
+ * Encodes input pelz message data and creates a DER-formatted byte array
+ * that can be sent (transmitted) to the recipient matching the identity in
+ * the specified peer certificate input parameter.
  * </pre>
  *
- * @param[in]  response_data   Pointer to the input buffer containing the
+ * @param[in]  msg_data_in     Pointer to the input buffer containing the
  *                             DER-formatted byte array representing the
- *                             raw (unencrypted, unsigned) pelz response
- *                             message data.
+ *                             raw (unencrypted, unsigned) pelz message
+ *                             data.
+ * 
+ * @param[in]  local_cert_in   Pointer to the sender's local certificate,
+ *                             to be included with the message to enable
+ *                             signature verification by the recipient.
+ *                             This certificate must be signed by the
+ *                             appropriate CA in order to avoid its
+ *                             rejection by the recipient.
  *
- * @param[in]  requestor_cert  Pointer to the requestor's X509 certificate
- *                             that was extracted from the pelz request
- *                             being processed. The public key in this
- *                             certificate is needed to encrypt the request
- *                             message in a manner that only the requestor
- *                             can decrypt it (i.e. using his private key).
+ * @param[in]  local_priv_in   Pointer to the sender's private key, to be
+ *                             used in providing a signature as a component
+ *                             of the encoded pelz message.
+ *
+ * @param[in]  peer_cert_in    Pointer to the receipient's X509 certificate.
+ *                             The public key in this certificate is needed
+ *                             to encrypt the message in a manner that only
+ *                             the recipient can decrypt (i.e. using the
+ *                             private key held by the recipient).
  * 
  * @param[in]  tx_msg_buf      Double-pointer to DER-encoded byte array
  *                             representing the signed, encrypted, pelz
- *                             response message data to be sent back to
- *                             the requestor.
+ *                             message data to be sent to a recipient.
  *
  * @return                     number of data bytes allocated/written to the
  *                             'tx_msg_buf' output buffer on success;
  *                             error code (negative integer) otherwise
  */
-int encode_pelz_response(PELZ_MSG_DATA *response_data,
-                         X509 *requestor_cert,
-                         unsigned char **tx_msg_buf);
+int encode_pelz_message(PELZ_MSG_DATA *msg_data_in,
+                        X509 *local_cert_in,
+                        EVP_PKEY *local_priv_in,
+                        X509 *peer_cert_in,
+                        unsigned char **tx_msg_buf);
 
 /**
  * <pre>

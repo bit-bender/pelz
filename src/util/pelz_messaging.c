@@ -790,165 +790,167 @@ void *der_decode_pelz_msg(const unsigned char *bytes_in,
   return msg_out;
 }
 
-int decode_rcvd_pelz_request(charbuf rcvd_msg_buf,
-                             X509 ** requestor_cert,
-                             PELZ_MSG_DATA *decode_result)
+int decode_rcvd_pelz_msg(charbuf rcvd_msg_buf_in,
+                         X509 *local_cert_in,
+                         EVP_PKEY *local_priv_in,
+                         X509 **peer_cert_out,
+                         PELZ_MSG_DATA *decode_result)
 {
-  if((rcvd_msg_buf.chars == NULL) || (rcvd_msg_buf.len == 0))
+  if((rcvd_msg_buf_in.chars == NULL) || (rcvd_msg_buf_in.len == 0))
   {
-    pelz_sgx_log(LOG_ERR, "Invalid received pelz request message buffer");
+    pelz_sgx_log(LOG_ERR, "Invalid received pelz message buffer");
     return PELZ_MSG_PARAM_INVALID;
   }
 
-  // DER-decode signed, enveloped CMS pelz request message
-  CMS_ContentInfo *env_req = NULL;
-  env_req = (CMS_ContentInfo *) der_decode_pelz_msg(
-                                  (const unsigned char *) rcvd_msg_buf.chars,
-                                  (long) rcvd_msg_buf.len,
+  // DER-decode signed, enveloped CMS pelz message
+  CMS_ContentInfo *env_msg = NULL;
+  env_msg = (CMS_ContentInfo *) der_decode_pelz_msg(
+                                  (const unsigned char *) rcvd_msg_buf_in.chars,
+                                  (long) rcvd_msg_buf_in.len,
                                   CMS);
-  if (env_req == NULL)
+  if (env_msg == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "error DER-decoding enveloped pelz CMS request");
+    pelz_sgx_log(LOG_ERR, "error DER-decoding enveloped pelz CMS message");
     return PELZ_MSG_DESERIALIZE_ERROR;
   }
 
-  // CMS decrypt enveloped pelz request message
-  uint8_t *der_signed_req = NULL;
-  int der_signed_req_len = -1;
-  der_signed_req_len = decrypt_pelz_enveloped_msg(env_req,
-                                                  pelz_id.cert,
-                                                  pelz_id.private_pkey,
-                                                  &der_signed_req);
-  CMS_ContentInfo_free(env_req);
-  if ((der_signed_req == NULL) || (der_signed_req_len <= 0))
+  // CMS decrypt enveloped pelz message
+  uint8_t *der_signed_msg = NULL;
+  int der_signed_msg_len = -1;
+  der_signed_msg_len = decrypt_pelz_enveloped_msg(env_msg,
+                                                  local_cert_in,
+                                                  local_priv_in,
+                                                  &der_signed_msg);
+  CMS_ContentInfo_free(env_msg);
+  if ((der_signed_msg == NULL) || (der_signed_msg_len <= 0))
   {
-    pelz_sgx_log(LOG_ERR, "error decrypting enveloped pelz CMS request");
+    pelz_sgx_log(LOG_ERR, "error decrypting enveloped pelz CMS message");
     return PELZ_MSG_DECRYPT_FAIL;
   }
 
-  // DER-decode decrypted, signed CMS pelz request message
-  CMS_ContentInfo *signed_req = NULL;
-  signed_req = (CMS_ContentInfo *) der_decode_pelz_msg(
-                                     (const unsigned char *) der_signed_req,
-                                     (long) der_signed_req_len,
-                                     CMS);
-  free(der_signed_req);
-  if (signed_req == NULL)
+  // DER-decode decrypted, signed CMS pelz message
+  CMS_ContentInfo *signed_msg = NULL;
+  signed_msg = (CMS_ContentInfo *) der_decode_pelz_msg(der_signed_msg,
+                                                       der_signed_msg_len,
+                                                       CMS);
+  free(der_signed_msg);
+  if (signed_msg == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "error DER-decoding decrypted, signed pelz request");
+    pelz_sgx_log(LOG_ERR, "error DER-decoding decrypted, signed pelz message");
     return PELZ_MSG_DESERIALIZE_ERROR;
   }
 
-  // verify signed CMS pelz request message
-  uint8_t *der_asn1_req = NULL;
-  int der_asn1_req_len = -1;
-  der_asn1_req_len = verify_pelz_signed_msg(signed_req,
-                                            requestor_cert,
-                                            &der_asn1_req);
-  CMS_ContentInfo_free(signed_req);
-  if ((der_asn1_req == NULL) || (der_asn1_req_len <= 0))
+  // verify signed CMS pelz message
+  uint8_t *der_asn1_msg = NULL;
+  int der_asn1_msg_len = -1;
+  der_asn1_msg_len = verify_pelz_signed_msg(signed_msg,
+                                            peer_cert_out,
+                                            &der_asn1_msg);
+  CMS_ContentInfo_free(signed_msg);
+  if ((der_asn1_msg == NULL) || (der_asn1_msg_len <= 0))
   {
-    pelz_sgx_log(LOG_ERR, "error verifying signed pelz CMS request");
+    pelz_sgx_log(LOG_ERR, "error verifying signed pelz CMS message");
     return PELZ_MSG_VERIFY_FAIL;
   }
 
-  // DER-decode ASN.1 formatted pelz request message
-  PELZ_MSG *asn1_req = NULL;
-  asn1_req = (PELZ_MSG *) der_decode_pelz_msg(
-                            (const unsigned char *) der_asn1_req,
-                            (long) der_asn1_req_len,
+  // DER-decode ASN.1 formatted pelz message
+  PELZ_MSG *asn1_msg = NULL;
+  asn1_msg = (PELZ_MSG *) der_decode_pelz_msg(
+                            (const unsigned char *) der_asn1_msg,
+                            (long) der_asn1_msg_len,
                             ASN1);
-  free(der_asn1_req);
-  if (asn1_req == NULL)
+  free(der_asn1_msg);
+  if (asn1_msg == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "error DER-decoding ASN.1 pelz request");
+    pelz_sgx_log(LOG_ERR, "error DER-decoding ASN.1 pelz message");
     return PELZ_MSG_DESERIALIZE_ERROR;
   }
 
   // parse ASN.1 formatted pelz request message
-  int parse_result = parse_pelz_asn1_msg(asn1_req, decode_result);
-  PELZ_MSG_free(asn1_req);
+  int parse_result = parse_pelz_asn1_msg(asn1_msg, decode_result);
+  PELZ_MSG_free(asn1_msg);
   if (parse_result != PELZ_MSG_SUCCESS)
   {
-    pelz_sgx_log(LOG_ERR, "error parsing ASN.1 pelz request");
+    pelz_sgx_log(LOG_ERR, "error parsing ASN.1 pelz message");
     return parse_result;
   }
 
   return PELZ_MSG_SUCCESS;
 }
 
-int encode_pelz_response(PELZ_MSG_DATA *resp_msg_data,
-                         X509 *requestor_cert,
-                         unsigned char **tx_msg_buf)
+int encode_pelz_msg(PELZ_MSG_DATA *msg_data_in,
+                    X509 *local_cert_in,
+                    EVP_PKEY *local_priv_in,
+                    X509 *peer_cert_in,
+                    unsigned char **tx_msg_buf)
 {
   // create ASN.1 formatted pelz response message
-  PELZ_MSG *asn1_response = NULL;
-  asn1_response = create_pelz_asn1_msg(resp_msg_data);
-  if (asn1_response != PELZ_MSG_SUCCESS)
+  PELZ_MSG *asn1_msg = NULL;
+  asn1_msg = create_pelz_asn1_msg(msg_data_in);
+  if (asn1_msg == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "error creating ASN.1 pelz response");
+    pelz_sgx_log(LOG_ERR, "error creating ASN.1 pelz message");
     return PELZ_MSG_ASN1_CREATE_ERROR;
   }
 
   // DER-encode ASN.1 formatted pelz response message
-  unsigned char *der_asn1_resp = NULL;
-  int der_asn1_resp_len = -1;
-  der_asn1_resp_len = der_encode_pelz_msg((const PELZ_MSG *) asn1_response,
-                                          &der_asn1_resp,
-                                          ASN1);
-  PELZ_MSG_free(asn1_response);
-  if ((der_asn1_resp == NULL) || (der_asn1_resp_len <= 0))
+  unsigned char *der_asn1_msg = NULL;
+  int der_asn1_msg_len = -1;
+  der_asn1_msg_len = der_encode_pelz_msg((const PELZ_MSG *) asn1_msg,
+                                         &der_asn1_msg,
+                                         ASN1);
+  PELZ_MSG_free(asn1_msg);
+  if ((der_asn1_msg == NULL) || (der_asn1_msg_len <= 0))
   {
-    pelz_sgx_log(LOG_ERR, "error DER-encoding ASN.1 pelz response");
+    pelz_sgx_log(LOG_ERR, "error DER-encoding ASN.1 pelz message");
     return PELZ_MSG_SERIALIZE_ERROR;
   }
 
   // create signed CMS pelz response message
-  CMS_ContentInfo *signed_response = NULL;
-  signed_response = create_pelz_signed_msg(der_asn1_resp,
-                                           der_asn1_resp_len,
-                                           pelz_id.cert,
-                                           pelz_id.private_pkey);
-  free(der_asn1_resp);
-  if (signed_response == NULL)
+  CMS_ContentInfo *signed_message = NULL;
+  signed_message = create_pelz_signed_msg(der_asn1_msg,
+                                          der_asn1_msg_len,
+                                          local_cert_in,
+                                          local_priv_in);
+  free(der_asn1_msg);
+  if (signed_message == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "error creating signed CMS pelz response");
+    pelz_sgx_log(LOG_ERR, "error creating signed CMS pelz message");
     return PELZ_MSG_SIGN_ERROR;
   }
 
   // DER-encode signed CMS pelz response message
-  unsigned char *der_signed_resp = NULL;
-  int der_signed_resp_len = -1;
-  der_signed_resp_len = der_encode_pelz_msg(
-                          (const CMS_ContentInfo *) signed_response,
-                          &der_signed_resp,
-                          CMS);
-  CMS_ContentInfo_free(signed_response);
-  if ((der_signed_resp == NULL) || (der_signed_resp_len <= 0))
+  unsigned char *der_signed_msg = NULL;
+  int der_signed_msg_len = -1;
+  der_signed_msg_len = der_encode_pelz_msg(
+                         (const CMS_ContentInfo *) signed_message,
+                         &der_signed_msg,
+                         CMS);
+  CMS_ContentInfo_free(signed_message);
+  if ((der_signed_msg == NULL) || (der_signed_msg_len <= 0))
   {
-    pelz_sgx_log(LOG_ERR, "error DER-encoding signed CMS pelz response");
+    pelz_sgx_log(LOG_ERR, "error DER-encoding signed CMS pelz message");
     return PELZ_MSG_SERIALIZE_ERROR;
   }
 
   // CMS encrypt (create enveloped) pelz response message
-  CMS_ContentInfo *enveloped_response = NULL;
-  enveloped_response = create_pelz_enveloped_msg(der_signed_resp,
-                                                 der_asn1_resp_len,
-                                                 requestor_cert);
-  free(der_signed_resp);
-  if (enveloped_response == NULL)
+  CMS_ContentInfo *enveloped_message = NULL;
+  enveloped_message = create_pelz_enveloped_msg(der_signed_msg,
+                                                der_asn1_msg_len,
+                                                peer_cert_in);
+  free(der_signed_msg);
+  if (enveloped_message == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "error creating enveloped pelz CMS response");
+    pelz_sgx_log(LOG_ERR, "error creating enveloped pelz CMS message");
     return PELZ_MSG_ENCRYPT_ERROR;
   }
 
   // DER-encode enveloped CMS pelz response message
-  int tx_msg_buf_len = -1;
-  der_signed_resp_len = der_encode_pelz_msg(
-                          (const CMS_ContentInfo *) enveloped_response,
-                          tx_msg_buf,
-                          CMS);
-  CMS_ContentInfo_free(enveloped_response);
+  int tx_msg_buf_len = der_encode_pelz_msg(
+                         (const CMS_ContentInfo *) enveloped_message,
+                         tx_msg_buf,
+                         CMS);
+  CMS_ContentInfo_free(enveloped_message);
   if ((*tx_msg_buf == NULL) || (tx_msg_buf_len <= 0))
   {
     pelz_sgx_log(LOG_ERR, "error DER-encoding enveloped CMS pelz response");

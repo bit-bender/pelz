@@ -111,5 +111,31 @@ enclave
       size_t test_status_len,
       [in, size=test_status_len] unsigned char * test_status,
       uint8_t test_select);
+    
+    public int test_decode_rcvd_pelz_msg_helper(
+      uint8_t test_msg_type,
+      uint8_t test_req_type,
+      size_t test_cipher_len,
+      [in, size=test_cipher_len] unsigned char * test_cipher,
+      size_t test_key_id_len,
+      [in, size=test_key_id_len] unsigned char * test_key_id,
+      size_t test_data_len,
+      [in, size=test_data_len] unsigned char * test_data,
+      size_t test_status_len,
+      [in, size=test_status_len] unsigned char * test_status,
+      uint8_t test_select);
+
+    public int test_encode_pelz_msg_helper(
+      uint8_t test_msg_type,
+      uint8_t test_req_type,
+      size_t test_cipher_len,
+      [in, size=test_cipher_len] unsigned char * test_cipher,
+      size_t test_key_id_len,
+      [in, size=test_key_id_len] unsigned char * test_key_id,
+      size_t test_data_len,
+      [in, size=test_data_len] unsigned char * test_data,
+      size_t test_status_len,
+      [in, size=test_status_len] unsigned char * test_status,
+      uint8_t test_select);
   };
 };

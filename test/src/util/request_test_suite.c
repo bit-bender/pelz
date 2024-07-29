@@ -187,7 +187,7 @@ void test_encrypt_decrypt(void)
     CU_ASSERT(request_status == REQUEST_OK);
     pelz_log(LOG_DEBUG, "Request Status: %d", request_status);
     pelz_log(LOG_DEBUG, "Plaintext: %ld, %.*s", plaintext.len, plaintext.len, plaintext.chars);
-    pelz_log(LOG_DEBUG, "Ciphertext Lenght: %ld", ciphertext.len);
+    pelz_log(LOG_DEBUG, "Ciphertext Length: %ld", ciphertext.len);
 
     pelz_decrypt_request_handler(eid, &request_status, REQ_DEC, key_id, cipher_name, ciphertext, iv, tag, &decrypt, signature, cert, 0);
     CU_ASSERT(request_status == REQUEST_OK);

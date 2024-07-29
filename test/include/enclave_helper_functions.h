@@ -42,19 +42,36 @@
 #define DER_DECODE_PELZ_MSG_EMPTY_BYTES_IN_TEST           0x04
 #define DER_DECODE_PELZ_MSG_NEG_BYTES_IN_LEN_TEST         0x05
 
+// test_construct_deconstruct_pelz_msg_helper() test select options
+#define CONSTRUCT_DECONSTRUCT_PELZ_MSG_BASIC_TEST         0x01
+#define CONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST               0x02
+#define CONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST           0x03
+#define CONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST           0x04
+#define CONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST            0x05
+#define CONSTRUCT_PELZ_MSG_NULL_OUT_BUF_TEST              0x06
+#define DECONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST             0x07
+#define DECONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST         0x08
+#define DECONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST         0x09
+#define DECONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST          0x0A
+#define DECONSTRUCT_PELZ_MSG_PREALLOC_PEER_CERT_TEST      0x0B
+
+// Normal termination pelz messaging helper 'success' code
 #define MSG_TEST_SUCCESS 0
 
 // helper detected pelz messaging test errors
 #define MSG_TEST_UNKNOWN_ERROR                              -1
-#define MSG_TEST_SETUP_ERROR                                -2
-#define MSG_TEST_CREATE_RESULT_MISMATCH                     -3
-#define MSG_TEST_DER_ENCODE_RESULT_MISMATCH                 -4
-#define MSG_TEST_DER_DECODE_RESULT_MISMATCH                 -5
-#define MSG_TEST_PARAM_HANDLING_OK                          -6
-#define MSG_TEST_PARAM_HANDLING_ERROR                       -7
-#define MSG_TEST_PARSE_RESULT_MISMATCH                      -8
-#define MSG_TEST_INVALID_SIGN_RESULT                        -9
-#define MSG_TEST_INVALID_ENCRYPT_RESULT                    -10
+#define MSG_TEST_INVALID_TEST_PARAMETER                     -2
+#define MSG_TEST_INVALID_TEST_SELECTION                     -3
+#define MSG_TEST_SETUP_ERROR                                -4
+#define MSG_TEST_CREATE_RESULT_MISMATCH                     -5
+#define MSG_TEST_DER_ENCODE_RESULT_MISMATCH                 -6
+#define MSG_TEST_DER_DECODE_RESULT_MISMATCH                 -7
+#define MSG_TEST_PARAM_HANDLING_OK                          -8
+#define MSG_TEST_PARAM_HANDLING_ERROR                       -9
+#define MSG_TEST_PARSE_RESULT_MISMATCH                     -10
+#define MSG_TEST_INVALID_SIGN_RESULT                       -11
+#define MSG_TEST_INVALID_ENCRYPT_RESULT                    -12
+#define MSG_TEST_INVALID_DECODE_RESULT                     -13
 
 // pelz messaging test error "categories"
 // (this value is used as a offset added to the

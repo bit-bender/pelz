@@ -22,6 +22,7 @@ void test_create_pelz_enveloped_msg(void);
 void test_decrypt_pelz_enveloped_msg(void);
 void test_der_encode_pelz_msg(void);
 void test_der_decode_pelz_msg(void);
+void test_construct_deconstruct_pelz_msg(void);
 
 //void test_create_validate_signature_simple(void);
 //void test_create_validate_signature(void);

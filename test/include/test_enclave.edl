@@ -111,21 +111,8 @@ enclave
       size_t test_status_len,
       [in, size=test_status_len] unsigned char * test_status,
       uint8_t test_select);
-    
-    public int test_decode_rcvd_pelz_msg_helper(
-      uint8_t test_msg_type,
-      uint8_t test_req_type,
-      size_t test_cipher_len,
-      [in, size=test_cipher_len] unsigned char * test_cipher,
-      size_t test_key_id_len,
-      [in, size=test_key_id_len] unsigned char * test_key_id,
-      size_t test_data_len,
-      [in, size=test_data_len] unsigned char * test_data,
-      size_t test_status_len,
-      [in, size=test_status_len] unsigned char * test_status,
-      uint8_t test_select);
 
-    public int test_encode_pelz_msg_helper(
+    public int test_end_to_end_pelz_msg_helper(
       uint8_t test_msg_type,
       uint8_t test_req_type,
       size_t test_cipher_len,
@@ -136,6 +123,14 @@ enclave
       [in, size=test_data_len] unsigned char * test_data,
       size_t test_status_len,
       [in, size=test_status_len] unsigned char * test_status,
+      size_t test_der_sign_cert_len,
+      [in, size=test_der_sign_cert_len] unsigned char * test_der_sign_cert,
+      size_t test_der_sign_priv_len,
+      [in, size=test_der_sign_priv_len] unsigned char * test_der_sign_priv,
+      size_t test_der_enc_cert_len,
+      [in, size=test_der_enc_cert_len] unsigned char * test_der_enc_cert,
+      size_t test_der_enc_priv_len,
+      [in, size=test_der_enc_priv_len] unsigned char * test_der_enc_priv,
       uint8_t test_select);
   };
 };

@@ -66,6 +66,12 @@ int pelz_messaging_suite_add_tests(CU_pSuite suite)
     return 1;
   }
 
+  if (NULL == CU_add_test(suite, "end-to-end pelz messaging functionality",
+                                 test_construct_deconstruct_pelz_msg))
+  {
+    return 1;
+  }
+
   return 0;
 }
 
@@ -1140,11 +1146,423 @@ void test_der_decode_pelz_msg(void)
                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
                                   15,
                                   (uint8_t *) "file://test.key",
-                                  25,
-                                  (uint8_t *) "ASN1 DER-decode test data",
+                                  24,
+                                  (uint8_t *) "CMS DER-decode test data",
                                   17,
                                   (uint8_t *) "DER-decode status",
                                   DER_DECODE_CMS_PELZ_MSG_BASIC_TEST);
   CU_ASSERT(result == MSG_TEST_SUCCESS);
 }
 
+void test_construct_deconstruct_pelz_msg(void)
+{
+  pelz_log(LOG_DEBUG, "Start end-to-end pelz message functionality test");
+
+  int result = 0;
+
+  char *test_cipher = "AES/KeyWrap/RFC3394NoPadding/128\0";
+  size_t test_cipher_len = (size_t) strlen(test_cipher);
+  char *test_key_id = "file://test_key.pem\0";
+  size_t test_key_id_len = (size_t) strlen(test_key_id);
+  char *test_data = "pelz end-to-end test message data\0";
+  size_t test_data_len = (size_t) strlen(test_data);
+  char *test_status = "pelz end-to-end test message status\0";
+  size_t test_status_len = (size_t) strlen(test_status);
+
+  // load CA certificate into table
+  TableResponseStatus status;
+  uint64_t handle = 0;
+  if (pelz_load_file_to_enclave("test/data/ca_pub.der.nkl", &handle) == 0)
+  {
+    add_cert_to_table(eid, &status, CA_TABLE, handle);
+    CU_ASSERT(status == OK);
+    pelz_log(LOG_INFO, "CA Table add complete");
+    handle = 0;
+  }
+  size_t ca_cnt = 0;
+  table_id_count(eid, &status, CA_TABLE, &ca_cnt);
+  CU_ASSERT(status == OK && ca_cnt == 1);
+
+  // create DER-formatted test certs/keys for requestor and responder
+  BIO *test_req_cert_bio = BIO_new_file("test/data/msg_test_req_pub.pem", "r");
+  if (test_req_cert_bio == NULL)
+  {
+    CU_FAIL("error creating BIO for reading test requestor cert from file");
+  }
+  X509 *test_req_cert = PEM_read_bio_X509(test_req_cert_bio, NULL, 0, NULL);
+  if (test_req_cert == NULL)
+  {
+    CU_FAIL("error creating test requestor X509 certificate");
+  }
+  BIO_free(test_req_cert_bio);
+  int test_der_req_cert_len = -1;
+  uint8_t *test_der_req_cert = NULL;
+  test_der_req_cert_len = i2d_X509(test_req_cert, &test_der_req_cert);
+  if ((test_der_req_cert == NULL) || (test_der_req_cert_len <= 0))
+  {
+    CU_FAIL("error creating DER-formatted test requestor certificate");
+  }
+  BIO *test_req_priv_bio = BIO_new_file("test/data/msg_test_req_priv.pem", "r");
+  if (test_req_priv_bio == NULL)
+  {
+    CU_FAIL("error creating BIO to read test requestor private key from file");
+  }
+  EVP_PKEY *test_req_priv = PEM_read_bio_PrivateKey(test_req_priv_bio,
+                                                    NULL,
+                                                    0,
+                                                    NULL);
+  if (test_req_priv == NULL)
+  {
+    CU_FAIL("error creating test requestor EC private key");
+  }
+  BIO_free(test_req_priv_bio);
+  int test_der_req_priv_len = -1;
+  uint8_t *test_der_req_priv = NULL;
+  test_der_req_priv_len = i2d_PrivateKey(test_req_priv, &test_der_req_priv);
+  if ((test_der_req_priv == NULL) || (test_der_req_priv_len <= 0))
+  {
+    CU_FAIL("error creating DER-formatted test requestor private key");
+  }
+  BIO *test_resp_cert_bio = BIO_new_file("test/data/msg_test_resp_pub.pem",
+                                         "r");
+  if (test_resp_cert_bio == NULL)
+  {
+    CU_FAIL("error creating BIO for reading test responder cert from file");
+  }
+  X509 *test_resp_cert = PEM_read_bio_X509(test_resp_cert_bio, NULL, 0, NULL);
+  if (test_resp_cert == NULL)
+  {
+    CU_FAIL("error creating test responder X509 certificate");
+  }
+  BIO_free(test_resp_cert_bio);
+  int test_der_resp_cert_len = -1;
+  uint8_t *test_der_resp_cert = NULL;
+  test_der_resp_cert_len = i2d_X509(test_resp_cert, &test_der_resp_cert);
+  if ((test_der_resp_cert == NULL) || (test_der_resp_cert_len <= 0))
+  {
+    CU_FAIL("error creating DER-formatted test responder certificate");
+  }
+  BIO *test_resp_priv_bio = BIO_new_file("test/data/msg_test_resp_priv.pem",
+                                         "r");
+  if (test_resp_priv_bio == NULL)
+  {
+    CU_FAIL("error creating BIO to read test responder private key from file");
+  }
+  EVP_PKEY *test_resp_priv = PEM_read_bio_PrivateKey(test_resp_priv_bio,
+                                                    NULL,
+                                                    0,
+                                                    NULL);
+  if (test_resp_priv == NULL)
+  {
+    CU_FAIL("error creating test responder EC private key");
+  }
+  BIO_free(test_resp_priv_bio);
+  int test_der_resp_priv_len = -1;
+  uint8_t *test_der_resp_priv = NULL;
+  test_der_resp_priv_len = i2d_PrivateKey(test_resp_priv, &test_der_resp_priv);
+  if ((test_der_resp_priv == NULL) || (test_der_resp_priv_len <= 0))
+  {
+    CU_FAIL("error creating DER-formatted test responder private key");
+  }
+
+  // test NULL pointer as input byte array parameter to "construct"
+  test_end_to_end_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  KEY_WRAP,
+                                  test_cipher_len,
+                                  (uint8_t *) test_cipher,
+                                  test_key_id_len,
+                                  (uint8_t *) test_key_id,
+                                  test_data_len,
+                                  (uint8_t *) test_data,
+                                  test_status_len,
+                                  (uint8_t *) test_status,
+                                  (size_t) test_der_req_cert_len,
+                                  test_der_req_cert,
+                                  (size_t) test_der_req_priv_len,
+                                  test_der_req_priv,
+                                  (size_t) test_der_resp_cert_len,
+                                  test_der_resp_cert,
+                                  (size_t) test_der_resp_priv_len,
+                                  test_der_resp_priv,
+                                  CONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // test NULL pointer as input local certificate parameter to "construct"
+  test_end_to_end_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  KEY_WRAP,
+                                  test_cipher_len,
+                                  (uint8_t *) test_cipher,
+                                  test_key_id_len,
+                                  (uint8_t *) test_key_id,
+                                  test_data_len,
+                                  (uint8_t *) test_data,
+                                  test_status_len,
+                                  (uint8_t *) test_status,
+                                  (size_t) test_der_req_cert_len,
+                                  test_der_req_cert,
+                                  (size_t) test_der_req_priv_len,
+                                  test_der_req_priv,
+                                  (size_t) test_der_resp_cert_len,
+                                  test_der_resp_cert,
+                                  (size_t) test_der_resp_priv_len,
+                                  test_der_resp_priv,
+                                  CONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // test NULL pointer as input local private key parameter to "construct"
+  test_end_to_end_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  KEY_WRAP,
+                                  test_cipher_len,
+                                  (uint8_t *) test_cipher,
+                                  test_key_id_len,
+                                  (uint8_t *) test_key_id,
+                                  test_data_len,
+                                  (uint8_t *) test_data,
+                                  test_status_len,
+                                  (uint8_t *) test_status,
+                                  (size_t) test_der_req_cert_len,
+                                  test_der_req_cert,
+                                  (size_t) test_der_req_priv_len,
+                                  test_der_req_priv,
+                                  (size_t) test_der_resp_cert_len,
+                                  test_der_resp_cert,
+                                  (size_t) test_der_resp_priv_len,
+                                  test_der_resp_priv,
+                                  CONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // test NULL pointer as input peer certificate parameter to "construct"
+  test_end_to_end_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  KEY_WRAP,
+                                  test_cipher_len,
+                                  (uint8_t *) test_cipher,
+                                  test_key_id_len,
+                                  (uint8_t *) test_key_id,
+                                  test_data_len,
+                                  (uint8_t *) test_data,
+                                  test_status_len,
+                                  (uint8_t *) test_status,
+                                  (size_t) test_der_req_cert_len,
+                                  test_der_req_cert,
+                                  (size_t) test_der_req_priv_len,
+                                  test_der_req_priv,
+                                  (size_t) test_der_resp_cert_len,
+                                  test_der_resp_cert,
+                                  (size_t) test_der_resp_priv_len,
+                                  test_der_resp_priv,
+                                  CONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // test NULL pointer as output byte array parameter to "construct"
+  test_end_to_end_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  KEY_WRAP,
+                                  test_cipher_len,
+                                  (uint8_t *) test_cipher,
+                                  test_key_id_len,
+                                  (uint8_t *) test_key_id,
+                                  test_data_len,
+                                  (uint8_t *) test_data,
+                                  test_status_len,
+                                  (uint8_t *) test_status,
+                                  (size_t) test_der_req_cert_len,
+                                  test_der_req_cert,
+                                  (size_t) test_der_req_priv_len,
+                                  test_der_req_priv,
+                                  (size_t) test_der_resp_cert_len,
+                                  test_der_resp_cert,
+                                  (size_t) test_der_resp_priv_len,
+                                  test_der_resp_priv,
+                                  CONSTRUCT_PELZ_MSG_NULL_OUT_BUF_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // test NULL pointer as input message byte array parameter to "deconstruct"
+  test_end_to_end_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  KEY_WRAP,
+                                  test_cipher_len,
+                                  (uint8_t *) test_cipher,
+                                  test_key_id_len,
+                                  (uint8_t *) test_key_id,
+                                  test_data_len,
+                                  (uint8_t *) test_data,
+                                  test_status_len,
+                                  (uint8_t *) test_status,
+                                  (size_t) test_der_req_cert_len,
+                                  test_der_req_cert,
+                                  (size_t) test_der_req_priv_len,
+                                  test_der_req_priv,
+                                  (size_t) test_der_resp_cert_len,
+                                  test_der_resp_cert,
+                                  (size_t) test_der_resp_priv_len,
+                                  test_der_resp_priv,
+                                  DECONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // test NULL pointer as input local certificate parameter to "deconstruct"
+  test_end_to_end_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  KEY_WRAP,
+                                  test_cipher_len,
+                                  (uint8_t *) test_cipher,
+                                  test_key_id_len,
+                                  (uint8_t *) test_key_id,
+                                  test_data_len,
+                                  (uint8_t *) test_data,
+                                  test_status_len,
+                                  (uint8_t *) test_status,
+                                  (size_t) test_der_req_cert_len,
+                                  test_der_req_cert,
+                                  (size_t) test_der_req_priv_len,
+                                  test_der_req_priv,
+                                  (size_t) test_der_resp_cert_len,
+                                  test_der_resp_cert,
+                                  (size_t) test_der_resp_priv_len,
+                                  test_der_resp_priv,
+                                  DECONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // test NULL pointer as input local private key parameter to "deconstruct"
+  test_end_to_end_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  KEY_WRAP,
+                                  test_cipher_len,
+                                  (uint8_t *) test_cipher,
+                                  test_key_id_len,
+                                  (uint8_t *) test_key_id,
+                                  test_data_len,
+                                  (uint8_t *) test_data,
+                                  test_status_len,
+                                  (uint8_t *) test_status,
+                                  (size_t) test_der_req_cert_len,
+                                  test_der_req_cert,
+                                  (size_t) test_der_req_priv_len,
+                                  test_der_req_priv,
+                                  (size_t) test_der_resp_cert_len,
+                                  test_der_resp_cert,
+                                  (size_t) test_der_resp_priv_len,
+                                  test_der_resp_priv,
+                                  DECONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // test NULL double pointer to peer cert output parameter for "deconstruct"
+  test_end_to_end_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  KEY_WRAP,
+                                  test_cipher_len,
+                                  (uint8_t *) test_cipher,
+                                  test_key_id_len,
+                                  (uint8_t *) test_key_id,
+                                  test_data_len,
+                                  (uint8_t *) test_data,
+                                  test_status_len,
+                                  (uint8_t *) test_status,
+                                  (size_t) test_der_req_cert_len,
+                                  test_der_req_cert,
+                                  (size_t) test_der_req_priv_len,
+                                  test_der_req_priv,
+                                  (size_t) test_der_resp_cert_len,
+                                  test_der_resp_cert,
+                                  (size_t) test_der_resp_priv_len,
+                                  test_der_resp_priv,
+                                  DECONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // test preallocated buffer for peer cert output parameter to "deconstruct"
+  test_end_to_end_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  KEY_WRAP,
+                                  test_cipher_len,
+                                  (uint8_t *) test_cipher,
+                                  test_key_id_len,
+                                  (uint8_t *) test_key_id,
+                                  test_data_len,
+                                  (uint8_t *) test_data,
+                                  test_status_len,
+                                  (uint8_t *) test_status,
+                                  (size_t) test_der_req_cert_len,
+                                  test_der_req_cert,
+                                  (size_t) test_der_req_priv_len,
+                                  test_der_req_priv,
+                                  (size_t) test_der_resp_cert_len,
+                                  test_der_resp_cert,
+                                  (size_t) test_der_resp_priv_len,
+                                  test_der_resp_priv,
+                                  DECONSTRUCT_PELZ_MSG_PREALLOC_PEER_CERT_TEST);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // test end-to-end "construct" then "deconstruct" pelz message
+  test_end_to_end_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  KEY_WRAP,
+                                  test_cipher_len,
+                                  (uint8_t *) test_cipher,
+                                  test_key_id_len,
+                                  (uint8_t *) test_key_id,
+                                  test_data_len,
+                                  (uint8_t *) test_data,
+                                  test_status_len,
+                                  (uint8_t *) test_status,
+                                  (size_t) test_der_req_cert_len,
+                                  test_der_req_cert,
+                                  (size_t) test_der_req_priv_len,
+                                  test_der_req_priv,
+                                  (size_t) test_der_resp_cert_len,
+                                  test_der_resp_cert,
+                                  (size_t) test_der_resp_priv_len,
+                                  test_der_resp_priv,
+                                  CONSTRUCT_DECONSTRUCT_PELZ_MSG_BASIC_TEST);
+  CU_ASSERT(result == MSG_TEST_SUCCESS);
+  pelz_log(LOG_DEBUG, "result = %d", result);
+
+  // test end-to-end "construct" then "deconstruct" pelz message
+  // with mismatched certificates and keys
+  test_end_to_end_pelz_msg_helper(eid,
+                                  &result,
+                                  REQUEST,
+                                  KEY_WRAP,
+                                  test_cipher_len,
+                                  (uint8_t *) test_cipher,
+                                  test_key_id_len,
+                                  (uint8_t *) test_key_id,
+                                  test_data_len,
+                                  (uint8_t *) test_data,
+                                  test_status_len,
+                                  (uint8_t *) test_status,
+                                  (size_t) test_der_req_cert_len,
+                                  test_der_req_cert,
+                                  (size_t) test_der_resp_priv_len,
+                                  test_der_resp_priv,
+                                  (size_t) test_der_resp_cert_len,
+                                  test_der_resp_cert,
+                                  (size_t) test_der_req_priv_len,
+                                  test_der_req_priv,
+                                  CONSTRUCT_DECONSTRUCT_PELZ_MSG_BASIC_TEST);
+  CU_ASSERT(result == MSG_TEST_SETUP_ERROR);
+
+  // Clean-up
+  if (empty_CA_table(eid, NULL) != 0)
+  {
+    CU_FAIL("error emptying CA table");
+  }
+  free(test_der_req_cert);
+  free(test_der_req_priv);
+  free(test_der_resp_cert);
+  free(test_der_resp_priv);
+
+}

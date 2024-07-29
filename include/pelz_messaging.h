@@ -28,7 +28,7 @@ typedef struct PELZ_MSG_DATA {
   PELZ_REQ_TYPE req_type;
   charbuf cipher;
   charbuf key_id;
-  fixed_charbuf data;
+  charbuf data;
   charbuf status;
 } PELZ_MSG_DATA;
 
@@ -374,8 +374,9 @@ void *der_decode_pelz_msg(const unsigned char *bytes_in,
 
 /**
  * <pre>
- * Decodes a DER-formatted byte array containing received pelz request
- * data and extracts the public X509 certificate for the message sender.
+ * Deconstructs a DER-formatted byte array containing received pelz
+ * message data and extracts the public X509 certificate for the
+ * message sender.
  * </pre>
  *
  * @param[in]  rcvd_msg_buf    Pointer to the input buffer containing the
@@ -396,22 +397,22 @@ void *der_decode_pelz_msg(const unsigned char *bytes_in,
  *                             X509 certificate extracted from the received
  *                             signed message.
  * 
- * @param[out] decode_result   Pointer to decrypted, signature verified,
+ * @param[out] msg_data_out    Pointer to decrypted, signature verified,
  *                             and parsed pelz message data struct
  *                             (PELZ_MSG_DATA *).
  *
  * @return                     Zero (PELZ_MSG_SUCCESS = 0) on success;
  *                             error code (negative integer) otherwise
  */
-int decode_rcvd_pelz_message(charbuf rcvd_msg_buf,
-                             X509 * local_cert_in,
-                             EVP_PKEY * local_priv_in,
-                             X509 ** peer_cert_out,
-                             PELZ_MSG_DATA * decode_result);
+int deconstruct_pelz_msg(charbuf rcvd_msg_buf,
+                         X509 * local_cert_in,
+                         EVP_PKEY * local_priv_in,
+                         X509 ** peer_cert_out,
+                         PELZ_MSG_DATA * msg_data_out);
 
 /**
  * <pre>
- * Encodes input pelz message data and creates a DER-formatted byte array
+ * Constructs input pelz message data and creates a DER-formatted byte array
  * that can be sent (transmitted) to the recipient matching the identity in
  * the specified peer certificate input parameter.
  * </pre>
@@ -438,19 +439,19 @@ int decode_rcvd_pelz_message(charbuf rcvd_msg_buf,
  *                             the recipient can decrypt (i.e. using the
  *                             private key held by the recipient).
  * 
- * @param[in]  tx_msg_buf      Double-pointer to DER-encoded byte array
- *                             representing the signed, encrypted, pelz
- *                             message data to be sent to a recipient.
+ * @param[in]  tx_msg_buf      Pointer to 'charbuf' struct containing
+ *                             DER-encoded byte array representing the
+ *                             signed, encrypted, pelz message data in
+ *                             a format ready to be sent to a recipient.
  *
- * @return                     number of data bytes allocated/written to the
- *                             'tx_msg_buf' output buffer on success;
+ * @return                     Zero (0 = PELZ_MSG_SUCCESS) on success;
  *                             error code (negative integer) otherwise
  */
-int encode_pelz_message(PELZ_MSG_DATA *msg_data_in,
-                        X509 *local_cert_in,
-                        EVP_PKEY *local_priv_in,
-                        X509 *peer_cert_in,
-                        unsigned char **tx_msg_buf);
+int construct_pelz_msg(PELZ_MSG_DATA *msg_data_in,
+                       X509 *local_cert_in,
+                       EVP_PKEY *local_priv_in,
+                       X509 *peer_cert_in,
+                       charbuf *tx_msg_buf);
 
 /**
  * <pre>

@@ -1180,55 +1180,386 @@ int test_der_decode_pelz_msg_helper(uint8_t test_msg_type,
   return MSG_TEST_UNKNOWN_ERROR;
 }
 
-int test_decode_rcvd_pelz_msg_helper(uint8_t test_msg_type,
-                                     uint8_t test_req_type,
-                                     size_t test_cipher_len,
-                                     unsigned char * test_cipher,
-                                     size_t test_key_id_len,
-                                     unsigned char * test_key_id,
-                                     size_t test_data_len,
-                                     unsigned char * test_data,
-                                     size_t test_status_len,
-                                     unsigned char * test_status,
-                                     uint8_t test_select)
+int test_end_to_end_pelz_msg_helper(uint8_t test_msg_type,
+                                    uint8_t test_req_type,
+                                    size_t test_cipher_len,
+                                    unsigned char * test_cipher,
+                                    size_t test_key_id_len,
+                                    unsigned char * test_key_id,
+                                    size_t test_data_len,
+                                    unsigned char * test_data,
+                                    size_t test_status_len,
+                                    unsigned char * test_status,
+                                    size_t test_der_sign_cert_len,
+                                    unsigned char * test_der_sign_cert,
+                                    size_t test_der_sign_priv_len,
+                                    unsigned char * test_der_sign_priv,
+                                    size_t test_der_enc_cert_len,
+                                    unsigned char * test_der_enc_cert,
+                                    size_t test_der_enc_priv_len,
+                                    unsigned char * test_der_enc_priv,
+                                    uint8_t test_select)
 {
+  // check that input test parameters are completely and validly specified
+  if (((test_msg_type < MSG_TYPE_MIN) || (test_msg_type > MSG_TYPE_MAX)) ||
+      ((test_req_type < REQ_TYPE_MIN) || (test_req_type > REQ_TYPE_MAX)) ||
+      ((test_cipher == NULL) || (test_cipher_len == 0)) ||
+      ((test_key_id == NULL) || (test_key_id_len == 0)) ||
+      ((test_data == NULL) || (test_data_len == 0)) ||
+      ((test_status == NULL) || (test_status_len == 0)) ||
+      ((test_der_sign_cert == NULL) || (test_der_sign_cert_len == 0)) ||
+      ((test_der_sign_priv == NULL) || (test_der_sign_priv_len == 0)) ||
+      ((test_der_enc_cert == NULL) || (test_der_enc_cert_len == 0)) ||
+      ((test_der_enc_priv == NULL) || (test_der_enc_priv_len == 0)))
+  {
+    pelz_sgx_log(LOG_ERR, "NULL, empty, or invalid test input parameter");
+    return MSG_TEST_INVALID_TEST_PARAMETER;
+  }
+
+  // assign specified test message values to PELZ_MSG_DATA struct
   PELZ_MSG_DATA test_msg_data_in = { .msg_type = (PELZ_MSG_TYPE) test_msg_type,
                                      .req_type = (PELZ_REQ_TYPE) test_req_type,
                                      .cipher = { .chars = test_cipher,
                                                  .len = test_cipher_len },
                                      .key_id = { .chars = test_key_id,
                                                  .len = test_key_id_len },
-                                     .data = { .chars = test_data,
-                                               .len = test_data_len },
+                                     .data =   { .chars = test_data,
+                                                 .len = test_data_len },
                                      .status = { .chars = test_status,
                                                  .len = test_status_len } };
 
-  // should never reach this
-  return MSG_TEST_UNKNOWN_ERROR;
-}
+  // convert input DER-formatted key/cert byte arrays to internal format
+  const unsigned char *temp_buf_ptr = test_der_sign_cert;
+  X509 *test_sign_cert = d2i_X509(NULL,
+                                  &temp_buf_ptr,
+                                  (int) test_der_sign_cert_len);
+  if (test_sign_cert == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "DER decode error: test cert for message signer");
+    return MSG_TEST_SETUP_ERROR;
+  }
+  temp_buf_ptr = test_der_sign_priv;
+  EVP_PKEY *test_sign_priv = d2i_PrivateKey(EVP_PKEY_EC,
+                                            NULL,
+                                            &temp_buf_ptr,
+                                            (int) test_der_sign_priv_len);
+  if (test_sign_priv == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "DER decode error: test key for message signer");
+    X509_free(test_sign_cert);
+    return MSG_TEST_SETUP_ERROR;
+  }
+  temp_buf_ptr = test_der_enc_cert;
+  X509 *test_enc_cert = d2i_X509(NULL,
+                                 &temp_buf_ptr,
+                                 (int) test_der_enc_cert_len);
+  if (test_enc_cert == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "DER decode error: test cert for message encryptor");
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    return MSG_TEST_SETUP_ERROR;
+  }
+  temp_buf_ptr = test_der_enc_priv;
+  EVP_PKEY *test_enc_priv = d2i_PrivateKey(EVP_PKEY_EC,
+                                           NULL,
+                                           &temp_buf_ptr,
+                                           (int) test_der_enc_priv_len);
+  if (test_enc_priv == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "DER decode error: test key for message encryptor");
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    return MSG_TEST_SETUP_ERROR;
+  }
 
-int test_encode_pelz_msg_helper(uint8_t test_msg_type,
-                                uint8_t test_req_type,
-                                size_t test_cipher_len,
-                                unsigned char * test_cipher,
-                                size_t test_key_id_len,
-                                unsigned char * test_key_id,
-                                size_t test_data_len,
-                                unsigned char * test_data,
-                                size_t test_status_len,
-                                unsigned char * test_status,
-                                uint8_t test_select)
-{
-  PELZ_MSG_DATA test_msg_data_in = { .msg_type = (PELZ_MSG_TYPE) test_msg_type,
-                                     .req_type = (PELZ_REQ_TYPE) test_req_type,
-                                     .cipher = { .chars = test_cipher,
-                                                 .len = test_cipher_len },
-                                     .key_id = { .chars = test_key_id,
-                                                 .len = test_key_id_len },
-                                     .data = { .chars = test_data,
-                                               .len = test_data_len },
-                                     .status = { .chars = test_status,
-                                                 .len = test_status_len } };
+  charbuf test_msg_buf = { 0 };
+  int ret = -1;
+
+  switch (test_select)
+  {
+  // NULL input data parameter to 'construct' case
+  case CONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST:
+    ret = construct_pelz_msg(NULL,
+                             test_sign_cert,
+                             test_sign_priv,
+                             test_enc_cert,
+                             &test_msg_buf);
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    EVP_PKEY_free(test_enc_priv);
+    if (ret != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  // NULL input local cert parameter to 'construct' case
+  case CONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST:
+    ret = construct_pelz_msg(&test_msg_data_in,
+                             NULL,
+                             test_sign_priv,
+                             test_enc_cert,
+                             &test_msg_buf);
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    EVP_PKEY_free(test_enc_priv);
+    if (ret != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  // NULL input local private key parameter to 'construct' case
+  case CONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST:
+    ret = construct_pelz_msg(&test_msg_data_in,
+                             test_sign_cert,
+                             NULL,
+                             test_enc_cert,
+                             &test_msg_buf);
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    EVP_PKEY_free(test_enc_priv);
+    if (ret != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  // NULL input remote (peer) cert parameter to 'construct' case
+  case CONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST:
+    ret = construct_pelz_msg(&test_msg_data_in,
+                             test_sign_cert,
+                             test_sign_priv,
+                             NULL,
+                             &test_msg_buf);
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    EVP_PKEY_free(test_enc_priv);
+    if (ret != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  // NULL output buffer parameter to 'construct' case
+  case CONSTRUCT_PELZ_MSG_NULL_OUT_BUF_TEST:
+    ret = construct_pelz_msg(&test_msg_data_in,
+                             test_sign_cert,
+                             test_sign_priv,
+                             test_enc_cert,
+                             NULL);
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    EVP_PKEY_free(test_enc_priv);
+    if (ret != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  // fall through for remaining valid test selections
+  case CONSTRUCT_DECONSTRUCT_PELZ_MSG_BASIC_TEST:
+  case DECONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST:
+  case DECONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST:
+  case DECONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST:
+  case DECONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST:
+  case DECONSTRUCT_PELZ_MSG_PREALLOC_PEER_CERT_TEST:
+    break;
+
+  // invalid test selection
+  default:
+    pelz_sgx_log(LOG_ERR, "invalid test selection");
+    return MSG_TEST_SETUP_ERROR;
+  }
+
+  // create test message
+  ret = construct_pelz_msg(&test_msg_data_in,
+                           test_sign_cert,
+                           test_sign_priv,
+                           test_enc_cert,
+                           &test_msg_buf);
+  if ((test_msg_buf.chars == NULL) || (test_msg_buf.len <= 0))
+  {
+    pelz_sgx_log(LOG_ERR, "test message construction error");
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    EVP_PKEY_free(test_enc_priv);
+    return MSG_TEST_SETUP_ERROR;
+  }
+
+  // declare/initialize some variables needed by some tests
+  PELZ_MSG_DATA deconstructed_test_msg_data = { 0 };
+  charbuf null_msg_buf = { .chars = NULL, .len = 0 };
+  X509 *non_null_cert = X509_new();
+  X509 *deconstructed_sign_cert = NULL;
+
+  switch (test_select)
+  {
+  // NULL input data buffer parameter to 'deconstruct' case
+  case DECONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST:
+    ret = deconstruct_pelz_msg(null_msg_buf,
+                               test_enc_cert,
+                               test_enc_priv,
+                               &deconstructed_sign_cert,
+                               &deconstructed_test_msg_data);
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    EVP_PKEY_free(test_enc_priv);
+    X509_free(non_null_cert);
+    X509_free(deconstructed_sign_cert);
+    if (ret != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  // NULL input local certificate parameter to 'deconstruct' case
+  case DECONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST:
+    ret = deconstruct_pelz_msg(test_msg_buf,
+                               NULL,
+                               test_enc_priv,
+                               &deconstructed_sign_cert,
+                               &deconstructed_test_msg_data);
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    EVP_PKEY_free(test_enc_priv);
+    X509_free(non_null_cert);
+    X509_free(deconstructed_sign_cert);
+    if (ret != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  // NULL input local private key parameter to 'deconstruct' case
+  case DECONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST:
+    ret = deconstruct_pelz_msg(test_msg_buf,
+                               test_enc_cert,
+                               NULL,
+                               &deconstructed_sign_cert,
+                               &deconstructed_test_msg_data);
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    EVP_PKEY_free(test_enc_priv);
+    X509_free(non_null_cert);
+    X509_free(deconstructed_sign_cert);
+    if (ret != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  // NULL double pointer remote (peer) cert parameter to 'deconstruct' case
+  case DECONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST:
+    ret = deconstruct_pelz_msg(test_msg_buf,
+                               test_enc_cert,
+                               test_enc_priv,
+                               NULL,
+                               &deconstructed_test_msg_data);
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    EVP_PKEY_free(test_enc_priv);
+    X509_free(non_null_cert);
+    if (ret != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  // Pointer to non-NULL pointer to remote (peer) cert param to 'decode" case
+  case DECONSTRUCT_PELZ_MSG_PREALLOC_PEER_CERT_TEST:
+    ret = deconstruct_pelz_msg(test_msg_buf,
+                               test_enc_cert,
+                               test_enc_priv,
+                               &non_null_cert,
+                               &deconstructed_test_msg_data);
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    EVP_PKEY_free(test_enc_priv);
+    X509_free(non_null_cert);
+    if (ret != PELZ_MSG_PARAM_INVALID)
+    {
+      return MSG_TEST_PARAM_HANDLING_ERROR;
+    }
+    return MSG_TEST_PARAM_HANDLING_OK;
+    break;
+
+  case CONSTRUCT_DECONSTRUCT_PELZ_MSG_BASIC_TEST:
+    ret = deconstruct_pelz_msg(test_msg_buf,
+                               test_enc_cert,
+                               test_enc_priv,
+                               &deconstructed_sign_cert,
+                               &deconstructed_test_msg_data);
+    X509_free(test_sign_cert);
+    EVP_PKEY_free(test_sign_priv);
+    X509_free(test_enc_cert);
+    EVP_PKEY_free(test_enc_priv);
+    X509_free(non_null_cert);
+    X509_free(deconstructed_sign_cert);
+    if (ret != PELZ_MSG_SUCCESS)
+    {
+      pelz_sgx_log(LOG_ERR, "deconstruct_pelz_msg() error");
+      free_charbuf(&deconstructed_test_msg_data.cipher);
+      free_charbuf(&deconstructed_test_msg_data.key_id);
+      free_charbuf(&deconstructed_test_msg_data.data);
+      free_charbuf(&deconstructed_test_msg_data.status);
+      return ret;
+    }
+    if ((deconstructed_test_msg_data.msg_type != test_msg_data_in.msg_type) ||
+        (deconstructed_test_msg_data.req_type != test_msg_data_in.req_type) ||
+        (memcmp(deconstructed_test_msg_data.cipher.chars,
+                test_msg_data_in.cipher.chars,
+                deconstructed_test_msg_data.cipher.len) != 0) ||
+        (memcmp(deconstructed_test_msg_data.key_id.chars,
+                test_msg_data_in.key_id.chars,
+                deconstructed_test_msg_data.key_id.len) != 0) ||
+        (memcmp(deconstructed_test_msg_data.data.chars,
+                test_msg_data_in.data.chars,
+                deconstructed_test_msg_data.data.len) != 0) ||
+        (memcmp(deconstructed_test_msg_data.status.chars,
+                test_msg_data_in.status.chars,
+                deconstructed_test_msg_data.status.len) != 0))
+    {
+      pelz_sgx_log(LOG_ERR, "deconstructed result mismatches original input");
+      free_charbuf(&deconstructed_test_msg_data.cipher);
+      free_charbuf(&deconstructed_test_msg_data.key_id);
+      free_charbuf(&deconstructed_test_msg_data.data);
+      free_charbuf(&deconstructed_test_msg_data.status);
+      return MSG_TEST_INVALID_DECODE_RESULT;
+    }
+    free_charbuf(&deconstructed_test_msg_data.cipher);
+    free_charbuf(&deconstructed_test_msg_data.key_id);
+    free_charbuf(&deconstructed_test_msg_data.data);
+    free_charbuf(&deconstructed_test_msg_data.status);
+    return MSG_TEST_SUCCESS;
+    break;
+
+  default:
+    pelz_sgx_log(LOG_ERR, "invalid test selection");
+    return MSG_TEST_SETUP_ERROR;
+  }
 
   // should never reach this statement
   return MSG_TEST_UNKNOWN_ERROR;

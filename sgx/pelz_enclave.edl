@@ -201,69 +201,6 @@ enclave
 
     /**
      * <pre>
-     * This function is used to pass a received pelz request message into the
-     * enclave for parsing and processing.
-     */
-    public RequestResponseStatus pelz_request_msg_handler(
-                                   size_t req_in_len,
-                                   [in, size=req_in_len] uint8_t *req_in,
-                                   [out] size_t *resp_out_len,
-                                   [out] uint8_t **resp_out);
-
-    /**
-     * <pre>
-     * This function implements encrypt request handling by looking if pelz already has
-     * the key and if not then adding the key to the key table. Along with the
-     * key lookup, this function checks the request type then based on the request
-     * type it calls the wrap or unwrap functions to return requested key value.
-     * <pre>
-     *
-     * @param[in] request_type the type of the request (encrypt or decrypt)
-     * @param[in] key_id       the key_id of the key to be used for the request
-     * @param[in] cipher_name  the name of the cipher used for the request
-     * @param[in] plain_data   the input data
-     * @param[out] cipher_data a pointer to a charbuf to hold the output, will
-     *                         be created inside the call
-     * @param[out] iv          a pointer to a charbuf to hold the IV, will
-     *                         be allocated inside the call if necessary
-     * @param[out] tag         the MAC tag produced by the encryption, will
-     *                         be allocated inside the call if necessary
-     * @param[in] signature    the signature over the request
-     * @param[in] cert         the certificate used to validate the signature
-     * @param[in] session_id   used to access protected request fields
-     *
-     * @return REQUEST_OK on success, an error message indicating the type of
-     *                    error otherwise.
-     */
-    public RequestResponseStatus pelz_encrypt_request_handler(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf plain_data, [out] charbuf* cipher_data, [out] charbuf* iv, [out] charbuf* tag, charbuf signature, charbuf cert, uint32_t session_id);
-
-    /**
-     * <pre>
-     * This function implements decrypt handling by looking if pelz already has
-     * the key and if not then adding the key to the key table. Along with the
-     * key lookup, this function checks the request type then based on the request
-     * type it calls the wrap or unwrap functions to return requested key value.
-     * <pre>
-     *
-     * @param[in] request_type the type of the request (encrypt or decrypt)
-     * @param[in] key_id       the key_id of the key to be used for the request
-     * @param[in] cipher_name  the name of the cipher used for the request
-     * @param[in] cipher_data  the input data
-     * @param[in] iv           the iv used to encrypt the data, may be empty.
-     * @param[in] tag          the MAC tag for the encryption, may be empty.
-     * @param[out] plain_data  a pointer to a charbuf to hold the output, will
-     *                         be created inside the call
-     * @param[in] signature    the signature over the request
-     * @param[in] cert         the certificate used to validate the signature
-     * @param[in] session_id   used to access protected request fields
-     *
-     * @return REQUEST_OK on success, an error message indicating the type of
-     *                    error otherwise.
-     */
-    public RequestResponseStatus pelz_decrypt_request_handler(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf cipher_data, charbuf iv, charbuf tag, [out] charbuf* plain_data, charbuf signature, charbuf cert, uint32_t session_id);
-
-    /**
-     * <pre>
      * Handle an attestation request by generating the message 1 response and a session id
      * <pre>
      *
@@ -300,31 +237,48 @@ enclave
 
     /**
      * <pre>
-     * Process an incoming message and store data in the session object.
+     * Process an incoming secure socket pelz request message.
      * <pre>
      *
-     * @param[in] req_message       a pointer to the incoming message
-     * @param[in] req_message_size  the size of the incoming message
-     * @param[in] session_id        the session identifier
+     * @param[in]  session_id        the session identifier
+     * @param[in]  req_message       a pointer to the incoming message
+     * @param[in]  req_message_size  the size of the incoming message
+     * @param[in]  max_payload_size  the maximum size of the outgoing message payload
+     * @param[in]  max_resp_message_size
+     * @param[out] resp_message      a pointer to the outgoing response message
+     * @param[out] resp_message_size the size of the outgoing response message
      *
      * @return 0 on success, an error number indicating the type of error otherwise.
      */
-    public uint32_t handle_incoming_msg([in, size=req_message_size] secure_message_t *req_message, size_t req_message_size, uint32_t session_id);
+    public uint32_t handle_secure_socket_msg(
+                      uint32_t session_id,
+                      [in, size=req_message_size] secure_message_t *req_message,
+                      size_t req_message_size,
+                      size_t max_payload_size,
+                      size_t max_resp_message_size,
+                      [out, size=max_resp_message_size] secure_message_t *resp_message,
+                      [out] size_t *resp_message_size);
+
 
     /**
      * <pre>
-     * Construct an outgoing message containing data stored in the session object.
+     * Process an incoming unsecure socket pelz request message.
      * <pre>
      *
-     * @param[in] max_payload_size       the maximum size of the outgoing message payload
-     * @param[out] resp_message          a pointer to the constructed outgoing message, allocated inside the call
-     * @param[out] resp_message_size     the size of the constructed outgoing message
-     * @param[in] resp_message_max_size  the maximum size of the outgoing message
-     * @param[in] session_id             the session identifier
+     * @param[in]  req_msg_in        the incoming message buffer
+     * @param[in]  req_msg_size      the size (in bytes) of the incoming message
+     * @param[out] resp_msg_out      a pointer to the outgoing response message
+     *                               buffer
+     * @param[out] resp_msg_out_size a pointer to the size of the outgoing
+     *                               response message
      *
      * @return 0 on success, an error number indicating the type of error otherwise.
      */
-    public uint32_t handle_outgoing_msg(size_t max_payload_size, [out] secure_message_t **resp_message, [out] size_t *resp_message_size, size_t resp_message_max_size, uint32_t session_id);
+    public uint32_t handle_unsecure_socket_msg(
+                      [in, size=req_msg_in_size] unsigned char *req_msg_in,
+                      size_t req_msg_in_size,
+                      [out] unsigned char **resp_msg_out,
+                      [out] size_t *resp_msg_out_size);
 
     /**
      * <pre>

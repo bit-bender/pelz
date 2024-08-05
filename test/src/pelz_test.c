@@ -11,7 +11,6 @@
 
 #include "util_test_suite.h"
 #include "aes_keywrap_test_suite.h"
-#include "pelz_json_parser_test_suite.h"
 #include "pelz_messaging_test_suite.h"
 #include "table_test_suite.h"
 #include "request_test_suite.h"
@@ -145,21 +144,6 @@ int main(void)
     return CU_get_error();
   }
   if (aes_keywrap_suite_add_tests(aes_keywrap_test_Suite))
-  {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  // Add pelz json parser suite ---- tests pelz json parser encrypt_parse/decrypt_parse/request_decode/message_encode/error_message_encode functions
-  CU_pSuite pelz_json_parser_Suite = NULL;
-
-  pelz_json_parser_Suite = CU_add_suite("Pelz JSON Parser Suite", init_suite, clean_suite);
-  if (NULL == pelz_json_parser_Suite)
-  {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-  if (pelz_json_parser_suite_add_tests(pelz_json_parser_Suite))
   {
     CU_cleanup_registry();
     return CU_get_error();

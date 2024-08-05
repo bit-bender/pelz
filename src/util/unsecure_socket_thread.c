@@ -9,7 +9,6 @@
 #include "charbuf.h"
 #include "pelz_log.h"
 #include "pelz_socket.h"
-#include "pelz_json_parser.h"
 #include "key_load.h"
 #include "pelz_request_handler.h"
 #include "pelz_service.h"
@@ -97,7 +96,7 @@ void *unsecure_socket_process(void *arg)
   charbuf request;
   charbuf response;
   sgx_status_t ecall_ret;
-  RequestResponseStatus status;
+  uint32_t status;
 
   while (!pelz_key_socket_check(new_socket))
   {
@@ -116,130 +115,25 @@ void *unsecure_socket_process(void *arg)
     pelz_log(LOG_DEBUG, "%d::Request & Length: %.*s, %d", new_socket, (int) request.len, request.chars, (int) request.len);
 
     pthread_mutex_lock(&lock);
-    ecall_ret = pelz_request_msg_handler(eid,
-                                         &status,
-                                         request.len,
-                                         request.chars,
-                                         &(response.len),
-                                         &(response.chars));
+    ecall_ret = handle_unsecure_socket_msg(eid,
+                                           &status,
+                                           request.chars,
+                                           request.len,
+                                           &response.chars,
+                                           &response.len);
     pthread_mutex_unlock(&lock);
-    if ((ecall_ret != SGX_SUCCESS) || (status != REQUEST_OK))
+    if ((ecall_ret != SGX_SUCCESS) || (status != 0))
     {
-      pelz_log(LOG_ERR, "pelz request handling error");
+      pelz_log(LOG_ERR, "pelz request handling (unsecure socket) error");
       return NULL;
     }
-    
-/*
-    RequestType request_type = REQ_UNK;
 
-    charbuf key_id;
-    charbuf request_sig;
-    charbuf requestor_cert;
-    charbuf cipher_name;
-
-    charbuf output = new_charbuf(0);
-    charbuf input_data = new_charbuf(0);
-    charbuf tag = new_charbuf(0);
-    charbuf iv = new_charbuf(0);
-    
-    //Parse request for processing
-    if (request_decoder(request, &request_type, &key_id, &cipher_name, &iv, &tag, &input_data, &request_sig, &requestor_cert))
-    
-    {
-      err_message = "Missing Data";
-      error_message_encoder(&message, err_message);
-      pelz_log(LOG_DEBUG, "%d::Error: %.*s, %d", new_socket, (int) message.len, message.chars, (int) message.len);
-      pelz_key_socket_close(new_socket);
-      free_charbuf(&request);
-      return NULL;
-    }
-    free_charbuf(&request);
-
-    pthread_mutex_lock(&lock);
-    switch(request_type)
-    {
-    case REQ_ENC:
-    case REQ_ENC_SIGNED:
-      pelz_encrypt_request_handler(eid, &status, request_type, key_id, cipher_name, input_data, &output, &iv, &tag, request_sig, requestor_cert, 0);
-      if (status == KEK_NOT_LOADED)
-      {
-	if (key_load(key_id) == 0)
-        {
-          pelz_encrypt_request_handler(eid, &status, request_type, key_id, cipher_name, input_data, &output, &iv, &tag, request_sig, requestor_cert, 0);
-        }
-        else
-        {
-          status = KEK_LOAD_ERROR;
-        }
-      }
-      break;
-    case REQ_DEC:
-    case REQ_DEC_SIGNED:
-      pelz_decrypt_request_handler(eid, &status, request_type, key_id, cipher_name, input_data, iv, tag, &output, request_sig, requestor_cert, 0);
-      if (status == KEK_NOT_LOADED)
-      {
-	if (key_load(key_id) == 0)
-        {
-          pelz_decrypt_request_handler(eid, &status, request_type, key_id, cipher_name, input_data, iv, tag, &output, request_sig, requestor_cert, 0);
-        }
-        else
-        {
-          status = KEK_LOAD_ERROR;
-        }
-      }
-      break;
-    default:
-      status = REQUEST_TYPE_ERROR;
-    }    
-    pthread_mutex_unlock(&lock);
-
-    if (status != REQUEST_OK)
-    {
-      pelz_log(LOG_ERR, "%d::Service Error\nSend error message.", new_socket);
-      switch (status)
-      {
-      case KEK_LOAD_ERROR:
-        err_message = "Key not added";
-        break;
-      case KEY_OR_DATA_ERROR:
-        err_message = "Key or Data Error";
-        break;
-      case ENCRYPT_ERROR:
-        err_message = "Encrypt Error";
-        break;
-      case DECRYPT_ERROR:
-        err_message = "Decrypt Error";
-        break;
-      case REQUEST_TYPE_ERROR:
-        err_message = "Request Type Error";
-        break;
-      case CHARBUF_ERROR:
-        err_message = "Charbuf Error";
-        break;
-      default:
-        err_message = "Unrecognized response";
-      }
-      error_message_encoder(&message, err_message);
-    }
-    else
-    {
-      message_encoder(request_type, key_id, cipher_name, iv, tag, output, &message);
-      pelz_log(LOG_DEBUG, "%d::Message Encode Complete", new_socket);
-      pelz_log(LOG_DEBUG, "%d::Message: %.*s, %d", new_socket, (int) message.len, message.chars, (int) message.len);
-    }
-    free_charbuf(&key_id);
-    free_charbuf(&input_data);
-    free_charbuf(&output);
-    free_charbuf(&iv);
-    free_charbuf(&tag);
-    free_charbuf(&cipher_name);
-*/
     pelz_log(LOG_DEBUG, "%d::Message & Length: %.*s, %d",
                         new_socket,
                         (int) response.len,
                         response.chars,
                         (int) response.len);
-    //Send processed request back to client
+    // Send processed request back to client
     if (pelz_key_socket_send(new_socket, response))
     {
       pelz_log(LOG_ERR, "%d::Socket Send Error", new_socket);

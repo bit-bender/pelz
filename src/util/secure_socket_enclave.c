@@ -33,40 +33,12 @@
  *       LocalAttestation/EnclaveResponder/EnclaveMessageExchange.cpp
  */
 
-#include <string.h>
-
-#include <openssl/evp.h>
-#include <openssl/kdf.h>
-
-#include "sgx_trts.h"
-#include "sgx_utils.h"
-#include "sgx_eid.h"
-#include "sgx_ecp_types.h"
-#include "sgx_thread.h"
-#include "sgx_dh.h"
-#include "sgx_tcrypto.h"
-
-#include "charbuf.h"
-#include "dh_error_codes.h"
-#include "pelz_request_handler.h"
-#include "secure_socket_ecdh.h"
-#include "pelz_json_parser.h"
-#include "pelz_enclave_log.h"
+#include "secure_socket_enclave.h"
 
 #include ENCLAVE_HEADER_TRUSTED
 
-#define MAX_SESSION_COUNT  16
-#define HKDF_SALT "pelz"
-
-//Array of pointers to session info
+// array of pointers to session info
 dh_session_t *dh_sessions[MAX_SESSION_COUNT] = { 0 };
-
-ATTESTATION_STATUS generate_session_id(uint32_t *session_id);
-
-uint32_t verify_peer_enclave_trust(
-           sgx_dh_session_enclave_identity_t* peer_enclave_identity,
-           sgx_measurement_t *self_mr_signer);
-
 
 //Handle the request from Source Enclave for a session
 ATTESTATION_STATUS session_request(sgx_dh_msg1_t *dh_msg1,
@@ -188,95 +160,138 @@ ATTESTATION_STATUS exchange_report(sgx_dh_msg2_t *dh_msg2,
 }
 
 //Process an incoming message and store data in the session object
-ATTESTATION_STATUS handle_incoming_msg(secure_message_t *req_message,
-                                       size_t req_message_size,
-                                       uint32_t session_id)
+ATTESTATION_STATUS handle_secure_socket_msg(uint32_t session_id,
+                                            secure_message_t *req_message,
+                                            size_t req_message_size,
+                                            size_t max_payload_size,
+                                            size_t max_resp_message_size,
+                                            secure_message_t *resp_message,
+                                            size_t *resp_message_size)
 {
-    uint8_t *decrypted_data;
-    uint32_t decrypted_data_length;
-    uint8_t l_tag[TAG_SIZE];
-    size_t header_size, expected_payload_size;
-    dh_session_t *session_info;
-    sgx_status_t status;
+  ATTESTATION_STATUS result = handle_incoming_msg(session_id,
+                                                  req_message,
+                                                  req_message_size);
+  if (result != SUCCESS)
+  {
+    return result;
+  }
 
-    if(!req_message)
-    {
-        return INVALID_PARAMETER_ERROR;
-    }
+  result = handle_outgoing_msg(session_id,
+                               max_payload_size,
+                               max_resp_message_size,
+                               &resp_message,
+                               resp_message_size);
+  if (result != SUCCESS)
+  {
+    pelz_sgx_log(LOG_ERR, "handle_outgoing_msg error");
+    return result;
+  }
 
-    //Retrieve the session information for the corresponding session id
-    session_info = dh_sessions[session_id];
-    if(session_info == NULL || session_info->status != ACTIVE)
-    {
-        return INVALID_SESSION;
-    }
 
-    //Set the decrypted data length to the payload size obtained from the message
-    decrypted_data_length = req_message->message_aes_gcm_data.payload_size;
-
-    header_size = sizeof(secure_message_t);
-    expected_payload_size = req_message_size - header_size;
-
-    //Verify the size of the payload
-    if(expected_payload_size != decrypted_data_length)
-        return INVALID_PARAMETER_ERROR;
-
-    memset(&l_tag, 0, 16);
-    decrypted_data = (uint8_t*)malloc(decrypted_data_length);
-    if(!decrypted_data)
-    {
-        return MALLOC_ERROR;
-    }
-
-    memset(decrypted_data, 0, decrypted_data_length);
-
-    //Decrypt the request message payload from source enclave
-    status = sgx_rijndael128GCM_decrypt(&session_info->active.AEK, req_message->message_aes_gcm_data.payload,
-                decrypted_data_length, decrypted_data,
-                (uint8_t *)(&(req_message->message_aes_gcm_data.reserved)),
-                sizeof(req_message->message_aes_gcm_data.reserved),
-                NULL, 0,
-                &req_message->message_aes_gcm_data.payload_tag);
-
-    if(SGX_SUCCESS != status)
-    {
-        SAFE_FREE(decrypted_data);
-        return status;
-    }
-
-    // Verify if the nonce obtained in the request is equal to the session nonce
-    if(*((uint32_t*)req_message->message_aes_gcm_data.reserved) != session_info->active.counter || *((uint32_t*)req_message->message_aes_gcm_data.reserved) > ((uint32_t)-2))
-    {
-        SAFE_FREE(decrypted_data);
-        return INVALID_PARAMETER_ERROR;
-    }
-
-    // Store plaintext in session object
-    if(session_info->request_data != NULL) {
-        SAFE_FREE(session_info->request_data);
-    }
-
-    session_info->request_data = (char *) decrypted_data;
-    session_info->request_data_length = decrypted_data_length;
-
-    return SUCCESS;
+  return SUCCESS;
 }
 
-//Construct an outgoing message containing data stored in the session object
-ATTESTATION_STATUS handle_outgoing_msg(size_t max_payload_size,
-                                       secure_message_t **resp_message,
-                                       size_t *resp_message_size,
-                                       size_t resp_message_max_size,
-                                       uint32_t session_id)
+ATTESTATION_STATUS handle_incoming_msg(uint32_t session_id,
+                                       secure_message_t *req_message,
+                                       size_t req_message_size)
 {
-  char* resp_data;
+  uint8_t *decrypted_data;
+  uint32_t decrypted_data_length;
+  uint8_t l_tag[TAG_SIZE];
+  size_t header_size;
+  size_t expected_payload_size;
+
+  dh_session_t *session_info;
+  sgx_status_t status;
+
+  if ((!req_message) || (req_message_size == 0))
+  {
+    return INVALID_PARAMETER_ERROR;
+  }
+
+  // retrieve the session information for the corresponding session id
+  session_info = dh_sessions[session_id];
+  if(session_info == NULL || session_info->status != ACTIVE)
+  {
+    return INVALID_SESSION;
+  }
+
+  // set the decrypted data length to the payload size obtained from message
+  decrypted_data_length = req_message->message_aes_gcm_data.payload_size;
+
+  header_size = sizeof(secure_message_t);
+  expected_payload_size = req_message_size - header_size;
+
+  // verify the size of the payload
+  if (expected_payload_size != decrypted_data_length)
+  {
+    return INVALID_PARAMETER_ERROR;
+  }
+
+  memset(&l_tag, 0, 16);
+  decrypted_data = (uint8_t*) malloc(decrypted_data_length);
+  if (!decrypted_data)
+  {
+    return MALLOC_ERROR;
+  }
+
+  memset(decrypted_data, 0, decrypted_data_length);
+
+  // decrypt the request message payload from source enclave
+  status = sgx_rijndael128GCM_decrypt(
+             &session_info->active.AEK,
+             req_message->message_aes_gcm_data.payload,
+             decrypted_data_length,
+             decrypted_data,
+             (uint8_t *) (&(req_message->message_aes_gcm_data.reserved)),
+             sizeof(req_message->message_aes_gcm_data.reserved),
+             NULL,
+             0,
+             &req_message->message_aes_gcm_data.payload_tag);
+
+  if (status != SGX_SUCCESS)
+  {
+    SAFE_FREE(decrypted_data);
+    return status;
+  }
+
+  // verify if the nonce obtained in the request is equal to the session nonce
+  if ((*((uint32_t *) req_message->message_aes_gcm_data.reserved) !=
+                                        session_info->active.counter) ||
+      (*((uint32_t *) req_message->message_aes_gcm_data.reserved) >
+                                                       ((uint32_t) -2)))
+  {
+    SAFE_FREE(decrypted_data);
+    return INVALID_PARAMETER_ERROR;
+  }
+
+  // store plaintext in session object
+  if (session_info->request_data != NULL)
+  {
+    SAFE_FREE(session_info->request_data);
+  }
+
+  session_info->request_data = (char *) decrypted_data;
+  session_info->request_data_length = decrypted_data_length;
+
+  return SUCCESS;
+}
+
+// construct an outgoing message containing data stored in the session object
+ATTESTATION_STATUS handle_outgoing_msg(uint32_t session_id,
+                                       size_t max_payload_size,
+                                       size_t resp_message_max_size,
+                                       secure_message_t **resp_message,
+                                       size_t *resp_message_size)
+{
+  char *resp_data;
   size_t resp_data_length;
   size_t resp_message_calc_size;
   dh_session_t *session_info;
-  secure_message_t* temp_resp_message;
+  secure_message_t *temp_resp_message;
   sgx_status_t status;
 
-  //Retrieve the session information for the corresponding session id
+  // retrieve the session information for the corresponding session id
   session_info = dh_sessions[session_id];
   if ((session_info == NULL) ||
       (session_info->status != ACTIVE) ||
@@ -300,7 +315,7 @@ ATTESTATION_STATUS handle_outgoing_msg(size_t max_payload_size,
     return OUT_BUFFER_LENGTH_ERROR;
   }
 
-  //Code to build the response back to the Source Enclave
+  // code to build the response back to the Source Enclave
   temp_resp_message = (secure_message_t*) malloc(resp_message_calc_size);
   if (!temp_resp_message)
   {
@@ -312,13 +327,13 @@ ATTESTATION_STATUS handle_outgoing_msg(size_t max_payload_size,
   temp_resp_message->session_id = session_info->session_id;
   temp_resp_message->message_aes_gcm_data.payload_size = data2encrypt_length;
 
-  //Increment the Session Nonce (Replay Protection)
+  // increment the Session Nonce (Replay Protection)
   session_info->active.counter = session_info->active.counter + 1;
 
-  //Set the response nonce as the session nonce
+  // set the response nonce as the session nonce
   memcpy(&temp_resp_message->message_aes_gcm_data.reserved,&session_info->active.counter,sizeof(session_info->active.counter));
 
-  //Prepare the response message with the encrypted payload
+  // prepare the response message with the encrypted payload
   status = sgx_rijndael128GCM_encrypt(
              &session_info->active.AEK,
              (uint8_t*) resp_data,
@@ -346,7 +361,7 @@ ATTESTATION_STATUS handle_outgoing_msg(size_t max_payload_size,
 }
 
 
-//Respond to the request from the Source Enclave to close the session
+// respond to the request from the Source Enclave to close the session
 ATTESTATION_STATUS end_session(uint32_t session_id)
 {
   ATTESTATION_STATUS status = SUCCESS;
@@ -355,12 +370,12 @@ ATTESTATION_STATUS end_session(uint32_t session_id)
   //Retrieve the session information for the corresponding session id
   session_info = dh_sessions[session_id];
 
-  if(session_info == NULL)
+  if (session_info == NULL)
   {
     status = INVALID_SESSION;
   }
 
-  //Erase the session information for the current session
+  // erase the session information for the current session
   dh_sessions[session_id] = NULL;
   memset(session_info, 0, sizeof(dh_session_t));
   SAFE_FREE(session_info);
@@ -369,12 +384,12 @@ ATTESTATION_STATUS end_session(uint32_t session_id)
 }
 
 
-//Returns a new sessionID for the source destination session
+// returns a new sessionID for the source destination session
 ATTESTATION_STATUS generate_session_id(uint32_t *session_id)
 {
   ATTESTATION_STATUS status = SUCCESS;
 
-  if(!session_id)
+  if (!session_id)
   {
     return INVALID_PARAMETER_ERROR;
   }
@@ -407,7 +422,7 @@ uint32_t verify_peer_enclave_trust(
            sgx_dh_session_enclave_identity_t* peer_enclave_identity,
            sgx_measurement_t *self_mr_signer)
 {
-  if(!peer_enclave_identity)
+  if (!peer_enclave_identity)
   {
     return INVALID_PARAMETER_ERROR;
   }
@@ -420,8 +435,8 @@ uint32_t verify_peer_enclave_trust(
     return ENCLAVE_TRUST_ERROR;
   }
 
-  if((peer_enclave_identity->isv_prod_id != 0) ||
-     (!(peer_enclave_identity->attributes.flags & SGX_FLAGS_INITTED)))
+  if ((peer_enclave_identity->isv_prod_id != 0) ||
+      (!(peer_enclave_identity->attributes.flags & SGX_FLAGS_INITTED)))
   {
     return ENCLAVE_TRUST_ERROR;
   }
@@ -443,11 +458,11 @@ ATTESTATION_STATUS get_request_data(uint32_t session_id,
 {
   dh_session_t *session_info;
 
-  //Retrieve the session information for the corresponding session id
+  // retrieve the session information for the corresponding session id
   session_info = dh_sessions[session_id];
-  if((session_info == NULL) ||
-     (session_info->status != ACTIVE) ||
-     (session_info->request_data == NULL))
+  if ((session_info == NULL) ||
+      (session_info->status != ACTIVE) ||
+      (session_info->request_data == NULL))
   {
     return INVALID_SESSION;
   }
@@ -465,20 +480,20 @@ ATTESTATION_STATUS save_response_data(uint32_t session_id,
 {
   dh_session_t *session_info;
 
-  //Retrieve the session information for the corresponding session id
+  // retrieve the session information for the corresponding session id
   session_info = dh_sessions[session_id];
-  if(session_info == NULL || session_info->status != ACTIVE || session_info->request_data == NULL)
+  if (session_info == NULL || session_info->status != ACTIVE || session_info->request_data == NULL)
   {
     return INVALID_SESSION;
   }
 
-  if(session_info->response_data != NULL)
+  if (session_info->response_data != NULL)
   {
     SAFE_FREE(session_info->response_data);
   }
 
   session_info->response_data = malloc(response_data_length);
-  if(!session_info->response_data)
+  if (!session_info->response_data)
   {
     return MALLOC_ERROR;
   }

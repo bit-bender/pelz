@@ -11,7 +11,6 @@
 #include "charbuf.h"
 #include "pelz_log.h"
 #include "pelz_socket.h"
-#include "pelz_json_parser.h"
 #include "key_load.h"
 #include "pelz_service.h"
 #include "pelz_request_handler.h"
@@ -41,7 +40,7 @@ void *secure_socket_thread(void *arg)
   int socket_id = 0;
   int socket_listen_id;
 
-  //Initializing Socket
+  // initialize socket
   if (pelz_key_socket_init(max_requests, port, &socket_listen_id))
   {
     pelz_log(LOG_ERR, "Socket Initialization Error");
@@ -57,7 +56,8 @@ void *secure_socket_thread(void *arg)
       continue;
     }
 
-    if (socket_id == 0)         //This is to reset the while loop if select() times out
+    // reset the loop if pelz_key_socket_accept() times out
+    if (socket_id == 0)
     {
       continue;
     }
@@ -72,16 +72,22 @@ void *secure_socket_thread(void *arg)
 
     processArgs.lock = lock;
     processArgs.socket_id = socket_id;
-    if (pthread_create(&stid[socket_id], NULL, secure_process_wrapper, &processArgs) != 0)
+    if (pthread_create(&stid[socket_id],
+                       NULL,
+                       secure_process_wrapper,
+                       &processArgs) != 0)
     {
       pelz_log(LOG_WARNING, "%d::Failed to create thread.", socket_id);
       pelz_key_socket_close(socket_id);
       continue;
     }
 
-    pelz_log(LOG_INFO, "Secure Socket Thread %d, %d", (int) stid[socket_id], socket_id);
+    pelz_log(LOG_INFO, "Secure Socket Thread %d, %d",
+                       (int) stid[socket_id], socket_id);
   }
-  while (socket_listen_id >= 0 && socket_id <= (max_requests + 1) && global_pipe_reader_active);
+  while ((socket_listen_id >= 0) &&
+         (socket_id <= (max_requests + 1)) &&
+         (global_pipe_reader_active));
   
   pelz_log(LOG_DEBUG, "secure socket (%d) teardown", socket_listen_id);
   pelz_key_socket_teardown(&socket_listen_id);
@@ -89,7 +95,7 @@ void *secure_socket_thread(void *arg)
   return NULL;
 }
 
-//Receive message from client
+// receive message from client
 int recv_message(int socket_id, FIFO_MSG ** message)
 {
   ssize_t bytes_received;
@@ -121,16 +127,17 @@ int recv_message(int socket_id, FIFO_MSG ** message)
   if (header.size > 0)
   {
     bytes_received = recv(socket_id, msg->msgbuf, header.size, 0);
-    // If bytes_received is non-negative it can safely be converted to
-    // a size_t for the second comparison.
-    if ((bytes_received <= 0) || ((size_t)bytes_received != header.size))
+    // if 'bytes_received' is non-negative it can safely be converted
+    // to a size_t for the second comparison.
+    if ((bytes_received <= 0) || ((size_t) bytes_received != header.size))
     {
       pelz_log(LOG_ERR, "%d::Received incomplete message content.", socket_id);
       return (1);
     }
   }
 
-  pelz_log(LOG_INFO, "%d::Received message with %d bytes.", socket_id, header.size);
+  pelz_log(LOG_INFO, "%d::Received message with %d bytes.",
+                     socket_id, header.size);
 
   *message = msg;
 
@@ -149,7 +156,7 @@ void *secure_socket_process(void *arg)
 
   while (!pelz_key_socket_check(sockfd))
   {
-    //Receiving request and Error Checking
+    // receiving request and error checking
     if (recv_message(sockfd, &message))
     {
       pelz_log(LOG_ERR, "%d::Error receiving message", sockfd);

@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <cjson/cJSON.h>
 
 #include <charbuf.h>
 #include <pelz_log.h>

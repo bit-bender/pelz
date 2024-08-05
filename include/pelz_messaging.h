@@ -13,17 +13,23 @@ extern "C"
 #include "pelz_request_handler.h"
 #include "pelz_enclave.h"
 
+#include ENCLAVE_HEADER_TRUSTED
+
 typedef enum PELZ_MSG_TYPE { MSG_TYPE_MIN = 1,
                              REQUEST = 1,
                              RESPONSE = 2,
                              MSG_TYPE_MAX = 2 } PELZ_MSG_TYPE;
 
-typedef enum PELZ_REQ_TYPE { REQ_TYPE_MIN = 1,
-                             KEY_WRAP = 1,
-                             KEY_UNWRAP = 2,
-                             REQ_TYPE_MAX = 2 } PELZ_REQ_TYPE;
+typedef enum
+{
+  REQ_TYPE_MIN = 1,
+  KEY_WRAP = 1,
+  KEY_UNWRAP = 2,
+  REQ_TYPE_MAX = 2
+} PELZ_REQ_TYPE;
 
-typedef struct PELZ_MSG_DATA {
+typedef struct PELZ_MSG_DATA
+{
   PELZ_MSG_TYPE msg_type;
   PELZ_REQ_TYPE req_type;
   charbuf cipher;
@@ -32,7 +38,8 @@ typedef struct PELZ_MSG_DATA {
   charbuf status;
 } PELZ_MSG_DATA;
 
-typedef struct PELZ_MSG {
+typedef struct PELZ_MSG
+{
   ASN1_ENUMERATED * msg_type;
   ASN1_ENUMERATED * req_type;
   ASN1_UTF8STRING * cipher;
@@ -41,82 +48,73 @@ typedef struct PELZ_MSG {
   ASN1_UTF8STRING * status;
 } PELZ_MSG;
 
-typedef enum MSG_FORMAT { MSG_FORMAT_MIN = 1,
-                          ASN1 = 1,
-                          CMS = 2,
-                          MSG_FORMAT_MAX = 2 } MSG_FORMAT;
+typedef enum
+{
+  MSG_FORMAT_MIN = 1,
+  ASN1 = 1,
+  CMS = 2,
+  MSG_FORMAT_MAX = 2
+} MSG_FORMAT;
 
-#define PELZ_MSG_SUCCESS 0
+typedef enum
+{
+  // general messaging error(s)
+  PELZ_MSG_OK = 0,
+  PELZ_MSG_UNKNOWN_ERROR = -1,
+  PELZ_MSG_INVALID_PARAM = -2,
+  PELZ_MSG_MALLOC_ERROR = -3,
+  PELZ_MSG_BIO_READ_ERROR = -4,
 
-// General pelz messaging errors
-#define PELZ_MSG_UNKNOWN_ERROR -1
-#define PELZ_MSG_PARAM_INVALID -2
-#define PELZ_MSG_MALLOC_ERROR -3
-#define PELZ_MSG_BIO_READ_ERROR -4
+  // ASN.1 message creation error(s)
+  PELZ_MSG_ASN1_CREATE_ERROR = -32,
 
-// PELZ_MSG ASN.1 sequence create/parse errors
-#define PELZ_MSG_ASN1_CREATE_ERROR -32
-#define PELZ_MSG_MSG_TYPE_TAG_ERROR -33
-#define PELZ_MSG_MSG_TYPE_PARSE_ERROR -34
-#define PELZ_MSG_MSG_TYPE_PARSE_INVALID -35
-#define PELZ_MSG_REQ_TYPE_TAG_ERROR -36
-#define PELZ_MSG_REQ_TYPE_PARSE_ERROR -37
-#define PELZ_MSG_REQ_TYPE_PARSE_INVALID -38
-#define PELZ_MSG_CIPHER_TAG_ERROR -39
-#define PELZ_MSG_CIPHER_PARSE_ERROR -40
-#define PELZ_MSG_CIPHER_PARSE_INVALID -41
-#define PELZ_MSG_KEY_ID_TAG_ERROR -42
-#define PELZ_MSG_KEY_ID_PARSE_ERROR -43
-#define PELZ_MSG_KEY_ID_PARSE_INVALID -44
-#define PELZ_MSG_DATA_TAG_ERROR -45
-#define PELZ_MSG_DATA_PARSE_ERROR -46
-#define PELZ_MSG_DATA_PARSE_INVALID -47
-#define PELZ_MSG_STATUS_TAG_ERROR -48
-#define PELZ_MSG_STATUS_PARSE_ERROR -49
-#define PELZ_MSG_STATUS_PARSE_INVALID -50
+  // ASN.1 message parse error(s)
+  PELZ_MSG_ASN1_PARSE_ERROR = -64,
+  PELZ_MSG_MSG_TYPE_TAG_ERROR = -65,
+  PELZ_MSG_MSG_TYPE_PARSE_ERROR = -66,
+  PELZ_MSG_MSG_TYPE_PARSE_INVALID = -67,
+  PELZ_MSG_REQ_TYPE_TAG_ERROR = -68,
+  PELZ_MSG_REQ_TYPE_PARSE_ERROR = -69,
+  PELZ_MSG_REQ_TYPE_PARSE_INVALID = -70,
+  PELZ_MSG_CIPHER_TAG_ERROR = -71,
+  PELZ_MSG_CIPHER_PARSE_ERROR = -72,
+  PELZ_MSG_KEY_ID_TAG_ERROR = -73,
+  PELZ_MSG_KEY_ID_PARSE_ERROR = -74,
+  PELZ_MSG_DATA_TAG_ERROR = -75,
+  PELZ_MSG_DATA_PARSE_ERROR = -76,
+  PELZ_MSG_STATUS_TAG_ERROR = -77,
+  PELZ_MSG_STATUS_PARSE_ERROR = -78,
 
-// pelz messaging der encode/decode errors
-#define PELZ_MSG_SERIALIZE_ERROR -64
-#define PELZ_MSG_DESERIALIZE_ERROR -65
+  // DER encode (serialization) error(s)
+  PELZ_MSG_SERIALIZE_ERROR = -96,
+  PELZ_MSG_DER_ENCODE_ASN1_ERROR = -97,
+  PELZ_MSG_DER_ENCODE_CMS_ERROR = -98,
 
-// pelz messaging sign/verify errors
-#define PELZ_MSG_SIGN_ERROR -96
-#define PELZ_MSG_VERIFY_CONTENT_ERROR -97
-#define PELZ_MSG_VERIFY_FAIL -98
-#define PELZ_MSG_VERIFY_RESULT_INVALID -99
-#define PELZ_MSG_VERIFY_SIGNER_CERT_ERROR -100
-#define PELZ_MSG_EXTRACT_SIGNER_CERT_ERROR -101
+  // DER decode (deserialization) error(s)
+  PELZ_MSG_DESERIALIZE_ERROR = -128,
+  PELZ_MSG_DER_DECODE_ASN1_ERROR = -129,
+  PELZ_MSG_DER_DECODE_CMS_ERROR = -130,
 
-// pelz messaging CMS encrypt/decrypt errors
-#define PELZ_MSG_ENCRYPT_ERROR -128
-#define PELZ_MSG_DECRYPT_CONTENT_ERROR -129
-#define PELZ_MSG_DECRYPT_FAIL -130
-#define PELZ_MSG_DECRYPT_RESULT_INVALID -131
+  // message signature error(s)
+  PELZ_MSG_SIGN_ERROR = -160,
 
-/**
- * <pre>
- * Serializes request data so the signature can be validated.
- * </pre>
- *
- * The serialized data starts with:
- * 8 bytes little-endian encoding of the total size of the serialized request
- * 8 bytes encoding a uint64_t little-endian encoding of the request_type
- *
- * Then each field present is serialized as
- * 8 byte little-endian encoding of the field length
- * The field data 
- *
- * @param[in] request_type   The request type
- * @param[in] key_id         The key_id extracted from the request
- * @param[in] cipher_name    The cipher_name extracted from the request
- * @param[in] data           The data extracted from the request
- * @param[in] iv             The iv extracted from the request, may be empty
- * @param[in] tag            The tag extracted from the request, may be empty
- * @param[in] requestor_cert The requestor_cert extracted from the request
- *
- * @return a charbuf containing the serialized data, or an empty charbuf on error.
- */
-charbuf serialize_request(RequestType request_type, charbuf key_id, charbuf cipher_name, charbuf data, charbuf iv, charbuf tag, charbuf requestor_cert);
+  // message signature verification error(s)
+  PELZ_MSG_VERIFY_ERROR = -192,
+  PELZ_MSG_VERIFY_CONTENT_TYPE_ERROR = -193,
+  PELZ_MSG_VERIFY_FAIL = -194,
+  PELZ_MSG_VERIFY_RESULT_INVALID = -195,
+  PELZ_MSG_VERIFY_SIGNER_CERT_ERROR = -196,
+  PELZ_MSG_VERIFY_EXTRACT_SIGNER_CERT_ERROR = -197,
+
+  // CMS encrypt error(s)
+  PELZ_MSG_CMS_ENCRYPT_ERROR = -224,
+
+  // CMS decrypt error(s)
+  PELZ_MSG_CMS_DECRYPT_ERROR = -256,
+  PELZ_MSG_CMS_DECRYPT_CONTENT_TYPE_ERROR = -257,
+  PELZ_MSG_CMS_DECRYPT_FAIL = -258,
+  PELZ_MSG_CMS_DECRYPT_RESULT_INVALID = -259
+} PelzMessagingStatus;
 
 /**
  * <pre>
@@ -166,8 +164,8 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA *msg_data_in);
  * @param[out] parsed_msg_out  Pointer to the output PELZ_MSG_DATA struct to
  *                             hold the parsed message field values.
  *
- * @return                     Zero (0) on success,
- *                             non-zero error code on failure
+ * @return     Zero (PELZ_MSG_OK = 0) on successful parse,
+ *             enumerated (negative valued) error code otherwise
  */
 int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out);
 
@@ -452,31 +450,6 @@ int construct_pelz_msg(PELZ_MSG_DATA *msg_data_in,
                        EVP_PKEY *local_priv_in,
                        X509 *peer_cert_in,
                        charbuf *tx_msg_buf);
-
-/**
- * <pre>
- * Validates the signature from the request data
- * </pre>
- *
- * @param[in] request_type   The request type
- * @param[in] key_id         The key_id extracted from the request
- * @param[in] cipher_name    The cipher_name extracted from the request
- * @param[in] data           The data extracted from the request
- * @param[in] iv             The iv extracted from the request, may be empty
- * @param[in] tag            The tag extracted from the request, may be empty
- * @param[in] signature      The signature data extracted from the request
- * @param[in] requestor_cert The requestor_cert extracted from the request
- *
- * @return 0 if valid, 1 if invalid
- */
-int validate_signature(RequestType request_type,
-                       charbuf key_id,
-                       charbuf cipher_name,
-                       charbuf data,
-                       charbuf iv,
-                       charbuf tag,
-                       charbuf signature,
-                       charbuf cert);
 
 #ifdef __cplusplus
 }

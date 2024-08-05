@@ -42,7 +42,6 @@
 #include "charbuf.h"
 #include "pelz_log.h"
 #include "pelz_socket.h"
-#include "pelz_json_parser.h"
 #include "key_load.h"
 #include "pelz_service.h"
 #include "pelz_request_handler.h"
@@ -168,41 +167,37 @@ int process_msg_transfer(int clientfd, FIFO_MSGBODY_REQ *req_msg)
 {
   uint32_t status = 0;
   sgx_status_t ret = SGX_SUCCESS;
-  secure_message_t *resp_message = NULL;
   FIFO_MSG * fifo_resp = NULL;
-  size_t resp_message_size;
+  secure_message_t *resp_message = NULL;
+  size_t resp_message_size = 0;
   size_t resp_message_max_size;
 
   if (!req_msg)
   {
-    pelz_log(LOG_ERR, "invalid parameter.");
-    return -1;
-  }
-
-  ret = handle_incoming_msg(eid, &status, (secure_message_t *)req_msg->buf, req_msg->size, req_msg->session_id);
-  if (ret != SGX_SUCCESS || status != SUCCESS)
-  {
-    pelz_log(LOG_ERR, "handle_incoming_msg error.");
-    return -1;
-  }
-
-  // Call Pelz request message handler
-  ret = generate_response(req_msg->session_id);
-  if(ret)
-  {
+    pelz_log(LOG_ERR, "NULL reference to input message parameter");
     return -1;
   }
 
   resp_message_max_size = sizeof(secure_message_t) + req_msg->max_payload_size;
 
-  ret = handle_outgoing_msg(eid, &status, req_msg->max_payload_size, &resp_message, &resp_message_size, resp_message_max_size, req_msg->session_id);
-  if (ret != SGX_SUCCESS || status != SUCCESS)
+  // call pelz request message handler for secure socket messaging
+  ret = handle_secure_socket_msg(eid,
+                                 &status,
+                                 req_msg->session_id,
+                                 (secure_message_t *) req_msg->buf,
+                                 req_msg->size,
+                                 req_msg->max_payload_size,
+                                 resp_message_max_size,
+                                 resp_message,
+                                 &resp_message_size);
+  if ((ret != SGX_SUCCESS) ||
+      (status != SUCCESS))
   {
-    pelz_log(LOG_ERR, "handle_outgoing_msg error.");
+    pelz_log(LOG_ERR, "handle_secure_socket_msg error");
     return -1;
   }
 
-  fifo_resp = (FIFO_MSG *)malloc(sizeof(FIFO_MSG) + resp_message_size);
+  fifo_resp = (FIFO_MSG *) malloc(sizeof(FIFO_MSG) + resp_message_size);
   if (!fifo_resp)
   {
     pelz_log(LOG_ERR, "memory allocation failure.");
@@ -241,12 +236,16 @@ int process_close_req(int clientfd, SESSION_CLOSE_REQ * close_req)
   FIFO_MSG close_ack;
 
   if (!close_req)
+  {
     return -1;
+  }
 
   // call responder enclave to close this session
   ret = end_session(eid, &status, close_req->session_id);
   if (ret != SGX_SUCCESS)
+  {
     return -1;
+  }
 
   // send back response
   close_ack.header.type = FIFO_DH_CLOSE_RESP;
@@ -265,7 +264,7 @@ int handle_message(int sockfd, FIFO_MSG * message)
 {
   switch (message->header.type)
   {
-    case FIFO_DH_REQ_MSG1:
+  case FIFO_DH_REQ_MSG1:
     {
       // process ECDH session connection request
       if (generate_and_send_session_msg1_resp(sockfd) != 0)
@@ -276,10 +275,11 @@ int handle_message(int sockfd, FIFO_MSG * message)
     }
     break;
 
-    case FIFO_DH_MSG2:
+  case FIFO_DH_MSG2:
     {
       // process ECDH message 2
-      if (process_exchange_report(sockfd, (SESSION_MSG2 *) message->msgbuf) != 0)
+      if (process_exchange_report(sockfd,
+                                  (SESSION_MSG2 *) message->msgbuf) != 0)
       {
         pelz_log(LOG_ERR, "failed to process exchange_report request.");
         return -1;
@@ -287,10 +287,11 @@ int handle_message(int sockfd, FIFO_MSG * message)
     }
     break;
 
-    case FIFO_DH_MSG_REQ:
+  case FIFO_DH_MSG_REQ:
     {
       // process message transfer request
-      if (process_msg_transfer(sockfd, (FIFO_MSGBODY_REQ *) message->msgbuf) != 0)
+      if (process_msg_transfer(sockfd,
+                               (FIFO_MSGBODY_REQ *) message->msgbuf) != 0)
       {
         pelz_log(LOG_ERR, "failed to process message transfer request.");
         return -1;
@@ -298,10 +299,11 @@ int handle_message(int sockfd, FIFO_MSG * message)
     }
     break;
 
-    case FIFO_DH_CLOSE_REQ:
+  case FIFO_DH_CLOSE_REQ:
     {
       // process message close request
-      if (process_close_req(sockfd, (SESSION_CLOSE_REQ *) message->msgbuf) != 0)
+      if (process_close_req(sockfd,
+                            (SESSION_CLOSE_REQ *) message->msgbuf) != 0)
       {
         pelz_log(LOG_ERR, "failed to close ecdh session.");
         return -1;
@@ -309,202 +311,11 @@ int handle_message(int sockfd, FIFO_MSG * message)
     }
     break;
 
-    default:
+  default:
     {
       pelz_log(LOG_ERR, "Unknown message.");
     }
     break;
-  }
-
-  return 0;
-}
-
-charbuf get_error_response(const char *err_message)
-{
-  int ret_val;
-  charbuf message;
-
-  ret_val = error_message_encoder(&message, err_message);
-  if (ret_val != EXIT_SUCCESS)
-  {
-    message = new_charbuf(0);
-  }
-  pelz_log(LOG_INFO, "Encoded error message: %.*s, %d", (int) message.len, message.chars, (int) message.len);
-  return message;
-}
-
-/* Function Description: Generates the response from the request message
- * Parameter Description:
- * [input] session_id: id number for current communication session
- * [input] req_data: pointer to decrypted request message
- * [input] req_length: request length
- * [output] response: pointer to response message charbuf, which is initialized in this function
- * 
- * Returns: 0
- */
-int handle_pelz_request_msg(uint32_t session_id, char* req_data, size_t req_length, charbuf *response)
-{
-  int ret_val;
-  charbuf message;
-  RequestResponseStatus status;
-  sgx_status_t sgx_status;
-  const char *err_message;
-  RequestType request_type = REQ_UNK;
-
-  charbuf key_id = new_charbuf(0);
-  charbuf request_sig = new_charbuf(0);
-  charbuf requestor_cert = new_charbuf(0);
-  charbuf cipher_name = new_charbuf(0);
-
-  charbuf output = new_charbuf(0);
-  charbuf input_data = new_charbuf(0);
-  charbuf tag = new_charbuf(0);
-  charbuf iv = new_charbuf(0);
-
-  //Parse request for processing
-  charbuf request = new_charbuf(req_length);
-  memcpy(request.chars, req_data, req_length);
-  ret_val = request_decoder(request, &request_type, &key_id, &cipher_name, &iv, &tag, &input_data, &request_sig, &requestor_cert);
-  if (ret_val != EXIT_SUCCESS)
-  {
-    err_message = "Missing Data";
-    *response = get_error_response(err_message);
-    return 0;
-  }
-
-  switch(request_type)
-  {
-  case REQ_ENC:
-  case REQ_ENC_SIGNED:
-  case REQ_ENC_PROTECTED:
-    sgx_status = pelz_encrypt_request_handler(eid, &status, request_type, key_id, cipher_name, input_data, &output, &iv, &tag, request_sig, requestor_cert, session_id);
-    if (sgx_status != SGX_SUCCESS)
-    {
-      status = ENCRYPT_ERROR;
-    }
-    if (status == KEK_NOT_LOADED)
-    {
-      ret_val = key_load(key_id);
-      if (ret_val == EXIT_SUCCESS)
-      {
-        sgx_status = pelz_encrypt_request_handler(eid, &status, request_type, key_id, cipher_name, input_data, &output, &iv, &tag, request_sig, requestor_cert, session_id);
-        if (sgx_status != SGX_SUCCESS)
-        {
-          status = ENCRYPT_ERROR;
-        }
-      }
-      else
-      {
-        status = KEK_LOAD_ERROR;
-      }
-    }
-    break;
-  case REQ_DEC:
-  case REQ_DEC_SIGNED:
-  case REQ_DEC_PROTECTED:
-    sgx_status = pelz_decrypt_request_handler(eid, &status, request_type, key_id, cipher_name, input_data, iv, tag, &output, request_sig, requestor_cert, session_id);
-    if (sgx_status != SGX_SUCCESS)
-    {
-      status = DECRYPT_ERROR;
-    }
-    if (status == KEK_NOT_LOADED)
-    {
-      ret_val = key_load(key_id);
-      if (ret_val == EXIT_SUCCESS)
-      {
-        sgx_status = pelz_decrypt_request_handler(eid, &status, request_type, key_id, cipher_name, input_data, iv, tag, &output, request_sig, requestor_cert, session_id);
-        if (sgx_status != SGX_SUCCESS)
-        {
-          status = DECRYPT_ERROR;
-        }
-      }
-      else
-      {
-        status = KEK_LOAD_ERROR;
-      }
-    }
-    break;
-  default:
-    status = REQUEST_TYPE_ERROR;
-  }
-
-  if (status != REQUEST_OK)
-  {
-    switch (status)
-    {
-    case KEK_LOAD_ERROR:
-      err_message = "Key not added";
-      break;
-    case KEY_OR_DATA_ERROR:
-      err_message = "Key or Data Error";
-      break;
-    case ENCRYPT_ERROR:
-      err_message = "Encrypt Error";
-      break;
-    case DECRYPT_ERROR:
-      err_message = "Decrypt Error";
-      break;
-    case REQUEST_TYPE_ERROR:
-      err_message = "Request Type Error";
-      break;
-    case CHARBUF_ERROR:
-      err_message = "Charbuf Error";
-      break;
-    default:
-      err_message = "Unrecognized response";
-    }
-    message = get_error_response(err_message);
-  }
-  else
-  {
-    ret_val = message_encoder(request_type, key_id, cipher_name, iv, tag, output, &message);
-    if (ret_val != EXIT_SUCCESS)
-    {
-      message = get_error_response("Encode Error");
-    }
-  }
-
-  secure_free_charbuf(&input_data);
-  secure_free_charbuf(&key_id);
-  secure_free_charbuf(&output);
-  secure_free_charbuf(&iv);
-  secure_free_charbuf(&tag);
-  secure_free_charbuf(&cipher_name);
-  secure_free_charbuf(&request_sig);
-  secure_free_charbuf(&requestor_cert);
-
-  *response = message;
-
-  return 0;
-}
-
-int generate_response(uint32_t session_id)
-{
-  sgx_status_t sgx_status;
-  ATTESTATION_STATUS status;
-  char *request_data;
-  size_t request_data_length;
-  charbuf response;
-
-  sgx_status = get_request_data(eid, &status, session_id, &request_data, &request_data_length);
-  if (sgx_status != SGX_SUCCESS || status != SUCCESS)
-  {
-    return -1;
-  }
-
-  pelz_log(LOG_DEBUG, "Request Message & Length: %.*s, %d", (int) request_data_length, request_data, (int) request_data_length);
-
-  handle_pelz_request_msg(session_id, request_data, request_data_length, &response);
-  memset(request_data, 0, request_data_length);
-  free(request_data);
-
-  pelz_log(LOG_DEBUG, "Response Message & Length: %.*s, %d", (int) response.len, response.chars, (int) response.len);
-
-  sgx_status = save_response_data(eid, &status, session_id, (char *) response.chars, response.len);
-  secure_free_charbuf(&response);
-  if (sgx_status != SGX_SUCCESS || status != SUCCESS)
-  {
-    return -1;
   }
 
   return 0;

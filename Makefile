@@ -114,7 +114,6 @@ App_Service_File := src/pelz-service/main.c
 App_Pipe_File := src/pelz/main.c
 
 App_C_Files := src/util/charbuf.c \
-               src/util/pelz_json_parser.c \
                src/util/pelz_service.c \
                src/util/pelz_socket.c \
                src/util/fifo_thread.c \
@@ -130,7 +129,6 @@ App_C_Files := src/util/charbuf.c \
 App_C_Test_Files := test/src/pelz_test.c \
                     test/src/util/util_test_suite.c \
                     test/src/util/aes_keywrap_test_suite.c \
-                    test/src/util/pelz_json_parser_test_suite.c \
                     test/src/util/test_helper_functions.c \
                     test/src/util/test_pelz_uri_helpers.c \
                     test/src/util/table_test_suite.c \
@@ -435,7 +433,6 @@ test/bin/$(App_Name_Test): $(App_C_Test_Files) \
 	                $(ENCLAVE_HEADERS) \
 	                $(App_Link_Flags) \
 	                -lcrypto \
-	                -lcjson \
 	                -lpthread \
 	                -lcunit
 	@echo "LINK =>  $(App_Name_Test)"
@@ -460,7 +457,6 @@ bin/$(App_Name_Service): $(App_Service_File) \
 	                $(App_Link_Flags) \
 	                -Lsgx \
 	                -lcrypto \
-	                -lcjson \
 	                -lpthread
 	@echo "LINK =>  $(App_Name_Service)"
 
@@ -485,7 +481,6 @@ bin/$(App_Name_Pipe): $(App_Pipe_File) \
 	                $(App_Link_Flags) \
 	                -Lsgx \
 	                -lcrypto \
-	                -lcjson \
 	                -lpthread
 	@echo "LINK =>  $(App_Name_Pipe)"
 
@@ -597,6 +592,10 @@ sgx/pelz_messaging.o: src/util/pelz_messaging.c
 sgx/secure_socket_enclave.o: src/util/secure_socket_enclave.c
 	@$(CC) $(Enclave_C_Flags) -Wno-cast-qual $(ENCLAVE_HEADERS) -c $< -o $@
 	@echo "CC  <=  $<"
+	
+sgx/unsecure_socket_enclave.o: src/util/unsecure_socket_enclave.c
+	@$(CC) $(Enclave_C_Flags) -Wno-cast-qual $(ENCLAVE_HEADERS) -c $< -o $@
+	@echo "CC  <=  $<"
 
 sgx/$(Enclave_Name): sgx/pelz_enclave_t.o \
                      sgx/common_table.o \
@@ -606,6 +605,7 @@ sgx/$(Enclave_Name): sgx/pelz_enclave_t.o \
                      sgx/pelz_aes_keywrap_3394nopad.o \
                      sgx/ca_table.o \
                      sgx/secure_socket_enclave.o \
+                     sgx/unsecure_socket_enclave.o \
                      sgx/pelz_request_handler.o \
                      sgx/charbuf.o \
                      sgx/kmyth_enclave_seal.o \

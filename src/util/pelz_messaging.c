@@ -15,6 +15,8 @@
 #include "pelz_enclave.h"
 #include "pelz_enclave_log.h"
 
+#include ENCLAVE_HEADER_TRUSTED
+
 DECLARE_ASN1_FUNCTIONS(PELZ_MSG);
 DECLARE_ASN1_PRINT_FUNCTION(PELZ_MSG);
 
@@ -118,25 +120,23 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA * msg_data_in)
   return msg;
 }
 
-int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
+PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
+                                        PELZ_MSG_DATA *parsed_msg_out)
 {
   int tag = -1;
-  PelzMessagingStatus error_code = PELZ_MSG_UNKNOWN_ERROR;
 
   // parse message type (msg_type) field
   tag = ASN1_STRING_type(msg_in->msg_type);
   if (tag != V_ASN1_ENUMERATED)
   {
     pelz_sgx_log(LOG_ERR, "invalid 'msg_type' field format");
-    error_code = PELZ_MSG_MSG_TYPE_TAG_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_MSG_TYPE_TAG_ERROR;
   }
   int retval = ASN1_ENUMERATED_get_int64((int64_t *) &(parsed_msg_out->msg_type),
                                          (const ASN1_ENUMERATED *) msg_in->msg_type);
   if (retval != 1)
   {
     pelz_sgx_log(LOG_ERR, "'msg_type' field parse error");
-    error_code = PELZ_MSG_MSG_TYPE_PARSE_ERROR;
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -145,14 +145,13 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return (int) error_code;
+    return PELZ_MSG_MSG_TYPE_PARSE_ERROR;
   }
   if ((parsed_msg_out->msg_type < MSG_TYPE_MIN) ||
       (parsed_msg_out->msg_type > MSG_TYPE_MAX))
   {
     pelz_sgx_log(LOG_ERR, "parsed 'msg_type' unsupported");
-    error_code = PELZ_MSG_MSG_TYPE_PARSE_INVALID;
-    return (int) error_code;
+    return PELZ_MSG_MSG_TYPE_PARSE_INVALID;
   }
 
   // parse request type (req_type) field
@@ -160,15 +159,13 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   if (tag != V_ASN1_ENUMERATED)
   {
     pelz_sgx_log(LOG_ERR, "invalid 'req_type' field format");
-    error_code = PELZ_MSG_REQ_TYPE_TAG_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_REQ_TYPE_TAG_ERROR;
   }
   retval = ASN1_ENUMERATED_get_int64((int64_t *) &(parsed_msg_out->req_type),
                                      (const ASN1_ENUMERATED *) msg_in->req_type);
   if (retval != 1)
   {
     pelz_sgx_log(LOG_ERR, "'req_type' field parse error");
-    error_code = PELZ_MSG_REQ_TYPE_PARSE_ERROR;
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -177,14 +174,13 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return (int) error_code;
+    return PELZ_MSG_REQ_TYPE_PARSE_ERROR;
   }
   if ((parsed_msg_out->req_type < REQ_TYPE_MIN) ||
       (parsed_msg_out->req_type > REQ_TYPE_MAX))
   {
     pelz_sgx_log(LOG_ERR, "parsed 'req_type' unsupported");
-    error_code = PELZ_MSG_REQ_TYPE_PARSE_INVALID;
-    return (int) error_code;
+    return PELZ_MSG_REQ_TYPE_PARSE_INVALID;
   }
 
   // parse 'cipher' message field
@@ -192,8 +188,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   if (tag != V_ASN1_UTF8STRING)
   {
     pelz_sgx_log(LOG_ERR, "invalid 'cipher' field format");
-    error_code = PELZ_MSG_CIPHER_TAG_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_CIPHER_TAG_ERROR;
   }
   parsed_msg_out->cipher.len =
     (size_t) ASN1_STRING_to_UTF8(&(parsed_msg_out->cipher.chars),
@@ -202,7 +197,6 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
       (parsed_msg_out->cipher.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "'cipher' field parse error");
-    error_code = PELZ_MSG_CIPHER_PARSE_ERROR;
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -211,7 +205,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return (int) error_code;
+    return PELZ_MSG_CIPHER_PARSE_ERROR;
   }
 
   // parse 'key ID' message field
@@ -219,8 +213,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   if (tag != V_ASN1_UTF8STRING)
   {
     pelz_sgx_log(LOG_ERR, "invalid 'key ID' field format");
-    error_code = PELZ_MSG_KEY_ID_TAG_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_KEY_ID_TAG_ERROR;
   }
   parsed_msg_out->key_id.len =
     (size_t) ASN1_STRING_to_UTF8(&(parsed_msg_out->key_id.chars),
@@ -229,7 +222,6 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
       (parsed_msg_out->key_id.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "'key ID' field parse error");
-    error_code = PELZ_MSG_KEY_ID_PARSE_ERROR;
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -238,7 +230,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return (int) error_code;
+    return PELZ_MSG_KEY_ID_PARSE_ERROR;
   }
 
   // parse 'data' message field
@@ -246,8 +238,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   if (tag != V_ASN1_OCTET_STRING)
   {
     pelz_sgx_log(LOG_ERR, "invalid 'data' field format");
-    error_code = PELZ_MSG_DATA_TAG_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_DATA_TAG_ERROR;
   }
   parsed_msg_out->data.len = (size_t) ASN1_STRING_length(msg_in->data);
   parsed_msg_out->data.chars = calloc(parsed_msg_out->data.len + 1,
@@ -255,8 +246,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   if (parsed_msg_out->data.chars == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error allocating memory for message 'data' field");
-    error_code = PELZ_MSG_MALLOC_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_MALLOC_ERROR;
   }
   const unsigned char *parsed_data_bytes = ASN1_STRING_get0_data(msg_in->data);
   memcpy(parsed_msg_out->data.chars,
@@ -265,7 +255,6 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   if ((parsed_msg_out->data.chars == NULL) || (parsed_msg_out->data.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "'data' field parse error");
-    error_code = PELZ_MSG_DATA_PARSE_ERROR;
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -274,7 +263,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return (int) error_code;
+    return PELZ_MSG_DATA_PARSE_ERROR;
   }
 
   // parse 'status' message field
@@ -282,8 +271,7 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
   if (tag != V_ASN1_UTF8STRING)
   {
     pelz_sgx_log(LOG_ERR, "invalid 'status' field format");
-    error_code = PELZ_MSG_STATUS_TAG_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_STATUS_TAG_ERROR;
   }
   parsed_msg_out->status.len =
     (size_t) ASN1_STRING_to_UTF8(&(parsed_msg_out->status.chars),
@@ -292,7 +280,6 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
       (parsed_msg_out->status.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "'status' field parse error");
-    error_code = PELZ_MSG_STATUS_PARSE_ERROR;
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -301,16 +288,14 @@ int parse_pelz_asn1_msg(PELZ_MSG *msg_in, PELZ_MSG_DATA *parsed_msg_out)
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return (int) error_code;
+    return PELZ_MSG_STATUS_PARSE_ERROR;
   }
 
   // if this point is reached, the input message has been successfully parsed
-  error_code = PELZ_MSG_OK;
-  return (int) error_code;
+  return PELZ_MSG_OK;
 }
 
-CMS_ContentInfo *create_pelz_signed_msg(uint8_t *data_in,
-                                        int data_in_len,
+CMS_ContentInfo *create_pelz_signed_msg(charbuf msg_data_in,
                                         X509 *sign_cert,
                                         EVP_PKEY *sign_priv)
 {
@@ -318,8 +303,8 @@ CMS_ContentInfo *create_pelz_signed_msg(uint8_t *data_in,
   //  - input data byte array must be valid (non-NULL and
   //    of valid, non-empty size)
   //  - signer's certificate and key must be specified (non-NULL)
-  if ((data_in == NULL) ||
-      (data_in_len <= 0) ||
+  if ((msg_data_in.chars == NULL) ||
+      (msg_data_in.len == 0) ||
       (sign_cert == NULL) ||
       (sign_priv == NULL))
   {
@@ -329,13 +314,14 @@ CMS_ContentInfo *create_pelz_signed_msg(uint8_t *data_in,
 
   // create BIO containing bytes to be signed and included as content
   // in the resulting signed data message
-  BIO * data_in_bio = BIO_new_mem_buf(data_in, data_in_len);
+  BIO * data_in_bio = BIO_new_mem_buf(msg_data_in.chars,
+                                      (int) msg_data_in.len);
   if (data_in_bio == NULL)
   {
     pelz_sgx_log(LOG_ERR, "BIO creation error");
     return NULL;
   }
-  if (BIO_pending(data_in_bio) != data_in_len)
+  if (BIO_pending(data_in_bio) != (int) msg_data_in.len)
   {
     pelz_sgx_log(LOG_ERR, "BIO init error");
     BIO_free(data_in_bio);
@@ -344,12 +330,11 @@ CMS_ContentInfo *create_pelz_signed_msg(uint8_t *data_in,
 
   // create the signed CMS content
   CMS_ContentInfo *sign_result = NULL;
-  unsigned int sign_flags = CMS_BINARY;
   sign_result = CMS_sign(sign_cert,
                          sign_priv,
                          NULL,
                          data_in_bio,
-                         sign_flags);
+                         CMS_BINARY);
   BIO_free(data_in_bio);
   if (sign_result == NULL)
   {
@@ -368,22 +353,26 @@ CMS_ContentInfo *create_pelz_signed_msg(uint8_t *data_in,
   return sign_result;
 }
 
-int verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
-                                             X509 **peer_cert,
-                                             uint8_t **data_out)
+PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
+                                           X509 **peer_cert_out,
+                                           charbuf *data_out)
 {
-  PelzMessagingStatus error_code = PELZ_MSG_UNKNOWN_ERROR;
-
   // validate input parameters
-  if ((signed_msg_in == NULL) ||
-      (peer_cert == NULL) ||
-      (*peer_cert != NULL) ||
-      (data_out == NULL) ||
-      (*data_out != NULL))
+  // if output buffers pre-allocated, free and set to NULL
+  if ((signed_msg_in == NULL) || (peer_cert_out == NULL) || (data_out == NULL))
   {
     pelz_sgx_log(LOG_ERR, "invalid input parameter");
-    error_code = PELZ_MSG_INVALID_PARAM;
-    return (int) error_code;
+    return PELZ_MSG_INVALID_PARAM;
+  }
+  if (*peer_cert_out != NULL)
+  {
+    X509_free(*peer_cert_out);
+    *peer_cert_out = NULL;
+  }
+  if (data_out->chars != NULL)
+  {
+    free(data_out->chars);
+    data_out->chars = NULL;
   }
 
   // check input CMS_ContentInfo struct has expected (signedData) content type
@@ -392,8 +381,7 @@ int verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
   if (OBJ_obj2nid(temp_obj) != NID_pkcs7_signed)
   {
     pelz_sgx_log(LOG_ERR, "payload not pkcs7-signedData");
-    error_code = PELZ_MSG_VERIFY_CONTENT_TYPE_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_VERIFY_CONTENT_TYPE_ERROR;
   }
 
   // create BIO to hold signature verification output data
@@ -411,7 +399,6 @@ int verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
   if (ret != 1)
   {
     pelz_sgx_log(LOG_ERR, "CMS_verify() failed");
-    error_code = PELZ_MSG_VERIFY_FAIL;
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -421,69 +408,67 @@ int verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
       e = ERR_get_error();
     }
     BIO_free(verify_out_bio);
-    return (int) error_code;
+    return PELZ_MSG_VERIFY_FAIL;
   }
 
-  // get the requestor's certificate from the signed message
+  // get the signer's certificate from the signed message
   STACK_OF(X509) *signer_cert_stack = sk_X509_new_null();
   signer_cert_stack = CMS_get0_signers(signed_msg_in);
   if (sk_X509_num(signer_cert_stack) != 1)
   {
     pelz_sgx_log(LOG_ERR, "count of signer certs is not one, as expected");
-    error_code = PELZ_MSG_VERIFY_SIGNER_CERT_ERROR;
     BIO_free(verify_out_bio);
-    return (int) error_code;
+    return PELZ_MSG_VERIFY_SIGNER_CERT_ERROR;
   }
-  *peer_cert = X509_new();
-  *peer_cert = sk_X509_pop(signer_cert_stack);
-  if (*peer_cert == NULL) 
+  *peer_cert_out = X509_new();
+  *peer_cert_out = sk_X509_pop(signer_cert_stack);
+  if (*peer_cert_out == NULL) 
   {
     pelz_sgx_log(LOG_ERR, "error extracting signer cert");
-    error_code = PELZ_MSG_VERIFY_EXTRACT_SIGNER_CERT_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_VERIFY_EXTRACT_SIGNER_CERT_ERROR;
   }
 
+  // get size of data in signed message (in BIO now from 'verify' call)
   int bio_data_size = BIO_pending(verify_out_bio);
   if (bio_data_size <= 0)
   {
     pelz_sgx_log(LOG_ERR, "invalid output BIO result");
-    error_code = PELZ_MSG_VERIFY_RESULT_INVALID;
     BIO_free(verify_out_bio);
-    return (int) error_code;
+    return PELZ_MSG_VERIFY_RESULT_INVALID;
   }
 
-  *data_out = (uint8_t *) calloc((size_t) bio_data_size, sizeof(uint8_t));
-  if (*data_out == NULL)
+  // allocate memory for output buffer to hold signed data
+  data_out->chars = (unsigned char *) calloc((size_t) bio_data_size,
+                                             sizeof(unsigned char));
+  if (data_out->chars == NULL)
   {
     pelz_sgx_log(LOG_ERR, "output buffer malloc error");
-    error_code = PELZ_MSG_MALLOC_ERROR;
     BIO_free(verify_out_bio);
-    return (int) error_code;
+    return PELZ_MSG_MALLOC_ERROR;
   }
 
-  int data_out_size = BIO_read(verify_out_bio, *data_out, bio_data_size);
-  if (data_out_size != bio_data_size)
+  // put signed data in output buffer (read out of BIO)
+  data_out->len = (size_t ) BIO_read(verify_out_bio, data_out->chars, bio_data_size);
+  BIO_free(verify_out_bio);
+  if ((int) data_out->len != bio_data_size)
   {
     pelz_sgx_log(LOG_ERR, "BIO_read() error");
-    error_code = PELZ_MSG_BIO_READ_ERROR;
-    free(*data_out);
-    BIO_free(verify_out_bio);
-    return (int) error_code;
+    free(data_out->chars);
+    return PELZ_MSG_BIO_READ_ERROR;
   }
-
-  BIO_free(verify_out_bio);
 
   pelz_sgx_log(LOG_DEBUG, "successful CMS signed message verification");
 
-  return data_out_size;
+  return PELZ_MSG_OK;
 }
 
-CMS_ContentInfo *create_pelz_enveloped_msg(uint8_t *data_in,
-                                           int data_in_len,
+CMS_ContentInfo *create_pelz_enveloped_msg(charbuf msg_data_in,
                                            X509 *encrypt_cert)
 {
   // check input data is not NULL, empty, or of invalid length
-  if ((data_in == NULL) || (data_in_len <= 0) || (encrypt_cert == NULL))
+  if ((msg_data_in.chars == NULL) ||
+      (msg_data_in.len == 0) ||
+      (encrypt_cert == NULL))
   {
     pelz_sgx_log(LOG_ERR, "invalid input parameter");
     return NULL;
@@ -497,7 +482,8 @@ CMS_ContentInfo *create_pelz_enveloped_msg(uint8_t *data_in,
     sk_X509_free(cert_stack);
     return NULL;
   }
-  BIO *cms_enc_bio = BIO_new_mem_buf(data_in, data_in_len);
+  BIO *cms_enc_bio = BIO_new_mem_buf(msg_data_in.chars,
+                                     (int) msg_data_in.len);
 
   CMS_ContentInfo *msg_out = CMS_encrypt(cert_stack,
                                          cms_enc_bio,
@@ -521,23 +507,19 @@ CMS_ContentInfo *create_pelz_enveloped_msg(uint8_t *data_in,
   return msg_out;
 }
 
-int decrypt_pelz_enveloped_msg(CMS_ContentInfo *enveloped_msg_in,
-                               X509 *encrypt_cert,
-                               EVP_PKEY *decrypt_priv,
-                               uint8_t **data_out)
+PelzMessagingStatus decrypt_pelz_enveloped_msg(CMS_ContentInfo *enveloped_msg_in,
+                                               X509 *encrypt_cert,
+                                               EVP_PKEY *decrypt_priv,
+                                               charbuf *data_out)
 {
-  PelzMessagingStatus error_code = PELZ_MSG_UNKNOWN_ERROR;
-
   // validate input parameters
   if ((enveloped_msg_in == NULL) ||
       (decrypt_priv == NULL) ||
-      (data_out == NULL) ||
-      ((data_out != NULL) && (*data_out != NULL)))
+      (data_out == NULL))
   {
     pelz_sgx_log(LOG_ERR,
                  "decrypt enveloped message: invalid input parameter");
-    error_code = PELZ_MSG_INVALID_PARAM;
-    return (int) error_code;
+    return PELZ_MSG_INVALID_PARAM;
   }
 
   // check input CMS_ContentInfo struct has expected (authEnvelopedData) type
@@ -547,24 +529,22 @@ int decrypt_pelz_enveloped_msg(CMS_ContentInfo *enveloped_msg_in,
   {
     pelz_sgx_log(LOG_ERR,
                  "decrypt enveloped message: payload not authEnvelopedData");
-    error_code = PELZ_MSG_CMS_DECRYPT_CONTENT_TYPE_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_CMS_DECRYPT_CONTENT_TYPE_ERROR;
   }
 
   // create BIO to hold decrypted message result
   BIO * decrypt_out_bio = BIO_new(BIO_s_mem());
 
   // decrypt input CMS enveloped message
-  int decrypt_retval = CMS_decrypt(enveloped_msg_in,
-                                   decrypt_priv,
-                                   encrypt_cert,
-                                   NULL,
-                                   decrypt_out_bio,
-                                   CMS_BINARY);
-  if (decrypt_retval != 1)
+  int retval = CMS_decrypt(enveloped_msg_in,
+                           decrypt_priv,
+                           encrypt_cert,
+                           NULL,
+                           decrypt_out_bio,
+                           CMS_BINARY);
+  if (retval != 1)
   {
     pelz_sgx_log(LOG_ERR, "decrypt enveloped message: CMS_decrypt() error");
-    error_code = PELZ_MSG_CMS_DECRYPT_FAIL;
     unsigned long e = ERR_get_error();
     while (e != 0)
     {
@@ -573,7 +553,7 @@ int decrypt_pelz_enveloped_msg(CMS_ContentInfo *enveloped_msg_in,
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return (int) error_code;
+    return PELZ_MSG_CMS_DECRYPT_FAIL;
   }
 
   // read decrypted message bytes out of BIO
@@ -582,84 +562,84 @@ int decrypt_pelz_enveloped_msg(CMS_ContentInfo *enveloped_msg_in,
   {
     pelz_sgx_log(LOG_ERR,
                  "decrypt enveloped message: invalid output BIO result");
-    error_code = PELZ_MSG_CMS_DECRYPT_RESULT_INVALID;
     BIO_free(decrypt_out_bio);
-    return (int) error_code;
+    return PELZ_MSG_CMS_DECRYPT_RESULT_INVALID;
   }
 
-  *data_out = calloc((size_t) buf_size, sizeof(uint8_t));
-  if (*data_out == NULL)
+  data_out->chars = calloc((size_t) buf_size, sizeof(uint8_t));
+  if (data_out->chars == NULL)
   {
     pelz_sgx_log(LOG_ERR,
                  "decrypt enveloped message: output buffer malloc error");
-    error_code = PELZ_MSG_MALLOC_ERROR;
     BIO_free(decrypt_out_bio);
-    return (int) error_code;
+    return PELZ_MSG_MALLOC_ERROR;
   }
 
-  int data_out_size = BIO_read(decrypt_out_bio, *data_out, buf_size);
-  if (data_out_size != buf_size)
+  data_out->len = (size_t) BIO_read(decrypt_out_bio,
+                                    data_out->chars,
+                                    buf_size);
+  if ((int) (data_out->len) != buf_size)
   {
     pelz_sgx_log(LOG_ERR, "decrypt enveloped message: BIO_read() error");
-    error_code = PELZ_MSG_BIO_READ_ERROR;
-    free(*data_out);
     BIO_free(decrypt_out_bio);
-    return (int) error_code;
+    free(data_out->chars);
+    data_out->chars = NULL;
+    data_out->len = 0;
+    return PELZ_MSG_BIO_READ_ERROR;
   }
   
   BIO_free(decrypt_out_bio);
 
-  return data_out_size;
+  return PELZ_MSG_OK;
 }
 
-int der_encode_pelz_msg(const void *msg_in,
-                        unsigned char **bytes_out,
-                        MSG_FORMAT msg_format)
+PelzMessagingStatus der_encode_pelz_msg(const void *msg_in,
+                                        charbuf *der_bytes_out,
+                                        MSG_FORMAT msg_format)
 {
-  PelzMessagingStatus error_code = PELZ_MSG_UNKNOWN_ERROR;
-  int num_bytes_out = -1;
-
   // if NULL input message pointer passed in, nothing to encode
   if (msg_in == NULL)
   {
     pelz_sgx_log(LOG_ERR, "DER encode: NULL input message");
-    error_code = PELZ_MSG_INVALID_PARAM;
-    return (int) error_code;
+    return PELZ_MSG_INVALID_PARAM;
   }
 
   // check output buffer pointer parameter passed
   //   - if pointer to output byte array pointer is NULL, error
   //   - if byte array previously allocated, free so we can allocate correctly
-  if (bytes_out == NULL)
+  if (der_bytes_out == NULL)
   {
     pelz_sgx_log(LOG_ERR, "DER encode: NULL output buffer pointer parameter");
-    error_code = PELZ_MSG_INVALID_PARAM;
-    return (int) error_code;
+    return PELZ_MSG_INVALID_PARAM;
   }
-  if (*bytes_out != NULL)
+  if (der_bytes_out->chars != NULL)
   {
-    free(*bytes_out);
-    *bytes_out = NULL;
+    free(der_bytes_out->chars);
+    der_bytes_out->chars = NULL;
   }
 
   // DER-encode input message
+  PelzMessagingStatus der_encode_error_status = PELZ_MSG_UNKNOWN_ERROR;
+  int out_size = -1;
   switch (msg_format)
   {
   case ASN1:
-    error_code = PELZ_MSG_DER_ENCODE_ASN1_ERROR;
-    num_bytes_out = i2d_PELZ_MSG((const PELZ_MSG *) msg_in, bytes_out);
+    out_size = i2d_PELZ_MSG((const PELZ_MSG *) msg_in,
+                            &(der_bytes_out->chars));
+    der_encode_error_status = PELZ_MSG_DER_ENCODE_ASN1_ERROR;
     break;
   case CMS:
-    error_code = PELZ_MSG_DER_ENCODE_CMS_ERROR;
-    num_bytes_out = i2d_CMS_ContentInfo((const CMS_ContentInfo *) msg_in, bytes_out);
+    out_size = i2d_CMS_ContentInfo((const CMS_ContentInfo *) msg_in,
+                                   &(der_bytes_out->chars));
+    der_encode_error_status = PELZ_MSG_DER_ENCODE_CMS_ERROR;
     break;
   default:
-    error_code = PELZ_MSG_INVALID_PARAM;
-    return (int) error_code;
+    return PELZ_MSG_INVALID_PARAM;
   }
 
   // check result
-  if ((*bytes_out == NULL) || (num_bytes_out <= 0))
+  der_bytes_out->len = (size_t) out_size;
+  if ((der_bytes_out->chars == NULL) || (der_bytes_out->len == 0))
   {
     pelz_sgx_log(LOG_ERR, "DER encode: PELZ_MSG encode failed");
     unsigned long e = ERR_get_error();
@@ -670,38 +650,41 @@ int der_encode_pelz_msg(const void *msg_in,
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return (int) error_code;
+    return der_encode_error_status;
   }
 
-  return num_bytes_out;
+  return PELZ_MSG_OK;
 }
 
-void *der_decode_pelz_msg(const unsigned char *bytes_in,
-                          long bytes_in_len,
+void *der_decode_pelz_msg(charbuf der_bytes_in,
                           MSG_FORMAT msg_format)
 {
-  void *msg_out = NULL;
-
-  // handle invalid input byte array (NULL pointer, empty, or invalid length)
-  if ((bytes_in == NULL) || (bytes_in_len <= 0))
+  // handle invalid input byte array (NULL pointer or empty input buffer)
+  if ((der_bytes_in.chars == NULL) || (der_bytes_in.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "DER decode: invalid input byte buffer");
     return NULL;
   }
 
+  // DER-decode into appropriate output message format (ASN.1 or CMS)
+  const unsigned char * buf_in = der_bytes_in.chars;
+  long buf_in_size = (long) der_bytes_in.len;
+  void *msg_out = NULL;
+
   switch(msg_format)
   {
   case ASN1:
-    msg_out = (void *) d2i_PELZ_MSG(NULL, &bytes_in, bytes_in_len);
+    msg_out = (void *) d2i_PELZ_MSG(NULL, &buf_in, buf_in_size);
     break;
   case CMS:
-    msg_out = (void *) d2i_CMS_ContentInfo(NULL, &bytes_in, bytes_in_len);
+    msg_out = (void *) d2i_CMS_ContentInfo(NULL, &buf_in, buf_in_size);
     break; 
   default:
     pelz_sgx_log(LOG_ERR, "DER decode: invalid output message format");
     return NULL;
   }
 
+  // check for decoding error
   if (msg_out == NULL)
   {
     pelz_sgx_log(LOG_ERR, "DER decode: PELZ_MSG decode failed");
@@ -719,13 +702,13 @@ void *der_decode_pelz_msg(const unsigned char *bytes_in,
   return msg_out;
 }
 
-int deconstruct_pelz_msg(charbuf rcvd_msg_buf_in,
-                         X509 *local_cert_in,
-                         EVP_PKEY *local_priv_in,
-                         X509 **peer_cert_out,
-                         PELZ_MSG_DATA *msg_data_out)
+PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf_in,
+                                         X509 *local_cert_in,
+                                         EVP_PKEY *local_priv_in,
+                                         X509 **peer_cert_out,
+                                         PELZ_MSG_DATA *msg_data_out)
 {
-  PelzMessagingStatus error_code = PELZ_MSG_UNKNOWN_ERROR;
+  PelzMessagingStatus deconstruct_status = PELZ_MSG_UNKNOWN_ERROR;
   
   // check for NULL (or empty in one case) input parameters
   if((rcvd_msg_buf_in.chars == NULL) ||
@@ -734,99 +717,87 @@ int deconstruct_pelz_msg(charbuf rcvd_msg_buf_in,
      (local_priv_in == NULL))
   {
     pelz_sgx_log(LOG_ERR, "NULL or empty input parameter");
-    return (int) PELZ_MSG_INVALID_PARAM;
+    return PELZ_MSG_INVALID_PARAM;
   }
 
   // check output parameter validity
   if ((peer_cert_out == NULL) ||
-      (*peer_cert_out != NULL) ||
       (msg_data_out == NULL))
   {
     pelz_sgx_log(LOG_ERR, "invalid output parameter");
-    error_code = PELZ_MSG_INVALID_PARAM;
-    return (int) error_code;
+    return PELZ_MSG_INVALID_PARAM;
   }
 
   // DER-decode signed, enveloped CMS pelz message
   CMS_ContentInfo *env_msg = NULL;
-  const unsigned char *temp_buf = rcvd_msg_buf_in.chars;
-  env_msg = (CMS_ContentInfo *) der_decode_pelz_msg(temp_buf,
-                                                    (long) rcvd_msg_buf_in.len,
+  env_msg = (CMS_ContentInfo *) der_decode_pelz_msg(rcvd_msg_buf_in,
                                                     CMS);
   if (env_msg == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error DER-decoding enveloped pelz CMS message");
-    error_code = PELZ_MSG_DER_DECODE_CMS_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_DER_DECODE_CMS_ERROR;
   }
 
   // CMS decrypt enveloped pelz message
-  uint8_t *der_signed_msg = NULL;
-  int der_signed_msg_len = -1;
-  der_signed_msg_len = decrypt_pelz_enveloped_msg(env_msg,
+  charbuf der_signed_msg = { .chars = NULL, .len = 0 };
+  deconstruct_status = decrypt_pelz_enveloped_msg(env_msg,
                                                   local_cert_in,
                                                   local_priv_in,
                                                   &der_signed_msg);
   CMS_ContentInfo_free(env_msg);
-  if ((der_signed_msg == NULL) || (der_signed_msg_len <= 0))
+  if ((deconstruct_status != PELZ_MSG_OK) ||
+      (der_signed_msg.chars == NULL) ||
+      (der_signed_msg.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "error decrypting enveloped pelz CMS message");
-    error_code = PELZ_MSG_CMS_DECRYPT_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_CMS_DECRYPT_ERROR;
   }
 
   // DER-decode decrypted, signed CMS pelz message
   CMS_ContentInfo *signed_msg = NULL;
   signed_msg = (CMS_ContentInfo *) der_decode_pelz_msg(der_signed_msg,
-                                                       der_signed_msg_len,
                                                        CMS);
-  free(der_signed_msg);
+  free(der_signed_msg.chars);
   if (signed_msg == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error DER-decoding decrypted, signed pelz message");
-    error_code = PELZ_MSG_DER_DECODE_CMS_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_DER_DECODE_CMS_ERROR;
   }
 
   // verify signed CMS pelz message
-  uint8_t *der_asn1_msg = NULL;
-  int der_asn1_msg_len = -1;
-  der_asn1_msg_len = verify_pelz_signed_msg(signed_msg,
-                                            peer_cert_out,
-                                            &der_asn1_msg);
+  charbuf der_asn1_msg = { .chars = NULL, .len = 0 };
+  deconstruct_status = verify_pelz_signed_msg(signed_msg,
+                                              peer_cert_out,
+                                              &der_asn1_msg);
   CMS_ContentInfo_free(signed_msg);
-  if ((der_asn1_msg == NULL) || (der_asn1_msg_len <= 0))
+  if ((deconstruct_status != PELZ_MSG_OK) ||
+      (der_asn1_msg.chars == NULL) ||
+      (der_asn1_msg.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "error verifying signed pelz CMS message");
-    error_code = PELZ_MSG_VERIFY_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_VERIFY_ERROR;
   }
 
   // DER-decode ASN.1 formatted pelz message
   PELZ_MSG *asn1_msg = NULL;
-  temp_buf = der_asn1_msg;
   asn1_msg = (PELZ_MSG *) der_decode_pelz_msg(der_asn1_msg,
-                                              (long) der_asn1_msg_len,
                                               ASN1);
-  free(der_asn1_msg);
+  free(der_asn1_msg.chars);
   if (asn1_msg == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error DER-decoding ASN.1 pelz message");
-    error_code = PELZ_MSG_DER_DECODE_ASN1_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_DER_DECODE_ASN1_ERROR;
   }
 
   // parse ASN.1 formatted pelz request message
-  int parse_result = parse_pelz_asn1_msg(asn1_msg, msg_data_out);
+  deconstruct_status = parse_pelz_asn1_msg(asn1_msg, msg_data_out);
   PELZ_MSG_free(asn1_msg);
-  if (parse_result != PELZ_MSG_OK)
+  if (deconstruct_status != PELZ_MSG_OK)
   {
     pelz_sgx_log(LOG_ERR, "error parsing ASN.1 pelz message");
-    error_code = PELZ_MSG_ASN1_PARSE_ERROR;
-    return (int) error_code;
+    return PELZ_MSG_ASN1_PARSE_ERROR;
   }
 
-  
   return PELZ_MSG_OK;
 }
 
@@ -836,6 +807,8 @@ int construct_pelz_msg(PELZ_MSG_DATA *msg_data_in,
                        X509 *peer_cert_in,
                        charbuf *tx_msg_buf)
 {
+  PelzMessagingStatus construct_status = PELZ_MSG_UNKNOWN_ERROR;
+
   // check that all input parameters are non-NULL pointers
   if ((msg_data_in == NULL) ||
       (local_cert_in == NULL) ||
@@ -864,25 +837,25 @@ int construct_pelz_msg(PELZ_MSG_DATA *msg_data_in,
   }
 
   // DER-encode ASN.1 formatted pelz response message
-  unsigned char *der_asn1_msg = NULL;
-  int der_asn1_msg_len = -1;
-  der_asn1_msg_len = der_encode_pelz_msg((const PELZ_MSG *) asn1_msg,
+  charbuf der_asn1_msg = { .chars = NULL, .len = 0 };
+  construct_status = der_encode_pelz_msg(asn1_msg,
                                          &der_asn1_msg,
                                          ASN1);
   PELZ_MSG_free(asn1_msg);
-  if ((der_asn1_msg == NULL) || (der_asn1_msg_len <= 0))
+  if ((construct_status != PELZ_MSG_OK) ||
+      (der_asn1_msg.chars == NULL) ||
+      (der_asn1_msg.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "error DER-encoding ASN.1 pelz message");
-    return PELZ_MSG_SERIALIZE_ERROR;
+    return PELZ_MSG_DER_ENCODE_ASN1_ERROR;
   }
 
   // create signed CMS pelz response message
   CMS_ContentInfo *signed_message = NULL;
   signed_message = create_pelz_signed_msg(der_asn1_msg,
-                                          der_asn1_msg_len,
                                           local_cert_in,
                                           local_priv_in);
-  free(der_asn1_msg);
+  free(der_asn1_msg.chars);
   if (signed_message == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error creating signed CMS pelz message");
@@ -890,38 +863,38 @@ int construct_pelz_msg(PELZ_MSG_DATA *msg_data_in,
   }
 
   // DER-encode signed CMS pelz response message
-  unsigned char *der_signed_msg = NULL;
-  int der_signed_msg_len = -1;
-  der_signed_msg_len = der_encode_pelz_msg(
-                         (const CMS_ContentInfo *) signed_message,
-                         &der_signed_msg,
-                         CMS);
+  charbuf der_signed_msg = { .chars = NULL, .len = 0 };
+  construct_status = der_encode_pelz_msg(signed_message,
+                                         &der_signed_msg,
+                                         CMS);
   CMS_ContentInfo_free(signed_message);
-  if ((der_signed_msg == NULL) || (der_signed_msg_len <= 0))
+  if ((construct_status != PELZ_MSG_OK) ||
+      (der_signed_msg.chars == NULL) ||
+      (der_signed_msg.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "error DER-encoding signed CMS pelz message");
-    return PELZ_MSG_SERIALIZE_ERROR;
+    return PELZ_MSG_DER_ENCODE_CMS_ERROR;
   }
 
   // CMS encrypt (create enveloped) pelz response message
   CMS_ContentInfo *enveloped_message = NULL;
   enveloped_message = create_pelz_enveloped_msg(der_signed_msg,
-                                                der_signed_msg_len,
                                                 peer_cert_in);
-  free(der_signed_msg);
+  free(der_signed_msg.chars);
   if (enveloped_message == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error creating enveloped pelz CMS message");
-    return PELZ_MSG_CMS_ENCRYPT_ERROR;
+    return PELZ_MSG_ENCRYPT_ERROR;
   }
 
   // DER-encode enveloped CMS pelz response message
-  int ret = der_encode_pelz_msg((const CMS_ContentInfo *) enveloped_message,
-                                 &(tx_msg_buf->chars),
-                                 CMS);
-  tx_msg_buf->len = (size_t) ret;
+  construct_status = der_encode_pelz_msg(enveloped_message,
+                                         tx_msg_buf,
+                                         CMS);
   CMS_ContentInfo_free(enveloped_message);
-  if ((tx_msg_buf->chars == NULL) || (tx_msg_buf->len == 0))
+  if ((construct_status != PELZ_MSG_OK) ||
+      (tx_msg_buf->chars == NULL) ||
+      (tx_msg_buf->len == 0))
   {
     pelz_sgx_log(LOG_ERR, "error DER-encoding enveloped CMS pelz response");
     return PELZ_MSG_SERIALIZE_ERROR;

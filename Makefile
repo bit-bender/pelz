@@ -134,9 +134,8 @@ App_C_Test_Files := test/src/pelz_test.c \
                     test/src/util/table_test_suite.c \
                     test/src/util/request_test_suite.c \
                     test/src/util/cmd_interface_test_suite.c \
-                    test/src/util/request_test_helpers.c \
                     test/src/util/test_seal.c \
-					test/src/util/pelz_messaging_test_suite.c
+                    test/src/util/pelz_messaging_test_suite.c
 
 App_C_Files_for_Test := src/util/common_table.c \
                         src/util/key_table.c \
@@ -424,17 +423,8 @@ test/bin/$(App_Name_Test): $(App_C_Test_Files) \
                            sgx/protocol_ocall.o \
                            sgx/ecdh_util.o \
                            sgx/msg_util.o
-	@$(CC) $^ -o $@ $(App_C_Flags) \
-	                $(App_Include_Paths) \
-	                -Isgx \
-	                -Itest/include \
-	                $(App_C_Flags) \
-	                -g \
-	                $(ENCLAVE_HEADERS) \
-	                $(App_Link_Flags) \
-	                -lcrypto \
-	                -lpthread \
-	                -lcunit
+	@$(CC) $^ $(App_C_Flags) $(App_Link_Flags) $(ENCLAVE_HEADERS) \
+	         -Itest/include -lcrypto -lcunit -o $@
 	@echo "LINK =>  $(App_Name_Test)"
 
 bin/$(App_Name_Service): $(App_Service_File) \

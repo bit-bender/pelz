@@ -280,31 +280,6 @@ enclave
                       [out] unsigned char **resp_msg_out,
                       [out] size_t *resp_msg_out_size);
 
-    /**
-     * <pre>
-     * Retrieve the contents of the most recent pelz request for this session.
-     * <pre>
-     *
-     * @param[in] session_id            the session identifier
-     * @param[out] request_data         a pointer to the request data, allocated inside the call
-     * @param[out] request_data_length  the size of the request data
-     *
-     * @return 0 on success, an error number indicating the type of error otherwise.
-     */
-    public uint32_t get_request_data(uint32_t session_id, [out] char **request_data, [out] size_t *request_data_length);
-
-    /**
-     * <pre>
-     * Store the contents of the next pelz response for this session.
-     * <pre>
-     *
-     * @param[in] session_id             the session identifier
-     * @param[out] response_data         a pointer to the response data
-     * @param[out] response_data_length  the size of the response data
-     *
-     * @return 0 on success, an error number indicating the type of error otherwise.
-     */
-    public uint32_t save_response_data(uint32_t session_id, [in, count=response_data_length] char *response_data, size_t response_data_length);
   };
 
   untrusted

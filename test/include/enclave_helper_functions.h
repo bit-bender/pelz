@@ -1,88 +1,106 @@
 #ifndef _ENCLAVE_HELPER_FUNCIONS_H_
 #define _ENCLAVE_HELPER_FUNCTIONS_H_
 
-// test_parse_pelz_asn1_msg_helper() test select options
-#define PARSE_PELZ_MSG_BASIC_TEST                         0x01
-#define PARSE_MOD_PELZ_MSG_MSG_TYPE_TAG_TEST              0x02
-#define PARSE_MOD_PELZ_MSG_MSG_TYPE_VAL_LO_TEST           0x03
-#define PARSE_MOD_PELZ_MSG_MSG_TYPE_VAL_HI_TEST           0x04
-#define PARSE_MOD_PELZ_MSG_REQ_TYPE_TAG_TEST              0x05
-#define PARSE_MOD_PELZ_MSG_REQ_TYPE_VAL_LO_TEST           0x06
-#define PARSE_MOD_PELZ_MSG_REQ_TYPE_VAL_HI_TEST           0x07
-#define PARSE_MOD_PELZ_MSG_CIPHER_TAG_TEST                0x08
-#define PARSE_MOD_PELZ_MSG_KEY_ID_TAG_TEST                0x09
-#define PARSE_MOD_PELZ_MSG_DATA_TAG_TEST                  0x0A
-#define PARSE_MOD_PELZ_MSG_STATUS_TAG_TEST                0x0B
+typedef enum
+{
+  END_TO_END,
+  ASN1_CREATE_FUNCTIONALITY,
+  ASN1_PARSE_NULL_MSG_IN,
+  ASN1_PARSE_INVALID_MSG_TYPE_TAG,
+  ASN1_PARSE_INVALID_MSG_TYPE_LO,
+  ASN1_PARSE_INVALID_MSG_TYPE_HI,
+  ASN1_PARSE_INVALID_REQ_TYPE_TAG,
+  ASN1_PARSE_INVALID_REQ_TYPE_LO,
+  ASN1_PARSE_INVALID_REQ_TYPE_HI,
+  ASN1_PARSE_INVALID_CIPHER_TAG,
+  ASN1_PARSE_INVALID_KEY_ID_TAG,
+  ASN1_PARSE_INVALID_DATA_TAG,
+  ASN1_PARSE_INVALID_STATUS_TAG,
+  ASN1_PARSE_FUNCTIONALITY,
+  ASN1_DER_ENCODE_NULL_MSG_IN,
+  ASN1_DER_ENCODE_NULL_BUF_OUT,
+  ASN1_DER_ENCODE_FUNCTIONALITY,
+  ASN1_DER_DECODE_NULL_BUF_IN,
+  ASN1_DER_DECODE_EMPTY_BUF_IN,
+  ASN1_DER_DECODE_INVALID_SIZE_BUF_IN,
+  ASN1_DER_DECODE_FUNCTIONALITY,
+  CMS_CREATE_SIGNED_MSG_NULL_BUF_IN,
+  CMS_CREATE_SIGNED_MSG_EMPTY_BUF_IN,
+  CMS_CREATE_SIGNED_MSG_INVALID_SIZE_BUF_IN,
+  CMS_CREATE_SIGNED_MSG_NULL_CERT_IN,
+  CMS_CREATE_SIGNED_MSG_NULL_PRIV_IN,
+  CMS_CREATE_SIGNED_MSG_FUNCTIONALITY,
+  CMS_VERIFY_SIGNED_MSG_NULL_MSG_IN,
+  CMS_VERIFY_SIGNED_MSG_NULL_CERT_OUT,
+  CMS_VERIFY_SIGNED_MSG_NULL_BUF_OUT,
+  CMS_VERIFY_SIGNED_MSG_FUNCTIONALITY,
+  CMS_DER_ENCODE_NULL_MSG_IN,
+  CMS_DER_ENCODE_NULL_BUF_OUT,
+  CMS_DER_ENCODE_FUNCTIONALITY,
+  CMS_DER_DECODE_NULL_BUF_IN,
+  CMS_DER_DECODE_EMPTY_BUF_IN,
+  CMS_DER_DECODE_INVALID_SIZE_BUF_IN,
+  CMS_DER_DECODE_FUNCTIONALITY,
+} MsgTestSelect;
 
-// test_verify_pelz_signed_msg_helper() test select options
-#define VERIFY_PELZ_SIGNED_MSG_BASIC_TEST                 0x01
-#define VERIFY_PELZ_SIGNED_MSG_NULL_IN_MSG_TEST           0x02
-#define VERIFY_PELZ_SIGNED_MSG_NULL_OUT_CERT_TEST         0x03
-#define VERIFY_PELZ_SIGNED_MSG_PREALLOC_OUT_CERT_TEST     0x04
-#define VERIFY_PELZ_SIGNED_MSG_NULL_OUT_BUF_TEST          0x05
-#define VERIFY_PELZ_SIGNED_MSG_PREALLOC_OUT_BUF_TEST      0x06
-
-// test_decrypt_pelz_enveloped_msg_helper() test select options
-#define DECRYPT_PELZ_ENVELOPED_MSG_BASIC_TEST             0x01
-#define DECRYPT_PELZ_ENVELOPED_MSG_NULL_IN_MSG_TEST       0x02
-#define DECRYPT_PELZ_ENVELOPED_MSG_NULL_OUT_BUF_TEST      0x03
-#define DECRYPT_PELZ_ENVELOPED_MSG_NULL_CERT_TEST         0x04
-#define DECRYPT_PELZ_ENVELOPED_MSG_NULL_PRIV_TEST         0x05
-
-// test_der_encode_pelz_asn1_msg_helper() test select options
-#define DER_ENCODE_ASN1_PELZ_MSG_BASIC_TEST               0x01
-#define DER_ENCODE_CMS_PELZ_MSG_BASIC_TEST                0x02
-#define DER_ENCODE_PELZ_MSG_NULL_MSG_IN_TEST              0x03
-#define DER_ENCODE_PELZ_MSG_NULL_OUT_BUF_TEST             0x04
-
-// test_der_decode_pelz_asn1_msg_helper() test select options
-#define DER_DECODE_ASN1_PELZ_MSG_BASIC_TEST               0x01
-#define DER_DECODE_CMS_PELZ_MSG_BASIC_TEST                0x02
-#define DER_DECODE_PELZ_MSG_NULL_BYTES_IN_TEST            0x03
-#define DER_DECODE_PELZ_MSG_EMPTY_BYTES_IN_TEST           0x04
-#define DER_DECODE_PELZ_MSG_NEG_BYTES_IN_LEN_TEST         0x05
 
 // test_construct_deconstruct_pelz_msg_helper() test select options
-#define CONSTRUCT_DECONSTRUCT_PELZ_MSG_BASIC_TEST         0x01
-#define CONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST               0x02
-#define CONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST           0x03
-#define CONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST           0x04
-#define CONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST            0x05
-#define CONSTRUCT_PELZ_MSG_NULL_OUT_BUF_TEST              0x06
-#define DECONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST             0x07
-#define DECONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST         0x08
-#define DECONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST         0x09
-#define DECONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST          0x0A
-#define DECONSTRUCT_PELZ_MSG_PREALLOC_PEER_CERT_TEST      0x0B
+#define CONSTRUCT_DECONSTRUCT_PELZ_MSG_BASIC_TEST              0x01
+#define CONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST                    0x02
+#define CONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST                0x03
+#define CONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST                0x04
+#define CONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST                 0x05
+#define CONSTRUCT_PELZ_MSG_NULL_OUT_BUF_TEST                   0x06
+#define DECONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST                  0x07
+#define DECONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST              0x08
+#define DECONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST              0x09
+#define DECONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST               0x0A
+#define DECONSTRUCT_PELZ_MSG_PREALLOC_PEER_CERT_TEST           0x0B
+#define SERVICE_PELZ_REQ_MSG_BASIC_TEST                        0x0C
+#define SERVICE_PELZ_REQ_MSG_NULL_REQ_MSG_IN_TEST              0x0D
+#define SERVICE_PELZ_REQ_MSG_NULL_RESP_MSG_OUT_TEST            0x0E
 
-// Normal termination pelz messaging helper 'success' code
-#define MSG_TEST_SUCCESS 0
+typedef enum
+{
+  MSG_TEST_OK = 0,
+  MSG_TEST_UNKNOWN_ERROR = -1,
+  MSG_TEST_INVALID_TEST_PARAMETER = -2,
+  MSG_TEST_INVALID_TEST_SELECTION = -3,
+  MSG_TEST_SETUP_ERROR = -4,
+  MSG_TEST_ASN1_CREATE_ERROR = -5,
+  MSG_TEST_ASN1_PARSE_ERROR = -6,
+  MSG_TEST_ASN1_CREATE_PARSE_MISMATCH = -7,
+  MSG_TEST_DER_ENCODE_RESULT_MISMATCH = -9,
+  MSG_TEST_DER_DECODE_RESULT_MISMATCH = -10,
+  MSG_TEST_PARAM_HANDLING_OK = -8,
+  MSG_TEST_PARAM_HANDLING_ERROR = -9,
+  MSG_TEST_PARSE_RESULT_MISMATCH = -10,
+  MSG_TEST_SIGN_ERROR = -11,
+  MSG_TEST_INVALID_SIGN_RESULT = -12,
+  MSG_TEST_ENCRYPT_ERROR = -13,
+  MSG_TEST_INVALID_ENCRYPT_RESULT = -13,
+  MSG_TEST_INVALID_DECODE_RESULT = -15
+} MsgTestStatus;
 
-// helper detected pelz messaging test errors
-#define MSG_TEST_UNKNOWN_ERROR                              -1
-#define MSG_TEST_INVALID_TEST_PARAMETER                     -2
-#define MSG_TEST_INVALID_TEST_SELECTION                     -3
-#define MSG_TEST_SETUP_ERROR                                -4
-#define MSG_TEST_CREATE_RESULT_MISMATCH                     -5
-#define MSG_TEST_DER_ENCODE_RESULT_MISMATCH                 -6
-#define MSG_TEST_DER_DECODE_RESULT_MISMATCH                 -7
-#define MSG_TEST_PARAM_HANDLING_OK                          -8
-#define MSG_TEST_PARAM_HANDLING_ERROR                       -9
-#define MSG_TEST_PARSE_RESULT_MISMATCH                     -10
-#define MSG_TEST_INVALID_SIGN_RESULT                       -11
-#define MSG_TEST_INVALID_ENCRYPT_RESULT                    -12
-#define MSG_TEST_INVALID_DECODE_RESULT                     -13
+X509 *deserialize_cert(unsigned char *der_cert, long der_cert_size);
+EVP_PKEY *deserialize_pkey(unsigned char *der_pkey, long der_pkey_size);
 
-// pelz messaging test error "categories"
-// (this value is used as a offset added to the
-// error code returned by the function being tested)
-#define MSG_TEST_CREATE_ERROR                             -128
-#define MSG_TEST_PARSE_ERROR                              -256
-#define MSG_TEST_DER_ENCODE_ERROR                         -384
-#define MSG_TEST_DER_DECODE_ERROR                         -512
-#define MSG_TEST_SIGN_ERROR                               -640
-#define MSG_TEST_VERIFY_ERROR                             -768
-#define MSG_TEST_ENCRYPT_ERROR                            -896
-#define MSG_TEST_DECRYPT_ERROR                           -1024
+MsgTestStatus pelz_asn1_msg_test_helper(MsgTestSelect test_select,
+                                        PELZ_MSG_DATA test_msg_data_in,
+                                        PELZ_MSG *test_msg_out);
+
+MsgTestStatus pelz_asn1_der_encode_decode_test_helper(MsgTestSelect test_select,
+                                                      PELZ_MSG *asn1_msg_in,
+                                                      charbuf *der_out);
+
+MsgTestStatus pelz_signed_msg_test_helper(MsgTestSelect test_select,
+                                          charbuf msg_data_in,
+                                          X509 *sign_cert,
+                                          EVP_PKEY *verify_priv,
+                                          CMS_ContentInfo *signed_msg_out);
+
+MsgTestStatus pelz_cms_der_encode_decode_test_helper(MsgTestSelect test_select,
+                                                     CMS_ContentInfo *cms_msg_in,
+                                                     charbuf *der_out);
 
 #endif

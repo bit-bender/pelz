@@ -29,10 +29,10 @@
  * @return 0 on success, 1 on error
  */
 int pelz_aes_keywrap_3394nopad_encrypt(unsigned char *key,
-				       size_t key_len,
-				       unsigned char *plain,
-				       size_t plain_len,
-				       cipher_data_t* cipher_data);
+                                       size_t key_len,
+                                       unsigned char *plain,
+                                       size_t plain_len,
+                                       cipher_data_t *cipher_data);
 
 /**
  * @brief This function uses OpenSSL to perform AES key unwrap without padding
@@ -56,9 +56,9 @@ int pelz_aes_keywrap_3394nopad_encrypt(unsigned char *key,
  * @return 0 on success, 1 on error
  */
 int pelz_aes_keywrap_3394nopad_decrypt(unsigned char *key,
-				       size_t key_len,
-				       cipher_data_t cipher_data,
-				       unsigned char** plain,
-				       size_t* plain_len);
+                                       size_t key_len,
+                                       cipher_data_t cipher_data,
+                                       unsigned char** plain,
+                                       size_t* plain_len);
 
 #endif

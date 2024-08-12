@@ -78,204 +78,191 @@ int pelz_messaging_suite_add_tests(CU_pSuite suite)
 
 void test_create_pelz_asn1_msg(void)
 {
-  pelz_log(LOG_DEBUG, "Start create_pelz_asn1_msg() functionality test");
+  pelz_log(LOG_DEBUG, "Start ASN.1 pelz message creation tests");
 
   int result = 0;
 
   // invalid (less than MSG_TYPE_MIN) message type should fail param checks
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   MSG_TYPE_MIN - 1,
-                                   KEY_WRAP,
-                                   32,
-                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                   15,
-                                   (uint8_t *) "file://test.key",
-                                   14,
-                                   (uint8_t *) "Test,test,test",
-                                   11,
-                                   (uint8_t *) "some status");
-  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        MSG_TYPE_MIN - 1, KEY_WRAP,
+                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
+                                        15, (unsigned char *) "file://test.key",
+                                        14, (unsigned char *) "Test,test,test",
+                                        11, (unsigned char *) "some status",
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // invalid (greater than MSG_TYPE_MAX) message type should fail param checks
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   MSG_TYPE_MAX + 1,
-                                   KEY_WRAP,
-                                   32,
-                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                   15,
-                                   (uint8_t *) "file://test.key",
-                                   14,
-                                   (uint8_t *) "Test,test,test",
-                                   11,
-                                   (uint8_t *) "some status");
-  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        MSG_TYPE_MAX + 1, KEY_WRAP,
+                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
+                                        15, (unsigned char *) "file://test.key",
+                                        14, (unsigned char *) "Test,test,test",
+                                        11, (unsigned char *) "some status",
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // invalid (less than REQ_TYPE_MIN) message type should fail param checks
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   REQUEST,
-                                   REQ_TYPE_MIN - 1,
-                                   32,
-                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                   15,
-                                   (uint8_t *) "file://test.key",
-                                   14,
-                                   (uint8_t *) "Test,test,test",
-                                   11,
-                                   (uint8_t *) "some status");
-  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        REQUEST, REQ_TYPE_MIN - 1,
+                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
+                                        15, (unsigned char *) "file://test.key",
+                                        14, (unsigned char *) "Test,test,test",
+                                        11, (unsigned char *) "some status",
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // invalid (greater than REQ_TYPE_MAX) message type should fail param checks
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   REQUEST,
-                                   REQ_TYPE_MAX + 1,
-                                   32,
-                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                   15,
-                                   (uint8_t *) "file://test.key",
-                                   14,
-                                   (uint8_t *) "Test,test,test",
-                                   11,
-                                   (uint8_t *) "some status");
-  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        REQUEST, REQ_TYPE_MAX + 1,
+                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
+                                        15, (unsigned char *) "file://test.key",
+                                        14, (unsigned char *) "Test,test,test",
+                                        11, (unsigned char *) "some status",
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
-  // null KEK key ID input should fail param checks
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   REQUEST,
-                                   KEY_WRAP,
-                                   32,
-                                   NULL,
-                                   15,
-                                   (uint8_t *) "file://test.key",
-                                   14,
-                                   (uint8_t *) "Test,test,test",
-                                   11,
-                                   (uint8_t *) "some status");
-  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+  // null cipher input should fail param checks
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        REQUEST, KEY_WRAP,
+                                        32, NULL,
+                                        15, (unsigned char *) "file://test.key",
+                                        14, (unsigned char *) "Test,test,test",
+                                        11, (unsigned char *) "some status",
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // empty (zero-length) cipher input should fail param checks
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   REQUEST,
-                                   KEY_WRAP,
-                                   0,
-                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                   15,
-                                   (uint8_t *) "file://test.key",
-                                   14,
-                                   (uint8_t *) "Test,test,test",
-                                   11,
-                                   (uint8_t *) "some status");
-  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        REQUEST, KEY_WRAP,
+                                        0, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
+                                        15, (unsigned char *) "file://test.key",
+                                        14, (unsigned char *) "Test,test,test",
+                                        11, (unsigned char *) "some status",
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // null KEK key ID input should fail param checks
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   REQUEST,
-                                   KEY_WRAP,
-                                   32,
-                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                   15,
-                                   NULL,
-                                   14,
-                                   (uint8_t *) "Test,test,test",
-                                   11,
-                                   (uint8_t *) "some status");
-  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        REQUEST, KEY_WRAP,
+                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
+                                        15, NULL,
+                                        14, (unsigned char *) "Test,test,test",
+                                        11, (unsigned char *) "some status",
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // empty (zero-length) KEK key ID input should fail param checks
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   REQUEST,
-                                   KEY_WRAP,
-                                   32,
-                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                   0,
-                                   (uint8_t *) "file://test.key",
-                                   14,
-                                   (uint8_t *) "Test,test,test",
-                                   11,
-                                   (uint8_t *) "some status");
-  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        REQUEST, KEY_WRAP,
+                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
+                                        0, (unsigned char *) "file://test.key",
+                                        14, (unsigned char *) "Test,test,test",
+                                        11, (unsigned char *) "some status",
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // null data input should fail param checks
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   REQUEST,
-                                   KEY_WRAP,
-                                   32,
-                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                   15,
-                                   (uint8_t *) "file://test.key",
-                                   14,
-                                   NULL,
-                                   11,
-                                   (uint8_t *) "some status");
-  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        REQUEST, KEY_WRAP,
+                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
+                                        15, (unsigned char *) "file://test.key",
+                                        14, NULL,
+                                        11, (unsigned char *) "some status",
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // empty (zero-length) data input should fail param checks
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   REQUEST,
-                                   KEY_WRAP,
-                                   32,
-                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                   15,
-                                   (uint8_t *) "file://test.key",
-                                   0,
-                                   (uint8_t *) "Test,test,test",
-                                   11,
-                                   (uint8_t *) "some status");
-  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        REQUEST, KEY_WRAP,
+                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
+                                        15, (unsigned char *) "file://test.key",
+                                        0, (unsigned char *) "Test,test,test",
+                                        11, (unsigned char *) "some status",
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // null status input should fail param checks
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   REQUEST,
-                                   KEY_WRAP,
-                                   32,
-                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                   15,
-                                   (uint8_t *) "file://test.key",
-                                   14,
-                                   (uint8_t *) "Test,test,test",
-                                   11,
-                                   NULL);
-  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        REQUEST, KEY_WRAP,
+                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
+                                        15, (unsigned char *) "file://test.key",
+                                        14, (unsigned char *) "Test,test,test",
+                                        11, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // empty (zero-length) status input should fail param checks
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   REQUEST,
-                                   KEY_WRAP,
-                                   32,
-                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                   15,
-                                   (uint8_t *) "file://test.key",
-                                   14,
-                                   (uint8_t *) "Test,test,test",
-                                   0,
-                                   (uint8_t *) "some status");
-  CU_ASSERT(result == MSG_TEST_CREATE_ERROR);
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        REQUEST, KEY_WRAP,
+                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
+                                        15, (unsigned char *) "file://test.key",
+                                        14, (unsigned char *) "Test,test,test",
+                                        0, (unsigned char *) "some status",
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // valid test case should pass
-  test_create_pelz_asn1_msg_helper(eid,
-                                   &result,
-                                   REQUEST,
-                                   KEY_WRAP,
-                                   32,
-                                   (uint8_t *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                   15,
-                                   (uint8_t *) "file://test.key",
-                                   21,
-                                   (uint8_t *) "ASN1 create test data",
-                                   11,
-                                   (uint8_t *) "some status");
-  CU_ASSERT(result == MSG_TEST_SUCCESS);
+  result = pelz_enclave_msg_test_helper(eid, &result,
+                                        REQUEST, KEY_WRAP,
+                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
+                                        15, (unsigned char *) "file://test.key",
+                                        14, (unsigned char *) "Test,test,test",
+                                        11, (unsigned char *) "some status",
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_FUNCTIONALITY);
+  CU_ASSERT(result == MSG_TEST_OK);
 }
 
 void test_parse_pelz_asn1_msg(void)

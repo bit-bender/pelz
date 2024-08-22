@@ -5,10 +5,26 @@
 #ifndef PELZ_MESSAGING_SUITE_H_
 #define PELZ_MESSAGING_SUITE_H_
 
-#include "pelz_messaging.h"
-#include "ca_table.h"
-#include "pelz_loaders.h"
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <pelz_log.h>
+
 #include <CUnit/CUnit.h>
+
+#include "ca_table.h"
+#include "charbuf.h"
+#include "pelz_loaders.h"
+#include "pelz_messaging.h"
+
+#include "test_helper_functions.h"
+#include "enclave_helper_functions.h"
+
+#include "sgx_urts.h"
+#include "pelz_enclave.h"
+#include "test_enclave_u.h"
+
 
 // Adds all tests to suite in main test runner
 int pelz_messaging_suite_add_tests(CU_pSuite suite);

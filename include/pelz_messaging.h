@@ -7,16 +7,18 @@ extern "C"
 #endif
 
 #include <openssl/cms.h>
-#include <time.h>
 
 #include "charbuf.h"
 #include "pelz_request_handler.h"
 #include "pelz_enclave.h"
 
-typedef enum PELZ_MSG_TYPE { MSG_TYPE_MIN = 1,
-                             REQUEST = 1,
-                             RESPONSE = 2,
-                             MSG_TYPE_MAX = 2 } PELZ_MSG_TYPE;
+typedef enum
+{
+  MSG_TYPE_MIN = 1,
+  REQUEST = 1,
+  RESPONSE = 2,
+  MSG_TYPE_MAX = 2
+} PELZ_MSG_TYPE;
 
 typedef enum
 {
@@ -25,26 +27,6 @@ typedef enum
   KEY_UNWRAP = 2,
   REQ_TYPE_MAX = 2
 } PELZ_REQ_TYPE;
-
-typedef struct PELZ_MSG_DATA
-{
-  PELZ_MSG_TYPE msg_type;
-  PELZ_REQ_TYPE req_type;
-  charbuf cipher;
-  charbuf key_id;
-  charbuf data;
-  charbuf status;
-} PELZ_MSG_DATA;
-
-typedef struct PELZ_MSG
-{
-  ASN1_ENUMERATED * msg_type;
-  ASN1_ENUMERATED * req_type;
-  ASN1_UTF8STRING * cipher;
-  ASN1_UTF8STRING * key_id;
-  ASN1_OCTET_STRING * data;
-  ASN1_UTF8STRING * status;
-} PELZ_MSG;
 
 typedef enum
 {
@@ -65,54 +47,65 @@ typedef enum
 
   // ASN.1 message creation error(s)
   PELZ_MSG_ASN1_CREATE_ERROR = -32,
+  PELZ_MSG_ASN1_CREATE_INVALID_RESULT = -33,
 
   // ASN.1 message parse error(s)
+  PELZ_MSG_ASN1_TAG_ERROR = -65,
   PELZ_MSG_ASN1_PARSE_ERROR = -64,
-  PELZ_MSG_MSG_TYPE_TAG_ERROR = -65,
-  PELZ_MSG_MSG_TYPE_PARSE_ERROR = -66,
-  PELZ_MSG_MSG_TYPE_PARSE_INVALID = -67,
-  PELZ_MSG_REQ_TYPE_TAG_ERROR = -68,
-  PELZ_MSG_REQ_TYPE_PARSE_ERROR = -69,
-  PELZ_MSG_REQ_TYPE_PARSE_INVALID = -70,
-  PELZ_MSG_CIPHER_TAG_ERROR = -71,
-  PELZ_MSG_CIPHER_PARSE_ERROR = -72,
-  PELZ_MSG_KEY_ID_TAG_ERROR = -73,
-  PELZ_MSG_KEY_ID_PARSE_ERROR = -74,
-  PELZ_MSG_DATA_TAG_ERROR = -75,
-  PELZ_MSG_DATA_PARSE_ERROR = -76,
-  PELZ_MSG_STATUS_TAG_ERROR = -77,
-  PELZ_MSG_STATUS_PARSE_ERROR = -78,
+  PELZ_MSG_ASN1_PARSE_INVALID_RESULT = -66,
 
   // DER encode (serialization) error(s)
-  PELZ_MSG_SERIALIZE_ERROR = -96,
   PELZ_MSG_DER_ENCODE_ASN1_ERROR = -97,
-  PELZ_MSG_DER_ENCODE_CMS_ERROR = -98,
+  PELZ_MSG_DER_ENCODE_ASN1_RESULT_MISMATCH = -98,
+  PELZ_MSG_DER_ENCODE_CMS_ERROR = -99,
+  PELZ_MSG_DER_ENCODE_CMS_RESULT_MISMATCH = -100,
 
   // DER decode (deserialization) error(s)
-  PELZ_MSG_DESERIALIZE_ERROR = -128,
   PELZ_MSG_DER_DECODE_ASN1_ERROR = -129,
   PELZ_MSG_DER_DECODE_CMS_ERROR = -130,
 
   // message signature error(s)
   PELZ_MSG_SIGN_ERROR = -160,
+  PELZ_MSG_SIGN_INVALID_RESULT = -161,
 
   // message signature verification error(s)
   PELZ_MSG_VERIFY_ERROR = -192,
   PELZ_MSG_VERIFY_CONTENT_TYPE_ERROR = -193,
-  PELZ_MSG_VERIFY_FAIL = -194,
-  PELZ_MSG_VERIFY_RESULT_INVALID = -195,
+  PELZ_MSG_VERIFY_INVALID_RESULT = -195,
   PELZ_MSG_VERIFY_SIGNER_CERT_ERROR = -196,
   PELZ_MSG_VERIFY_EXTRACT_SIGNER_CERT_ERROR = -197,
 
   // CMS encrypt error(s)
   PELZ_MSG_ENCRYPT_ERROR = -224,
+  PELZ_MSG_ENCRYPT_INVALID_RESULT = -225,
 
   // CMS decrypt error(s)
-  PELZ_MSG_CMS_DECRYPT_ERROR = -256,
-  PELZ_MSG_CMS_DECRYPT_CONTENT_TYPE_ERROR = -257,
-  PELZ_MSG_CMS_DECRYPT_FAIL = -258,
-  PELZ_MSG_CMS_DECRYPT_RESULT_INVALID = -259
+  PELZ_MSG_DECRYPT_ERROR = -256,
+  PELZ_MSG_DECRYPT_CONTENT_TYPE_ERROR = -257,
+  PELZ_MSG_DECRYPT_INVALID_RESULT = -259
 } PelzMessagingStatus;
+
+
+
+typedef struct PELZ_MSG_DATA
+{
+  PELZ_MSG_TYPE msg_type;
+  PELZ_REQ_TYPE req_type;
+  charbuf cipher;
+  charbuf key_id;
+  charbuf data;
+  charbuf status;
+} PELZ_MSG_DATA;
+
+typedef struct PELZ_MSG
+{
+  ASN1_ENUMERATED *msg_type;
+  ASN1_ENUMERATED *req_type;
+  ASN1_UTF8STRING *cipher;
+  ASN1_UTF8STRING *key_id;
+  ASN1_OCTET_STRING *data;
+  ASN1_UTF8STRING *status;
+} PELZ_MSG;
 
 /**
  * <pre>
@@ -148,7 +141,7 @@ typedef enum
  * @return    Pointer to the resultant 'PELZ_MSG' ASN.1 message sequence.
  *            A NULL pointer is returned when an error is encountered.
  */
-PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA *msg_data_in);
+PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA msg_data_in);
 
 /**
  * <pre>
@@ -178,7 +171,7 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
  * @param[in] msg_data_in     A byte buffer (charbuf) containing the input
  *                           data to be used for the creation of a CMS
  *                           "SignedData" message.
- * 
+ *
  * @param[in] sign_cert      Pointer to X509 certificate for signer. This
  *                           cert will be incorporated in the CMS message
  *                           content so that the recipient can use it to
@@ -251,7 +244,7 @@ PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
  *                           encryption key and decrypt the message payload.
  *                           Although not needed to decrypt the message, this
  *                           cert is included to specify the recipient.
- * 
+ *
  * @return                   Pointer to the resultant CMS_ContentInfo struct
  *                           with 'pkcs7-signedData' content for the input
  *                           parameters provided by the caller. This struct
@@ -274,7 +267,7 @@ CMS_ContentInfo *create_pelz_enveloped_msg(charbuf msg_data_in,
  * @param[in]  enveloped_msg_in Pointer to the input CMS_ContentInfo struct
  *                              containing the enveloped CMS message to be
  *                              decrypted.
- * 
+ *
  * @param[in]  encrypt_cert     Pointer to X509 certificate for the message
  *                              recipient. This cert will be incorporated in
  *                              the CMS message content. The recipient's private
@@ -282,7 +275,7 @@ CMS_ContentInfo *create_pelz_enveloped_msg(charbuf msg_data_in,
  *                              encryption key and decrypt the message payload.
  *                              Although not needed to decrypt the message, this
  *                              cert can be included to specify the recipient.
- * 
+ *
  * @param[in]  decrypt_priv     Pointer to EVP_PKEY struct containing the
  *                              message creator's private key that will be
  *                              used to unwrap the symmetric key needed to
@@ -309,15 +302,14 @@ PelzMessagingStatus decrypt_pelz_enveloped_msg(CMS_ContentInfo *enveloped_msg_in
  *
  * @param[in]  msg_in        A pointer to an ASN.1 formatted pelz message
  *                           (PELZ_MSG *) to be converted to a binary byte
- *                           array (DER) fprmat. Cannot be NULL.
+ *                           array (DER) format. Cannot be NULL.
  *
- * @param[out] der_bytes_out A pointer to a pointer to the byte buffer
- *                           (charbuf) where the DER-formatted output bytes
- *                           will be returned to the caller. The byte array
- *                           is allocated within this function. The caller is
- *                           responsible for freeing this buffer when done
- *                           with it.
- * 
+ * @param[out] der_bytes_out A pointer to a byte buffer (charbuf) where the
+ *                           DER-formatted output bytes will be returned to
+ *                           the caller. The byte array is allocated within
+ *                           this function. The caller is responsible for
+ *                           freeing this buffer when done with it.
+ *
  * @param[in]  msg_format    Enumerated type input to specify the format of
  *                           the input message to be formatted. Currently
  *                           supported values are: RAW and CMS.
@@ -325,9 +317,9 @@ PelzMessagingStatus decrypt_pelz_enveloped_msg(CMS_ContentInfo *enveloped_msg_in
  * @return                   Zero (PELZ_MSG_OK = 0) on successful DER encode,
  *                           enumerated (negative) error code otherwise
  */
-int der_encode_pelz_msg(const void *msg_in,
-                        charbuf *der_bytes_out,
-                        MSG_FORMAT msg_format);
+PelzMessagingStatus der_encode_pelz_msg(const void *msg_in,
+                                        charbuf *der_bytes_out,
+                                        MSG_FORMAT msg_format);
 
 /**
  * <pre>
@@ -354,63 +346,6 @@ void *der_decode_pelz_msg(charbuf der_bytes_in,
 
 /**
  * <pre>
- * Deconstructs a DER-formatted byte array containing received pelz
- * message data and extracts the public X509 certificate for the
- * message sender.
- * </pre>
- *
- * This functions "deconstructs" the message by performing the following
- * sequence of steps:
- *
- *   - DER decode (de-serialize) the received message into an 'enveloped'
- *     CMS message struct
- *
- *   - decrypt (un-envelop) the CMS 'enveloped' message
- *
- *   - DER decode (de-serialize) the decrypted message payload into a
- *     signed CMS message
- *
- *   - verify the signature over and extract the the CMS signed message data
- * 
- *   - DER decode (de-serialize) the verified message payload into an ASN.1
- *     formatted message (PELZ_MSG) sequence
- *
- *   - parse the ASN.1 formatted message sequence into a PELZ_MSG_DATA struct
- *     containing all fo the parsed message data values
- *
- * @param[in]  rcvd_msg_buf    Pointer to the input buffer containing the
- *                             DER-formatted byte array representing the
- *                             received, encrypted, signed, pelz message
- *                             data.
- *
- * @param[in]  local_cert_in   Pointer to the message recipient's (local)
- *                             X509 certificate. It contains the public key
- *                             that should have been used to encrypt the
- *                             received enveloped message.
- *
- * @param[in]  local_priv_in   Pointer to the message recipient's (local)
- *                             private key. This private key is needed to
- *                             decrypt the received enveloped message.
- *
- * @param[out] peer_cert_out   Double pointer to message sender's (peer)
- *                             X509 certificate extracted from the received
- *                             signed message.
- * 
- * @param[out] msg_data_out    Pointer to decrypted, signature verified,
- *                             and parsed pelz message data struct
- *                             (PELZ_MSG_DATA *).
- *
- * @return                     Zero (PELZ_MSG_SUCCESS = 0) on success;
- *                             error code (negative integer) otherwise
- */
-PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf,
-                                         X509 * local_cert_in,
-                                         EVP_PKEY * local_priv_in,
-                                         X509 ** peer_cert_out,
-                                         PELZ_MSG_DATA * msg_data_out);
-
-/**
- * <pre>
  * Constructs input pelz message data and creates a DER-formatted byte array
  * that can be sent (transmitted) to the recipient matching the identity in
  * the specified peer certificate input parameter.
@@ -425,7 +360,7 @@ PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf,
  *   - create a signed CMS message containing the DER encoded ASN.1 message
  *
  *   - DER encode (serialize) the CMS signed message
- * 
+ *
  *   - create an enveloped (encrypted) CMS messsage containing the DER encoded
  *     signed CMS message bytes
  *
@@ -438,7 +373,7 @@ PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf,
  *                             therefore, to a PELZ_MSG_DATA struct that has
  *                             been pre-populated with the desired values for
  *                             each of the ASN.1 formatted PELZ_MSG "fields".
- * 
+ *
  * @param[in]  local_cert_in   Pointer to the sender's local certificate,
  *                             to be included with the message to enable
  *                             signature verification by the recipient.
@@ -464,11 +399,69 @@ PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf,
  * @return                     Zero (0 = PELZ_MSG_SUCCESS) on success;
  *                             error code (negative integer) otherwise
  */
-PelzMessagingStatus construct_pelz_msg(PELZ_MSG_DATA *msg_data_in,
+PelzMessagingStatus construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
                                        X509 *local_cert_in,
                                        EVP_PKEY *local_priv_in,
                                        X509 *peer_cert_in,
                                        charbuf *tx_msg_buf);
+
+
+/**
+ * <pre>
+ * Deconstructs a DER-formatted byte array containing received pelz
+ * message data and extracts the public X509 certificate for the
+ * message sender.
+ * </pre>
+ *
+ * This functions "deconstructs" the message by performing the following
+ * sequence of steps:
+ *
+ *   - DER decode (de-serialize) the received message into an 'enveloped'
+ *     CMS message struct
+ *
+ *   - decrypt (un-envelop) the CMS 'enveloped' message
+ *
+ *   - DER decode (de-serialize) the decrypted message payload into a
+ *     signed CMS message
+ *
+ *   - verify the signature over and extract the the CMS signed message data
+ *
+ *   - DER decode (de-serialize) the verified message payload into an ASN.1
+ *     formatted message (PELZ_MSG) sequence
+ *
+ *   - parse the ASN.1 formatted message sequence into a PELZ_MSG_DATA struct
+ *     containing all fo the parsed message data values
+ *
+ * @param[in]  rcvd_msg_buf    Pointer to the input buffer containing the
+ *                             DER-formatted byte array representing the
+ *                             received, encrypted, signed, pelz message
+ *                             data.
+ *
+ * @param[in]  local_cert_in   Pointer to the message recipient's (local)
+ *                             X509 certificate. It contains the public key
+ *                             that should have been used to encrypt the
+ *                             received enveloped message.
+ *
+ * @param[in]  local_priv_in   Pointer to the message recipient's (local)
+ *                             private key. This private key is needed to
+ *                             decrypt the received enveloped message.
+ *
+ * @param[out] peer_cert_out   Double pointer to message sender's (peer)
+ *                             X509 certificate extracted from the received
+ *                             signed message.
+ *
+ * @param[out] msg_data_out    Pointer to decrypted, signature verified,
+ *                             and parsed pelz message data struct
+ *                             (PELZ_MSG_DATA *).
+ *
+ * @return                     Zero (PELZ_MSG_SUCCESS = 0) on success;
+ *                             error code (negative integer) otherwise
+ */
+PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf,
+                                         X509 *local_cert_in,
+                                         EVP_PKEY *local_priv_in,
+                                         X509 **peer_cert_out,
+                                         PELZ_MSG_DATA *msg_data_out);
 
 #ifdef __cplusplus
 }

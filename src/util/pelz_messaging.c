@@ -34,84 +34,84 @@ IMPLEMENT_ASN1_DUP_FUNCTION(PELZ_MSG);
 IMPLEMENT_ASN1_PRINT_FUNCTION(PELZ_MSG);
 
 
-PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA * msg_data_in)
+PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA msg_data_in)
 {
   // input parameter checks
-  if ((msg_data_in->msg_type < MSG_TYPE_MIN) ||
-      (msg_data_in->msg_type > MSG_TYPE_MAX))
+  if ((msg_data_in.msg_type < MSG_TYPE_MIN) ||
+      (msg_data_in.msg_type > MSG_TYPE_MAX))
   {
     pelz_sgx_log(LOG_ERR, "unsupported input message type");
     return NULL;
   }
-  if ((msg_data_in->req_type < REQ_TYPE_MIN) ||
-      (msg_data_in->req_type > REQ_TYPE_MAX))
+  if ((msg_data_in.req_type < REQ_TYPE_MIN) ||
+      (msg_data_in.req_type > REQ_TYPE_MAX))
   {
     pelz_sgx_log(LOG_ERR, "unsupported input request type");
     return NULL;
   }
-  if ((msg_data_in->cipher.chars == NULL) ||
-      (msg_data_in->cipher.len == 0))
+  if ((msg_data_in.cipher.chars == NULL) ||
+      (msg_data_in.cipher.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "NULL/empty cipher");
     return NULL;
   }
-  if ((msg_data_in->key_id.chars == NULL) ||
-      (msg_data_in->key_id.len == 0))
+  if ((msg_data_in.key_id.chars == NULL) ||
+      (msg_data_in.key_id.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "NULL/empty input key ID");
     return NULL;
   }
-  if ((msg_data_in->data.chars == NULL) || (msg_data_in->data.len == 0))
+  if ((msg_data_in.data.chars == NULL) || (msg_data_in.data.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "NULL/empty input data buffer");
     return NULL;
   }
-  if ((msg_data_in->status.chars == NULL) || (msg_data_in->status.len == 0))
+  if ((msg_data_in.status.chars == NULL) || (msg_data_in.status.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "NULL/empty message 'status' string");
     return NULL;
   }
 
   // construct test request (using ASN.1 specified format)
-  PELZ_MSG * msg = PELZ_MSG_new();
+  PELZ_MSG *msg = PELZ_MSG_new();
 
-  int64_t msg_type_val = msg_data_in->msg_type;
+  int64_t msg_type_val = msg_data_in.msg_type;
   if (ASN1_ENUMERATED_set_int64(msg->msg_type, msg_type_val) != 1)
   {
     pelz_sgx_log(LOG_ERR, "set 'msg_type' field error");
     return NULL;
   }
 
-  int64_t req_type_val = msg_data_in->req_type;
+  int64_t req_type_val = msg_data_in.req_type;
   if (ASN1_ENUMERATED_set_int64(msg->req_type, req_type_val) != 1)
   {
     pelz_sgx_log(LOG_ERR, "set 'req_type' field error");
     return NULL;
   }
   if (ASN1_STRING_set(msg->cipher,
-                      msg_data_in->cipher.chars,
-                      (int) msg_data_in->cipher.len) != 1)
+                      msg_data_in.cipher.chars,
+                      (int) msg_data_in.cipher.len) != 1)
   {
     pelz_sgx_log(LOG_ERR, "set 'cipher' field error");
     return NULL;
   }
   if (ASN1_STRING_set(msg->key_id,
-                      msg_data_in->key_id.chars,
-                      (int) msg_data_in->key_id.len) != 1)
+                      msg_data_in.key_id.chars,
+                      (int) msg_data_in.key_id.len) != 1)
   {
     pelz_sgx_log(LOG_ERR, "set 'key ID' field error");
     return NULL;
   }
   if (ASN1_OCTET_STRING_set(msg->data,
-                            msg_data_in->data.chars,
-                            (int) msg_data_in->data.len) != 1)
+                            msg_data_in.data.chars,
+                            (int) msg_data_in.data.len) != 1)
   {
     pelz_sgx_log(LOG_ERR, "set 'data' field error");
     return NULL;
   }
   if (ASN1_STRING_set((ASN1_STRING *) msg->status,
-                      msg_data_in->status.chars,
-                      (int) msg_data_in->status.len) != 1)
+                      msg_data_in.status.chars,
+                      (int) msg_data_in.status.len) != 1)
   {
     pelz_sgx_log(LOG_ERR, "set 'status' field error");
     return NULL;
@@ -130,7 +130,7 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
   if (tag != V_ASN1_ENUMERATED)
   {
     pelz_sgx_log(LOG_ERR, "invalid 'msg_type' field format");
-    return PELZ_MSG_MSG_TYPE_TAG_ERROR;
+    return PELZ_MSG_ASN1_TAG_ERROR;
   }
   int retval = ASN1_ENUMERATED_get_int64((int64_t *) &(parsed_msg_out->msg_type),
                                          (const ASN1_ENUMERATED *) msg_in->msg_type);
@@ -145,13 +145,13 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return PELZ_MSG_MSG_TYPE_PARSE_ERROR;
+    return PELZ_MSG_ASN1_PARSE_ERROR;
   }
   if ((parsed_msg_out->msg_type < MSG_TYPE_MIN) ||
       (parsed_msg_out->msg_type > MSG_TYPE_MAX))
   {
     pelz_sgx_log(LOG_ERR, "parsed 'msg_type' unsupported");
-    return PELZ_MSG_MSG_TYPE_PARSE_INVALID;
+    return PELZ_MSG_ASN1_PARSE_INVALID_RESULT;
   }
 
   // parse request type (req_type) field
@@ -159,7 +159,7 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
   if (tag != V_ASN1_ENUMERATED)
   {
     pelz_sgx_log(LOG_ERR, "invalid 'req_type' field format");
-    return PELZ_MSG_REQ_TYPE_TAG_ERROR;
+    return PELZ_MSG_ASN1_TAG_ERROR;
   }
   retval = ASN1_ENUMERATED_get_int64((int64_t *) &(parsed_msg_out->req_type),
                                      (const ASN1_ENUMERATED *) msg_in->req_type);
@@ -174,13 +174,13 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return PELZ_MSG_REQ_TYPE_PARSE_ERROR;
+    return PELZ_MSG_ASN1_PARSE_ERROR;
   }
   if ((parsed_msg_out->req_type < REQ_TYPE_MIN) ||
       (parsed_msg_out->req_type > REQ_TYPE_MAX))
   {
     pelz_sgx_log(LOG_ERR, "parsed 'req_type' unsupported");
-    return PELZ_MSG_REQ_TYPE_PARSE_INVALID;
+    return PELZ_MSG_ASN1_PARSE_INVALID_RESULT;
   }
 
   // parse 'cipher' message field
@@ -188,7 +188,7 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
   if (tag != V_ASN1_UTF8STRING)
   {
     pelz_sgx_log(LOG_ERR, "invalid 'cipher' field format");
-    return PELZ_MSG_CIPHER_TAG_ERROR;
+    return PELZ_MSG_ASN1_TAG_ERROR;
   }
   parsed_msg_out->cipher.len =
     (size_t) ASN1_STRING_to_UTF8(&(parsed_msg_out->cipher.chars),
@@ -205,7 +205,7 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return PELZ_MSG_CIPHER_PARSE_ERROR;
+    return PELZ_MSG_ASN1_PARSE_ERROR;
   }
 
   // parse 'key ID' message field
@@ -213,7 +213,7 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
   if (tag != V_ASN1_UTF8STRING)
   {
     pelz_sgx_log(LOG_ERR, "invalid 'key ID' field format");
-    return PELZ_MSG_KEY_ID_TAG_ERROR;
+    return PELZ_MSG_ASN1_TAG_ERROR;
   }
   parsed_msg_out->key_id.len =
     (size_t) ASN1_STRING_to_UTF8(&(parsed_msg_out->key_id.chars),
@@ -230,7 +230,7 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return PELZ_MSG_KEY_ID_PARSE_ERROR;
+    return PELZ_MSG_ASN1_PARSE_ERROR;
   }
 
   // parse 'data' message field
@@ -238,7 +238,7 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
   if (tag != V_ASN1_OCTET_STRING)
   {
     pelz_sgx_log(LOG_ERR, "invalid 'data' field format");
-    return PELZ_MSG_DATA_TAG_ERROR;
+    return PELZ_MSG_ASN1_TAG_ERROR;
   }
   parsed_msg_out->data.len = (size_t) ASN1_STRING_length(msg_in->data);
   parsed_msg_out->data.chars = calloc(parsed_msg_out->data.len + 1,
@@ -263,7 +263,7 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return PELZ_MSG_DATA_PARSE_ERROR;
+    return PELZ_MSG_ASN1_PARSE_ERROR;
   }
 
   // parse 'status' message field
@@ -271,7 +271,7 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
   if (tag != V_ASN1_UTF8STRING)
   {
     pelz_sgx_log(LOG_ERR, "invalid 'status' field format");
-    return PELZ_MSG_STATUS_TAG_ERROR;
+    return PELZ_MSG_ASN1_TAG_ERROR;
   }
   parsed_msg_out->status.len =
     (size_t) ASN1_STRING_to_UTF8(&(parsed_msg_out->status.chars),
@@ -288,7 +288,7 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return PELZ_MSG_STATUS_PARSE_ERROR;
+    return PELZ_MSG_ASN1_PARSE_ERROR;
   }
 
   // if this point is reached, the input message has been successfully parsed
@@ -408,7 +408,7 @@ PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
       e = ERR_get_error();
     }
     BIO_free(verify_out_bio);
-    return PELZ_MSG_VERIFY_FAIL;
+    return PELZ_MSG_VERIFY_ERROR;
   }
 
   // get the signer's certificate from the signed message
@@ -434,7 +434,7 @@ PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
   {
     pelz_sgx_log(LOG_ERR, "invalid output BIO result");
     BIO_free(verify_out_bio);
-    return PELZ_MSG_VERIFY_RESULT_INVALID;
+    return PELZ_MSG_VERIFY_INVALID_RESULT;
   }
 
   // allocate memory for output buffer to hold signed data
@@ -513,7 +513,10 @@ PelzMessagingStatus decrypt_pelz_enveloped_msg(CMS_ContentInfo *enveloped_msg_in
                                                charbuf *data_out)
 {
   // validate input parameters
+  // (Note: the certificate containing the public encryption key is
+  //        technically unnecessary, but we require it for consistency)
   if ((enveloped_msg_in == NULL) ||
+      (encrypt_cert == NULL) ||
       (decrypt_priv == NULL) ||
       (data_out == NULL))
   {
@@ -529,7 +532,7 @@ PelzMessagingStatus decrypt_pelz_enveloped_msg(CMS_ContentInfo *enveloped_msg_in
   {
     pelz_sgx_log(LOG_ERR,
                  "decrypt enveloped message: payload not authEnvelopedData");
-    return PELZ_MSG_CMS_DECRYPT_CONTENT_TYPE_ERROR;
+    return PELZ_MSG_DECRYPT_CONTENT_TYPE_ERROR;
   }
 
   // create BIO to hold decrypted message result
@@ -553,7 +556,7 @@ PelzMessagingStatus decrypt_pelz_enveloped_msg(CMS_ContentInfo *enveloped_msg_in
       pelz_sgx_log(LOG_ERR, estring);
       e = ERR_get_error();
     }
-    return PELZ_MSG_CMS_DECRYPT_FAIL;
+    return PELZ_MSG_DECRYPT_ERROR;
   }
 
   // read decrypted message bytes out of BIO
@@ -563,7 +566,7 @@ PelzMessagingStatus decrypt_pelz_enveloped_msg(CMS_ContentInfo *enveloped_msg_in
     pelz_sgx_log(LOG_ERR,
                  "decrypt enveloped message: invalid output BIO result");
     BIO_free(decrypt_out_bio);
-    return PELZ_MSG_CMS_DECRYPT_RESULT_INVALID;
+    return PELZ_MSG_DECRYPT_INVALID_RESULT;
   }
 
   data_out->chars = calloc((size_t) buf_size, sizeof(uint8_t));
@@ -614,8 +617,7 @@ PelzMessagingStatus der_encode_pelz_msg(const void *msg_in,
   }
   if (der_bytes_out->chars != NULL)
   {
-    free(der_bytes_out->chars);
-    der_bytes_out->chars = NULL;
+    free_charbuf(der_bytes_out);
   }
 
   // DER-encode input message
@@ -750,7 +752,7 @@ PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf_in,
       (der_signed_msg.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "error decrypting enveloped pelz CMS message");
-    return PELZ_MSG_CMS_DECRYPT_ERROR;
+    return PELZ_MSG_DECRYPT_ERROR;
   }
 
   // DER-decode decrypted, signed CMS pelz message
@@ -801,7 +803,7 @@ PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf_in,
   return PELZ_MSG_OK;
 }
 
-int construct_pelz_msg(PELZ_MSG_DATA *msg_data_in,
+int construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
                        X509 *local_cert_in,
                        EVP_PKEY *local_priv_in,
                        X509 *peer_cert_in,
@@ -810,8 +812,7 @@ int construct_pelz_msg(PELZ_MSG_DATA *msg_data_in,
   PelzMessagingStatus construct_status = PELZ_MSG_UNKNOWN_ERROR;
 
   // check that all input parameters are non-NULL pointers
-  if ((msg_data_in == NULL) ||
-      (local_cert_in == NULL) ||
+  if ((local_cert_in == NULL) ||
       (local_priv_in == NULL) ||
       (peer_cert_in == NULL))
   {
@@ -819,12 +820,16 @@ int construct_pelz_msg(PELZ_MSG_DATA *msg_data_in,
     return PELZ_MSG_INVALID_PARAM;
   }
 
-  // check that the charbuf pointer is non-NULL and that its
-  // output buffer is not pre-allocated
-  if ((tx_msg_buf == NULL) || (tx_msg_buf->chars != NULL))
+  // check that the charbuf pointer is non-NULL
+  // if the output buffer is pre-allocated, free it
+  if (tx_msg_buf == NULL)
   {
     pelz_sgx_log(LOG_ERR, "invalid output buffer parameter");
     return PELZ_MSG_INVALID_PARAM;
+  }
+  if (tx_msg_buf->chars != NULL)
+  {
+    free_charbuf(tx_msg_buf);
   }
 
   // create ASN.1 formatted pelz response message
@@ -897,7 +902,7 @@ int construct_pelz_msg(PELZ_MSG_DATA *msg_data_in,
       (tx_msg_buf->len == 0))
   {
     pelz_sgx_log(LOG_ERR, "error DER-encoding enveloped CMS pelz response");
-    return PELZ_MSG_SERIALIZE_ERROR;
+    return PELZ_MSG_DER_ENCODE_CMS_ERROR;
   }
 
   return PELZ_MSG_OK;

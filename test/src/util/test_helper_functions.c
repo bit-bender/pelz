@@ -4,11 +4,6 @@
 
 #include "test_helper_functions.h"
 
-#include <charbuf.h>
-#include <pelz_log.h>
-#include <unistd.h>
-#include <string.h>
-
 charbuf copy_CWD_to_id(const char *prefix, const char *postfix)
 {
   charbuf newBuf;
@@ -28,7 +23,6 @@ charbuf copy_CWD_to_id(const char *prefix, const char *postfix)
   memcpy(&newBuf.chars[strlen(prefix) + strlen(cwd)], postfix, strlen(postfix));
   return (newBuf);
 }
-
 
 int pem_priv_to_der(char *priv_pem_fn, charbuf *der_priv_out)
 {

@@ -108,7 +108,7 @@ MsgTestStatus pelz_asn1_msg_test_helper(MsgTestSelect test_select,
                                         PELZ_MSG_DATA msg_data_in,
                                         charbuf *der_asn1_msg_out)
 {
-  PelzMessagingStatus ret = PELZ_MSG_UNKNOWN_ERROR;
+  PelzMessagingStatus retval = PELZ_MSG_UNKNOWN_ERROR;
   bool invalid_param_test_case = false;
 
   PELZ_MSG *asn1_msg = NULL;
@@ -213,7 +213,7 @@ MsgTestStatus pelz_asn1_msg_test_helper(MsgTestSelect test_select,
 
   // invoke PELZ_MSG ASN.1 parsing functionality
   PELZ_MSG_DATA parsed_test_msg_data;
-  ret = parse_pelz_asn1_msg(asn1_msg, &parsed_test_msg_data);
+  retval = parse_pelz_asn1_msg(asn1_msg, &parsed_test_msg_data);
 
   switch(test_select)
   {
@@ -225,7 +225,7 @@ MsgTestStatus pelz_asn1_msg_test_helper(MsgTestSelect test_select,
   case ASN1_PARSE_INVALID_DATA_TAG:
   case ASN1_PARSE_INVALID_STATUS_TAG:
     PELZ_MSG_free(asn1_msg);
-    if (ret == PELZ_MSG_ASN1_TAG_ERROR)
+    if (retval == PELZ_MSG_ASN1_TAG_ERROR)
     {
       return MSG_TEST_PARAM_HANDLING_OK;
     }
@@ -238,7 +238,7 @@ MsgTestStatus pelz_asn1_msg_test_helper(MsgTestSelect test_select,
   case ASN1_PARSE_INVALID_REQ_TYPE_LO:
   case ASN1_PARSE_INVALID_REQ_TYPE_HI:
     PELZ_MSG_free(asn1_msg);
-    if (ret == PELZ_MSG_ASN1_PARSE_INVALID_RESULT)
+    if (retval == PELZ_MSG_ASN1_PARSE_INVALID_RESULT)
     {
       return MSG_TEST_PARAM_HANDLING_OK
     }
@@ -247,7 +247,7 @@ MsgTestStatus pelz_asn1_msg_test_helper(MsgTestSelect test_select,
 
     // all other test cases: no modification of ASN.1 test message
   default:
-    if (ret != PELZ_MSG_OK)
+    if (retval != PELZ_MSG_OK)
     {
       pelz_sgx_log(LOG_ERR, "parse of test message failed");
       PELZ_MSG_free(asn1_msg);
@@ -282,20 +282,20 @@ MsgTestStatus pelz_asn1_msg_test_helper(MsgTestSelect test_select,
   // DER encode of ASN.1 pelz message: NULL input message test case
   case ASN1_CREATE_DER_ENCODE_NULL_MSG_IN:
     invalid_param_test_case = true;
-    ret = der_encode_pelz_msg(NULL, der_asn1_msg_out, ASN1);
+    retval = der_encode_pelz_msg(NULL, der_asn1_msg_out, ASN1);
     break;
 
   // DER encode of ASN.1 pelz message: NULL output double pointer test case
   case ASN1_CREATE_DER_ENCODE_NULL_BUF_OUT:
     invalid_param_test_case = true;
-    ret = der_encode_pelz_msg((const PELZ_MSG *) asn1_msg_in, NULL, ASN1);
+    retval = der_encode_pelz_msg((const PELZ_MSG *) asn1_msg_in, NULL, ASN1);
     break;
 
   // for all other test selections, DER encode input ASN.1 test message
   default:
-    ret = der_encode_pelz_msg((const PELZ_MSG *) asn1_msg_in,
-                              der_asn1_msg_out,
-                              ASN1);
+    retval = der_encode_pelz_msg((const PELZ_MSG *) asn1_msg_in,
+                                 der_asn1_msg_out,
+                                 ASN1);
     if ((der_asn1_msg_out->chars == NULL) || (der_asn1_msg_out->len == 0))
     {
       pelz_sgx_log(LOG_ERR, "error DER-encoding test ASN.1 message");
@@ -308,7 +308,7 @@ MsgTestStatus pelz_asn1_msg_test_helper(MsgTestSelect test_select,
   if (invalid_param_test_case)
   {
     PELZ_MSG_free(asn1_msg);
-    if (ret == PELZ_MSG_INVALID_PARAM)
+    if (retval == PELZ_MSG_INVALID_PARAM)
     {
       return MSG_TEST_PARAM_HANDLING_OK;
     }
@@ -1383,31 +1383,34 @@ MsgTestStatus pelz_constructed_msg_test_helper(MsgTestSelect test_select,
   free_charbuf(&deconstructed_test_msg_data.key_id);
   free_charbuf(&deconstructed_test_msg_data.data);
   free_charbuf(&deconstructed_test_msg_data.status);
-  X509_free(deconstructed_peer_cert);
 
   return MSG_TEST_OK;
 }
 
-int pelz_enclave_msg_test_helper(uint8_t msg_type,
-                                 uint8_t req_type,
-                                 size_t cipher_size,
-                                 unsigned char * cipher,
-                                 size_t key_id_size,
-                                 unsigned char * key_id,
-                                 size_t msg_data_size,
-                                 unsigned char * msg_data,
-                                 size_t msg_status_size,
-                                 unsigned char * msg_status,
-                                 size_t der_sign_priv_size,
-                                 unsigned char * der_sign_priv,
-                                 size_t der_verify_cert_size,
-                                 unsigned char * der_verify_cert,
-                                 size_t der_encrypt_cert_size,
-                                 unsigned char * der_encrypt_cert,
-                                 size_t der_decrypt_priv_size,
-                                 unsigned char * der_decrypt_priv,
-                                 uint8_t test_select)
+sgx_status_t pelz_enclave_msg_test_helper(uint8_t msg_type,
+                                          uint8_t req_type,
+                                          size_t cipher_size,
+                                          unsigned char * cipher,
+                                          size_t key_id_size,
+                                          unsigned char * key_id,
+                                          size_t msg_data_size,
+                                          unsigned char * msg_data,
+                                          size_t msg_status_size,
+                                          unsigned char * msg_status,
+                                          size_t der_sign_priv_size,
+                                          unsigned char * der_sign_priv,
+                                          size_t der_verify_cert_size,
+                                          unsigned char * der_verify_cert,
+                                          size_t der_encrypt_cert_size,
+                                          unsigned char * der_encrypt_cert,
+                                          size_t der_decrypt_priv_size,
+                                          unsigned char * der_decrypt_priv,
+                                          uint8_t test_select,
+                                          MsgTestStatus *test_result)
 {
+  // initialize returned test result
+  *test_result = MSG_TEST_UNKNOWN_ERROR;
+
   PELZ_MSG_DATA test_msg_data = { .msg_type = (PELZ_MSG_TYPE) msg_type,
                                   .req_type = (PELZ_REQ_TYPE) req_type,
                                   .cipher = { .chars = cipher,
@@ -1448,7 +1451,8 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
   case ASN1_PARSE_DER_DECODE_EMPTY_BUF_IN:
   case ASN1_PARSE_DER_DECODE_INVALID_FORMAT:
   case ASN1_PARSE_DER_DECODE_FUNCTIONALITY:
-    return (int) ret;
+    *test_result = ret;
+    return SGX_SUCCESS;
     break;
 
   // otherwise, continue
@@ -1462,7 +1466,8 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
   if (sign_priv == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error DER decoding EVP_PKEY");
-    return (int) MSG_TEST_SETUP_ERROR;
+    *test_result = MSG_TEST_SETUP_ERROR;
+    return SGX_ERROR_UNEXPECTED;
   }
 
   // deserialize input DER-formatted requestor public cert (verify key)
@@ -1472,7 +1477,8 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
   {
     pelz_sgx_log(LOG_ERR, "error DER decoding X509 certificate");
     EVP_PKEY_free(sign_priv);
-    return (int) MSG_TEST_SETUP_ERROR;
+    *test_result = MSG_TEST_SETUP_ERROR;
+    return SGX_ERROR_UNEXPECTED;
   }
 
   // create signed pelz request message
@@ -1503,7 +1509,8 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
   case CMS_VERIFY_DECODE_EMPTY_BUF_IN:
   case CMS_VERIFY_DER_DECODE_INVALID_FORMAT:
   case CMS_VERIFY_DER_DECODE_FUNCTIONALITY:
-    return (int) ret;
+    *test_result = ret;
+    return SGX_SUCCESS;
     break;
 
   // otherwise, continue
@@ -1519,7 +1526,8 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
     pelz_sgx_log(LOG_ERR, "error DER decoding X509 certificate");
     EVP_PKEY_free(test_sign_priv);
     X509_free(test_verify_cert);
-    return (int) MSG_TEST_SETUP_ERROR;
+    *test_result = MSG_TEST_SETUP_ERROR;
+    return SGX_ERROR_UNEXPECTED;
   }
 
   // deserialize input DER-formatted responder private key (decrypt key)
@@ -1531,7 +1539,8 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
     EVP_PKEY_free(test_sign_priv);
     X509_free(test_verify_cert);
     X509_free(test_encrypt_cert);
-    return (int) MSG_TEST_SETUP_ERROR;
+    *test_result = MSG_TEST_SETUP_ERROR;
+    return SGX_ERROR_UNEXPECTED;
   }
 
   // create enveloped pelz request message
@@ -1562,7 +1571,8 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
   case CMS_DECRYPT_DECODE_EMPTY_BUF_IN:
   case CMS_DECRYPT_DER_DECODE_INVALID_FORMAT:
   case CMS_DECRYPT_DER_DECODE_FUNCTIONALITY:
-    return (int) ret;
+    *test_result = ret;
+    return SGX_SUCCESS;
     break;
 
   // otherwise, continue
@@ -1585,5 +1595,5 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
   X509_free(test_encrypt_cert);
   EVP_PKEY_free(test_decrypt_priv);
 
-  return (int) ret;
+  return ret;
 }

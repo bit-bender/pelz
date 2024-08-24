@@ -70,417 +70,468 @@ void test_create_pelz_asn1_msg(void)
 {
   pelz_log(LOG_DEBUG, "Start ASN.1 pelz message creation tests");
 
-  int result = MSG_TEST_UNKNOWN_ERROR;
+  sgx_status_t retval;
+  MsgTestStatus result = MSG_TEST_UNKNOWN_ERROR;
 
   // specify test pelz test field values
   PELZ_MSG_TYPE test_msg_type = REQUEST;
   PELZ_REQ_TYPE test_req_type = KEY_WRAP;
-  unsigned char *test_cipher = NULL;
-  sprintf((char *) test_cipher, "AES/KeyWrap/RFC3394NoPadding/128");
-  size_t test_cipher_size = strlen((char *) test_cipher);
-  unsigned char *test_key_id = NULL;
-  sprintf((char *) test_key_id, "file://test.key");
-  size_t test_key_id_size = strlen((char *) test_key_id);
-  unsigned char *test_data = NULL;
-  sprintf((char *) test_data, "create ASN.1 message test data");
-  size_t test_data_size = strlen((char *) test_data);
-  unsigned char *test_status = NULL;
-  sprintf((char *) test_status, "some kind of status");
-  size_t test_status_size = strlen((char *) test_status);
+
+  charbuf test_cipher = { .chars = NULL, .len = 0 };
+  test_cipher.chars = malloc(strlen("AES/KeyWrap/RFC3394NoPadding/128") + 1);
+  sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+  test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_key_id = { .chars = NULL, .len = 0 };
+  test_key_id.chars = malloc(strlen("file://test.key") + 1);
+  sprintf((char *) test_key_id.chars, "file://test.key");
+  test_key_id.len = strlen("file://test.key");
+
+  charbuf test_data = { .chars = NULL, .len = 0 };
+  test_data.chars = malloc(strlen("create ASN.1 message test data") + 1);
+  sprintf((char *) test_data.chars, "create ASN.1 message test data");
+  test_data.len = strlen("create ASN.1 message test data");
+
+  charbuf test_status = { .chars = NULL, .len = 0 };
+  test_status.chars = malloc(strlen("create ASN.1 message status") + 1);
+  sprintf((char *) test_data.chars, "create ASN.1 message status");
+  test_data.len = strlen("create ASN.1 message status");
 
   // invalid (less than MSG_TYPE_MIN) message type should fail param checks
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        MSG_TYPE_MIN - 1, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               MSG_TYPE_MIN - 1, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // invalid (greater than MSG_TYPE_MAX) message type should fail param checks
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        MSG_TYPE_MAX + 1, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               MSG_TYPE_MAX + 1, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_data.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // invalid (less than REQ_TYPE_MIN) message type should fail param checks
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, REQ_TYPE_MIN - 1,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, REQ_TYPE_MIN - 1,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // invalid (greater than REQ_TYPE_MAX) message type should fail param checks
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, REQ_TYPE_MAX + 1,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, REQ_TYPE_MAX + 1,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // null cipher input should fail param checks
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, NULL,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, NULL,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // empty (zero-length) cipher input should fail param checks
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        0, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               0, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // null KEK key ID input should fail param checks
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, NULL,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, NULL,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // empty (zero-length) KEK key ID input should fail param checks
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        0, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               0, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // null data input should fail param checks
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, NULL,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, NULL,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // empty (zero-length) data input should fail param checks
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        0, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               0, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // null status input should fail param checks
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // empty (zero-length) status input should fail param checks
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        0, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               0, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_ASN1_CREATE_ERROR);
 
   // ASN.1 message creation test case with valid parameters should not error
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_CREATE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_OK);
 
   // Clean-up
-  free(test_cipher);
-  free(test_key_id);
-  free(test_data);
-  free(test_status);
+  free_charbuf(&test_cipher);
+  free_charbuf(&test_key_id);
+  free_charbuf(&test_data);
+  free_charbuf(&test_status);
 }
 
 void test_parse_pelz_asn1_msg(void)
 {
   pelz_log(LOG_DEBUG, "Start parse_pelz_asn1_msg() functionality test");
 
-  int result = MSG_TEST_UNKNOWN_ERROR;
+  sgx_status_t retval;
+  MsgTestStatus result = MSG_TEST_UNKNOWN_ERROR;
 
   // specify test pelz test field values
   PELZ_MSG_TYPE test_msg_type = REQUEST;
   PELZ_REQ_TYPE test_req_type = KEY_WRAP;
-  unsigned char *test_cipher = NULL;
-  sprintf((char *) test_cipher, "AES/KeyWrap/RFC3394NoPadding/128");
-  size_t test_cipher_size = strlen((char *) test_cipher);
-  unsigned char *test_key_id = NULL;
-  sprintf((char *) test_key_id, "file://test.key");
-  size_t test_key_id_size = strlen((char *) test_key_id);
-  unsigned char *test_data = NULL;
-  sprintf((char *) test_data, "create ASN.1 message test data");
-  size_t test_data_size = strlen((char *) test_data);
-  unsigned char *test_status = NULL;
-  sprintf((char *) test_status, "some kind of status");
-  size_t test_status_size = strlen((char *) test_status);
+
+  charbuf test_cipher = { .chars = NULL, .len = 0 };
+  test_cipher.chars = malloc(strlen("AES/KeyWrap/RFC3394NoPadding/128") + 1);
+  sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+  test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_key_id = { .chars = NULL, .len = 0 };
+  test_key_id.chars = malloc(strlen("file://test.key") + 1);
+  sprintf((char *) test_key_id.chars, "file://test.key");
+  test_key_id.len = strlen("file://test.key");
+
+  charbuf test_data = { .chars = NULL, .len = 0 };
+  test_data.chars = malloc(strlen("parse ASN.1 message test data") + 1);
+  sprintf((char *) test_data.chars, "parse ASN.1 message test data");
+  test_data.len = strlen("parse ASN.1 message test data");
+
+  charbuf test_status = { .chars = NULL, .len = 0 };
+  test_status.chars = malloc(strlen("parse ASN.1 message status") + 1);
+  sprintf((char *) test_data.chars, "parse ASN.1 message status");
+  test_data.len = strlen("parse ASN.1 message status");
 
   // invalid 'message type' field tag should result in parse error
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_PARSE_INVALID_MSG_TYPE_TAG);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_INVALID_MSG_TYPE_TAG,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // invalid message type field value (< MSG_TYPE_MIN) should error
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_PARSE_INVALID_MSG_TYPE_LO);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_INVALID_MSG_TYPE_LO,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // invalid message type field value (> MSG_TYPE_MAX) should error
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_PARSE_INVALID_MSG_TYPE_HI);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_INVALID_MSG_TYPE_HI,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // invalid req_type field tag should result in parse error
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_PARSE_INVALID_REQ_TYPE_TAG);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_INVALID_REQ_TYPE_TAG,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // invalid request type field value (< REQ_TYPE_MIN) should error
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_PARSE_INVALID_REQ_TYPE_LO);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_INVALID_REQ_TYPE_LO,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // invalid request type field value (> REQ_TYPE_MAX) should error
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_PARSE_INVALID_REQ_TYPE_HI);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_INVALID_REQ_TYPE_HI,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // invalid cipher field tag should result in parse error
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_PARSE_INVALID_CIPHER_TAG);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_INVALID_CIPHER_TAG,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // invalid key ID field tag should result in parse error
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_PARSE_INVALID_KEY_ID_TAG);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_INVALID_KEY_ID_TAG,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // invalid data field tag should result in parse error
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_PARSE_INVALID_DATA_TAG);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_INVALID_DATA_TAG,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // invalid status field tag should result in parse error
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_PARSE_INVALID_STATUS_TAG);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_INVALID_STATUS_TAG,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // valid (unmodified) message format/contents should parse successfully
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        ASN1_PARSE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               test_msg_type, test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_OK);
 
   // Clean-up
-  free(test_cipher);
-  free(test_key_id);
-  free(test_data);
-  free(test_status);
+  free_charbuf(&test_cipher);
+  free_charbuf(&test_key_id);
+  free_charbuf(&test_data);
+  free_charbuf(&test_status);
 }
 
 void test_create_pelz_signed_msg(void)
 {
   pelz_log(LOG_DEBUG, "Start create_pelz_signed_msg() functionality test");
 
-  int result = MSG_TEST_UNKNOWN_ERROR;
+  sgx_status_t retval;
+  MsgTestStatus result = MSG_TEST_UNKNOWN_ERROR;
 
   // specify test pelz test field values
   PELZ_MSG_TYPE test_msg_type = REQUEST;
   PELZ_REQ_TYPE test_req_type = KEY_WRAP;
-  unsigned char *test_cipher = NULL;
-  sprintf((char *) test_cipher, "AES/KeyWrap/RFC3394NoPadding/128");
-  size_t test_cipher_size = strlen((char *) test_cipher);
-  unsigned char *test_key_id = NULL;
-  sprintf((char *) test_key_id, "file://test.key");
-  size_t test_key_id_size = strlen((char *) test_key_id);
-  unsigned char *test_data = NULL;
-  sprintf((char *) test_data, "create signed message test data");
-  size_t test_data_size = strlen((char *) test_data);
-  unsigned char *test_status = NULL;
-  sprintf((char *) test_status, "some kind of status");
-  size_t test_status_size = strlen((char *) test_status);
+
+  charbuf test_cipher = { .chars = NULL, .len = 0 };
+  test_cipher.chars = malloc(strlen("AES/KeyWrap/RFC3394NoPadding/128") + 1);
+  sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+  test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_key_id = { .chars = NULL, .len = 0 };
+  test_key_id.chars = malloc(strlen("file://test.key") + 1);
+  sprintf((char *) test_key_id.chars, "file://test.key");
+  test_key_id.len = strlen("file://test.key");
+
+  charbuf test_data = { .chars = NULL, .len = 0 };
+  test_data.chars = malloc(strlen("create signed message test data") + 1);
+  sprintf((char *) test_data.chars, "create signed message test data");
+  test_data.len = strlen("create signed message test data");
+
+  charbuf test_status = { .chars = NULL, .len = 0 };
+  test_status.chars = malloc(strlen("create signed message status") + 1);
+  sprintf((char *) test_data.chars, "create signed message status");
+  test_data.len = strlen("create signed message status");
 
   // create test cert/key inputs
   charbuf test_cert = { .chars = NULL, .len = 0 };
@@ -503,115 +554,122 @@ void test_create_pelz_signed_msg(void)
   }
 
   // NULL input data  pointer test case - invalid parameter should be handled
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_SIGN_NULL_BUF_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               test_priv.len, test_priv.chars,
+                               test_cert.len, test_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_SIGN_NULL_BUF_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // Empty input data buffer test cases - invalid parameter should be handled
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_SIGN_EMPTY_BUF_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               test_priv.len, test_priv.chars,
+                               test_cert.len, test_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_SIGN_EMPTY_BUF_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // Invalid size input data buffer test case - invalid parameter should be handled
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_SIGN_INVALID_SIZE_BUF_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               test_priv.len, test_priv.chars,
+                               test_cert.len, test_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_SIGN_INVALID_SIZE_BUF_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // NULL cert test case - invalid parameter should be handled
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_SIGN_NULL_CERT_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               test_priv.len, test_priv.chars,
+                               test_cert.len, test_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_SIGN_NULL_CERT_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // NULL private signing key should fail
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_SIGN_NULL_PRIV_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               test_priv.len, test_priv.chars,
+                               test_cert.len, test_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_SIGN_NULL_PRIV_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // valid test case should pass
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_SIGN_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               test_priv.len, test_priv.chars,
+                               test_cert.len, test_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_SIGN_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_OK);
 
   // Mismatched key/cert should fail
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        mismatch_priv.len, mismatch_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_SIGN_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               mismatch_priv.len, mismatch_priv.chars,
+                               test_cert.len, test_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_SIGN_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_SETUP_ERROR);
 
   // Clean-up
-  free(test_cipher);
-  free(test_key_id);
-  free(test_data);
-  free(test_status);
+  free_charbuf(&test_cipher);
+  free_charbuf(&test_key_id);
+  free_charbuf(&test_data);
+  free_charbuf(&test_status);
   free_charbuf(&test_cert);
   free_charbuf(&test_priv);
   free_charbuf(&mismatch_priv);
@@ -621,23 +679,32 @@ void test_verify_pelz_signed_msg(void)
 {
   pelz_log(LOG_DEBUG, "Start verify_pelz_signed_msg() functionality test");
 
-  int result = MSG_TEST_UNKNOWN_ERROR;
+  sgx_status_t retval = SGX_ERROR_UNEXPECTED;
+  MsgTestStatus result = MSG_TEST_UNKNOWN_ERROR;
 
   // specify test pelz test field values
   PELZ_MSG_TYPE test_msg_type = REQUEST;
   PELZ_REQ_TYPE test_req_type = KEY_WRAP;
-  unsigned char *test_cipher = NULL;
-  sprintf((char *) test_cipher, "AES/KeyWrap/RFC3394NoPadding/128");
-  size_t test_cipher_size = strlen((char *) test_cipher);
-  unsigned char *test_key_id = NULL;
-  sprintf((char *) test_key_id, "file://test.key");
-  size_t test_key_id_size = strlen((char *) test_key_id);
-  unsigned char *test_data = NULL;
-  sprintf((char *) test_data, "verify signed message test data");
-  size_t test_data_size = strlen((char *) test_data);
-  unsigned char *test_status = NULL;
-  sprintf((char *) test_status, "some kind of status");
-  size_t test_status_size = strlen((char *) test_status);
+
+  charbuf test_cipher = { .chars = NULL, .len = 0 };
+  test_cipher.chars = malloc(strlen("AES/KeyWrap/RFC3394NoPadding/128") + 1);
+  sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+  test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_key_id = { .chars = NULL, .len = 0 };
+  test_key_id.chars = malloc(strlen("file://test.key") + 1);
+  sprintf((char *) test_key_id.chars, "file://test.key");
+  test_key_id.len = strlen("file://test.key");
+
+  charbuf test_data = { .chars = NULL, .len = 0 };
+  test_data.chars = malloc(strlen("verify signed message test data") + 1);
+  sprintf((char *) test_data.chars, "verify signed message test data");
+  test_data.len = strlen("verify signed message test data");
+
+  charbuf test_status = { .chars = NULL, .len = 0 };
+  test_status.chars = malloc(strlen("verify signed message status") + 1);
+  sprintf((char *) test_data.chars, "verify signed message status");
+  test_data.len = strlen("verify signed message status");
 
   // create test cert/key inputs
   charbuf test_cert = { .chars = NULL, .len = 0 };
@@ -664,68 +731,69 @@ void test_verify_pelz_signed_msg(void)
     pelz_log(LOG_INFO, "CA Table add complete");
     handle = 0;
   }
-  size_t ca_cnt = 0;
-  table_id_count(eid, &status, CA_TABLE, &ca_cnt);
-  pelz_log(LOG_DEBUG, "CA table size = %zu", ca_cnt);
 
   // NULL signed message input test case
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_VERIFY_NULL_MSG_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               test_priv.len, test_priv.chars,
+                               test_cert.len, test_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_VERIFY_NULL_MSG_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
-  // NULL output certificate double pointer test case
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_VERIFY_NULL_BUF_OUT);
+  // NULL output certificate pointer test case
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               test_priv.len, test_priv.chars,
+                               test_cert.len, test_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_VERIFY_NULL_BUF_OUT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // NULL output certificate test case
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_VERIFY_NULL_CERT_OUT);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               test_priv.len, test_priv.chars,
+                               test_cert.len, test_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_VERIFY_NULL_CERT_OUT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // valid test data should invoke succcessful signature verification test case
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_VERIFY_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               test_priv.len, test_priv.chars,
+                               test_cert.len, test_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_VERIFY_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_OK);
 
   // Incorrect CA cert should fail
@@ -741,29 +809,27 @@ void test_verify_pelz_signed_msg(void)
     pelz_log(LOG_INFO, "CA Table add complete");
     handle = 0;
   }
-  ca_cnt = 0;
-  table_id_count(eid, &status, CA_TABLE, &ca_cnt);
-  pelz_log(LOG_DEBUG, "CA table size = %zu", ca_cnt);
 
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_VERIFY_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               test_priv.len, test_priv.chars,
+                               test_cert.len, test_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_VERIFY_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_VERIFY_ERROR);
 
   // Clean-up
-  free(test_cipher);
-  free(test_key_id);
-  free(test_data);
-  free(test_status);
+  free_charbuf(&test_cipher);
+  free_charbuf(&test_key_id);
+  free_charbuf(&test_data);
+  free_charbuf(&test_status);
   free_charbuf(&test_cert);
   free_charbuf(&test_priv);
   if (empty_CA_table(eid, NULL) != 0)
@@ -776,320 +842,436 @@ void test_create_pelz_enveloped_msg(void)
 {
   pelz_log(LOG_DEBUG, "Start create_pelz_enveloped_msg() functionality test");
 
-  int result = MSG_TEST_UNKNOWN_ERROR;
+  sgx_status_t retval = SGX_ERROR_UNEXPECTED;
+  MsgTestStatus result = MSG_TEST_UNKNOWN_ERROR;
 
   // specify test pelz test field values
   PELZ_MSG_TYPE test_msg_type = REQUEST;
   PELZ_REQ_TYPE test_req_type = KEY_WRAP;
-  unsigned char *test_cipher = NULL;
-  sprintf((char *) test_cipher, "AES/KeyWrap/RFC3394NoPadding/128");
-  size_t test_cipher_size = strlen((char *) test_cipher);
-  unsigned char *test_key_id = NULL;
-  sprintf((char *) test_key_id, "file://test.key");
-  size_t test_key_id_size = strlen((char *) test_key_id);
-  unsigned char *test_data = NULL;
-  sprintf((char *) test_data, "create enveloped message test data");
-  size_t test_data_size = strlen((char *) test_data);
-  unsigned char *test_status = NULL;
-  sprintf((char *) test_status, "some kind of status");
-  size_t test_status_size = strlen((char *) test_status);
+
+  charbuf test_cipher = { .chars = NULL, .len = 0 };
+  test_cipher.chars = malloc(strlen("AES/KeyWrap/RFC3394NoPadding/128") + 1);
+  sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+  test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_key_id = { .chars = NULL, .len = 0 };
+  test_key_id.chars = malloc(strlen("file://test.key") + 1);
+  sprintf((char *) test_key_id.chars, "file://test.key");
+  test_key_id.len = strlen("file://test.key");
+
+  charbuf test_data = { .chars = NULL, .len = 0 };
+  test_data.chars = malloc(strlen("create enveloped message test data") + 1);
+  sprintf((char *) test_data.chars, "create enveloped message test data");
+  test_data.len = strlen("create enveloped message test data");
+
+  charbuf test_status = { .chars = NULL, .len = 0 };
+  test_status.chars = malloc(strlen("create enveloped message status") + 1);
+  sprintf((char *) test_data.chars, "create enveloped message status");
+  test_data.len = strlen("create enveloped message status");
 
   // create test cert/key inputs
-  charbuf test_sign_priv = { .chars = NULL, .len = 0 };
-  charbuf test_verify_cert = { .chars = NULL, .len = 0 };
-  charbuf test_encrypt_cert = { .chars = NULL, .len = 0 };
-  charbuf test_decrypt_priv = { .chars = NULL, .len = 0 };
-  result = pem_priv_to_der("test/data/msg_test_req_priv.pem", &test_sign_priv);
+  //   - sign_priv:    message creator's private key used to sign
+  //   - verify_cert:  message creator's public key (certificate) used to verifye test cert/key inputs
+  //   - encrypt_cert: message recipient's public key (certificate) used to encrypt
+  //   - decrypt_priv: message recipients private key used to decrypt
+  charbuf sign_priv = { .chars = NULL, .len = 0 };
+  charbuf verify_cert = { .chars = NULL, .len = 0 };
+  charbuf encrypt_cert = { .chars = NULL, .len = 0 };
+  charbuf decrypt_priv = { .chars = NULL, .len = 0 };
+  result = pem_priv_to_der("test/data/msg_test_req_priv.pem", &sign_priv);
   if (result != 0)
   {
     CU_FAIL("DER key from file (test/data/msg_test_req_priv.pem) error");
   }
-  result = pem_cert_to_der("test/data/msg_test_req_pub.pem", &test_verify_cert);
+  result = pem_cert_to_der("test/data/msg_test_req_pub.pem", &verify_cert);
   if (result != 0)
   {
     CU_FAIL("DER cert from file (test/data/msg_test_req_pub.pem) error");
   }
-  result = pem_cert_to_der("test/data/msg_test_resp_pub.pem",
-                           &test_encrypt_cert);
+  result = pem_cert_to_der("test/data/msg_test_resp_pub.pem", &encrypt_cert);
   if (result != 0)
   {
     CU_FAIL("DER cert from file (test/data/msg_test_resp_pub.pem) error");
   }
-  result = pem_priv_to_der("test/data/msg_test_resp_priv.pem",
-                           &test_decrypt_priv);
+  result = pem_priv_to_der("test/data/msg_test_resp_priv.pem", &decrypt_priv);
   if (result != 0)
   {
     CU_FAIL("DER key from file (test/data/msg_test_resp_priv.pem) error");
   }
 
+  // load CA cert into enclave table
+  TableResponseStatus status;
+  uint64_t handle = 0;
+
+  if (pelz_load_file_to_enclave("test/data/ca_pub.der.nkl", &handle) == 0)
+  {
+    add_cert_to_table(eid, &status, CA_TABLE, handle);
+    CU_ASSERT(status == OK);
+    pelz_log(LOG_INFO, "CA Table add complete");
+    handle = 0;
+  }
+
   // NULL input data should be handled as invalid parameter
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_sign_priv.len,
-                                        test_sign_priv.chars,
-                                        test_verify_cert.len,
-                                        test_verify_cert.chars,
-                                        test_encrypt_cert.len,
-                                        test_encrypt_cert.chars,
-                                        test_decrypt_priv.len,
-                                        test_decrypt_priv.chars,
-                                        CMS_ENCRYPT_NULL_BUF_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_ENCRYPT_NULL_BUF_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // empty input data should be handled as invalid parameter
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_sign_priv.len,
-                                        test_sign_priv.chars,
-                                        test_verify_cert.len,
-                                        test_verify_cert.chars,
-                                        test_encrypt_cert.len,
-                                        test_encrypt_cert.chars,
-                                        test_decrypt_priv.len,
-                                        test_decrypt_priv.chars,
-                                        CMS_ENCRYPT_EMPTY_BUF_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_ENCRYPT_EMPTY_BUF_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // invalid size input data should be handled as invalid parameter
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_sign_priv.len,
-                                        test_sign_priv.chars,
-                                        test_verify_cert.len,
-                                        test_verify_cert.chars,
-                                        test_encrypt_cert.len,
-                                        test_encrypt_cert.chars,
-                                        test_decrypt_priv.len,
-                                        test_decrypt_priv.chars,
-                                        CMS_ENCRYPT_INVALID_SIZE_BUF_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_ENCRYPT_INVALID_SIZE_BUF_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // NULL input certificate should be handled as invalid parameter
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_sign_priv.len,
-                                        test_sign_priv.chars,
-                                        test_verify_cert.len,
-                                        test_verify_cert.chars,
-                                        test_encrypt_cert.len,
-                                        test_encrypt_cert.chars,
-                                        test_decrypt_priv.len,
-                                        test_decrypt_priv.chars,
-                                        CMS_ENCRYPT_NULL_CERT_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_ENCRYPT_NULL_CERT_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // valid test case should pass
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_sign_priv.len,
-                                        test_sign_priv.chars,
-                                        test_verify_cert.len,
-                                        test_verify_cert.chars,
-                                        test_encrypt_cert.len,
-                                        test_encrypt_cert.chars,
-                                        test_decrypt_priv.len,
-                                        test_decrypt_priv.chars,
-                                        CMS_ENCRYPT_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_ENCRYPT_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_OK);
+
+  // Clean-up
+  free_charbuf(&test_cipher);
+  free_charbuf(&test_key_id);
+  free_charbuf(&test_data);
+  free_charbuf(&test_status);
+  free_charbuf(&sign_priv);
+  free_charbuf(&verify_cert);
+  free_charbuf(&encrypt_cert);
+  free_charbuf(&decrypt_priv);
+  if (empty_CA_table(eid, NULL) != 0)
+  {
+    CU_FAIL("error emptying CA table");
+  }
 }
 
 void test_decrypt_pelz_enveloped_msg(void)
 {
   pelz_log(LOG_DEBUG, "Start decrypt_pelz_enveloped_msg() functionality test");
 
-  int result = MSG_TEST_UNKNOWN_ERROR;
+  sgx_status_t retval = SGX_ERROR_UNEXPECTED;
+  MsgTestStatus result = MSG_TEST_UNKNOWN_ERROR;
 
   // specify test pelz test field values
   PELZ_MSG_TYPE test_msg_type = REQUEST;
   PELZ_REQ_TYPE test_req_type = KEY_WRAP;
-  unsigned char *test_cipher = NULL;
-  sprintf((char *) test_cipher, "AES/KeyWrap/RFC3394NoPadding/128");
-  size_t test_cipher_size = strlen((char *) test_cipher);
-  unsigned char *test_key_id = NULL;
-  sprintf((char *) test_key_id, "file://test.key");
-  size_t test_key_id_size = strlen((char *) test_key_id);
-  unsigned char *test_data = NULL;
-  sprintf((char *) test_data, "create enveloped message test data");
-  size_t test_data_size = strlen((char *) test_data);
-  unsigned char *test_status = NULL;
-  sprintf((char *) test_status, "some kind of status");
-  size_t test_status_size = strlen((char *) test_status);
+
+  charbuf test_cipher = { .chars = NULL, .len = 0 };
+  test_cipher.chars = malloc(strlen("AES/KeyWrap/RFC3394NoPadding/128") + 1);
+  sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+  test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_key_id = { .chars = NULL, .len = 0 };
+  test_key_id.chars = malloc(strlen("file://test.key") + 1);
+  sprintf((char *) test_key_id.chars, "file://test.key");
+  test_key_id.len = strlen("file://test.key");
+
+  charbuf test_data = { .chars = NULL, .len = 0 };
+  test_data.chars = malloc(strlen("create enveloped message test data") + 1);
+  sprintf((char *) test_data.chars, "create enveloped message test data");
+  test_data.len = strlen("create enveloped message test data");
+
+  charbuf test_status = { .chars = NULL, .len = 0 };
+  test_status.chars = malloc(strlen("create enveloped message status") + 1);
+  sprintf((char *) test_data.chars, "create enveloped message status");
+  test_data.len = strlen("create enveloped message status");
 
   // create test cert/key inputs
-  charbuf test_sign_priv = { .chars = NULL, .len = 0 };
-  charbuf test_verify_cert = { .chars = NULL, .len = 0 };
-  charbuf test_encrypt_cert = { .chars = NULL, .len = 0 };
-  charbuf test_decrypt_priv = { .chars = NULL, .len = 0 };
-  result = pem_priv_to_der("test/data/msg_test_req_priv.pem", &test_sign_priv);
+  //   - sign_priv:    message creator's private key used to sign
+  //   - verify_cert:  message creator's public key (certificate) used to verifye test cert/key inputs
+  //   - encrypt_cert: message recipient's public key (certificate) used to encrypt
+  //   - decrypt_priv: message recipients private key used to decrypt
+  charbuf sign_priv = { .chars = NULL, .len = 0 };
+  charbuf verify_cert = { .chars = NULL, .len = 0 };
+  charbuf encrypt_cert = { .chars = NULL, .len = 0 };
+  charbuf decrypt_priv = { .chars = NULL, .len = 0 };
+  result = pem_priv_to_der("test/data/msg_test_req_priv.pem", &sign_priv);
   if (result != 0)
   {
     CU_FAIL("DER key from file (test/data/msg_test_req_priv.pem) error");
   }
-  result = pem_cert_to_der("test/data/msg_test_req_pub.pem", &test_verify_cert);
+  result = pem_cert_to_der("test/data/msg_test_req_pub.pem", &verify_cert);
   if (result != 0)
   {
     CU_FAIL("DER cert from file (test/data/msg_test_req_pub.pem) error");
   }
-  result = pem_cert_to_der("test/data/msg_test_resp_pub.pem",
-                           &test_encrypt_cert);
+  result = pem_cert_to_der("test/data/msg_test_resp_pub.pem", &encrypt_cert);
   if (result != 0)
   {
     CU_FAIL("DER cert from file (test/data/msg_test_resp_pub.pem) error");
   }
-  result = pem_priv_to_der("test/data/msg_test_resp_priv.pem",
-                           &test_decrypt_priv);
+  result = pem_priv_to_der("test/data/msg_test_resp_priv.pem", &decrypt_priv);
   if (result != 0)
   {
     CU_FAIL("DER key from file (test/data/msg_test_resp_priv.pem) error");
   }
 
+  // load CA cert into enclave table
+  TableResponseStatus status;
+  uint64_t handle = 0;
+
+  if (pelz_load_file_to_enclave("test/data/ca_pub.der.nkl", &handle) == 0)
+  {
+    add_cert_to_table(eid, &status, CA_TABLE, handle);
+    CU_ASSERT(status == OK);
+    pelz_log(LOG_INFO, "CA Table add complete");
+    handle = 0;
+  }
+
   // NULL input message test case
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_sign_priv.len,
-                                        test_sign_priv.chars,
-                                        test_verify_cert.len,
-                                        test_verify_cert.chars,
-                                        test_encrypt_cert.len,
-                                        test_encrypt_cert.chars,
-                                        test_decrypt_priv.len,
-                                        test_decrypt_priv.chars,
-                                        CMS_DECRYPT_NULL_MSG_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_DECRYPT_NULL_MSG_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // NULL output buffer test case
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_sign_priv.len,
-                                        test_sign_priv.chars,
-                                        test_verify_cert.len,
-                                        test_verify_cert.chars,
-                                        test_encrypt_cert.len,
-                                        test_encrypt_cert.chars,
-                                        test_decrypt_priv.len,
-                                        test_decrypt_priv.chars,
-                                        CMS_DECRYPT_NULL_BUF_OUT);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_DECRYPT_NULL_BUF_OUT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // NULL input private key test case
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_sign_priv.len,
-                                        test_sign_priv.chars,
-                                        test_verify_cert.len,
-                                        test_verify_cert.chars,
-                                        test_encrypt_cert.len,
-                                        test_encrypt_cert.chars,
-                                        test_decrypt_priv.len,
-                                        test_decrypt_priv.chars,
-                                        CMS_DECRYPT_NULL_PRIV);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_DECRYPT_NULL_PRIV,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // NULL input cert test case
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_sign_priv.len,
-                                        test_sign_priv.chars,
-                                        test_verify_cert.len,
-                                        test_verify_cert.chars,
-                                        test_encrypt_cert.len,
-                                        test_encrypt_cert.chars,
-                                        test_decrypt_priv.len,
-                                        test_decrypt_priv.chars,
-                                        CMS_DECRYPT_NULL_CERT);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_DECRYPT_NULL_CERT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // valid test data should invoke succcessful CMS decryption test case
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_sign_priv.len,
-                                        test_sign_priv.chars,
-                                        test_verify_cert.len,
-                                        test_verify_cert.chars,
-                                        test_encrypt_cert.len,
-                                        test_encrypt_cert.chars,
-                                        test_decrypt_priv.len,
-                                        test_decrypt_priv.chars,
-                                        CMS_DECRYPT_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_DECRYPT_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_OK);
 
   // wrong input private decryption key test case
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher_size, test_cipher,
-                                        test_key_id_size, test_key_id,
-                                        test_data_size, test_data,
-                                        test_status_size, test_status,
-                                        test_sign_priv.len,
-                                        test_sign_priv.chars,
-                                        test_verify_cert.len,
-                                        test_verify_cert.chars,
-                                        test_encrypt_cert.len,
-                                        test_encrypt_cert.chars,
-                                        test_sign_priv.len,
-                                        test_sign_priv.chars,
-                                        CMS_DECRYPT_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               sign_priv.len, sign_priv.chars,
+                               CMS_DECRYPT_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_DECRYPT_ERROR);
+
+  // Clean-up
+  free_charbuf(&test_cipher);
+  free_charbuf(&test_key_id);
+  free_charbuf(&test_data);
+  free_charbuf(&test_status);
+  free_charbuf(&sign_priv);
+  free_charbuf(&verify_cert);
+  free_charbuf(&encrypt_cert);
+  free_charbuf(&decrypt_priv);
+  if (empty_CA_table(eid, NULL) != 0)
+  {
+    CU_FAIL("error emptying CA table");
+  }
 }
 
 void test_der_encode_pelz_msg(void)
 {
   pelz_log(LOG_DEBUG, "Start pelz message DER encoding functionality test");
 
+  sgx_status_t retval = SGX_ERROR_UNEXPECTED;
+  MsgTestStatus result = MSG_TEST_UNKNOWN_ERROR;
+
+  // specify test pelz test field values
+  PELZ_MSG_TYPE test_msg_type = REQUEST;
+  PELZ_REQ_TYPE test_req_type = KEY_WRAP;
+
+  charbuf test_cipher = { .chars = NULL, .len = 0 };
+  test_cipher.chars = malloc(strlen("AES/KeyWrap/RFC3394NoPadding/128") + 1);
+  sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+  test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_key_id = { .chars = NULL, .len = 0 };
+  test_key_id.chars = malloc(strlen("file://test.key") + 1);
+  sprintf((char *) test_key_id.chars, "file://test.key");
+  test_key_id.len = strlen("file://test.key");
+
+  charbuf test_data = { .chars = NULL, .len = 0 };
+  test_data.chars = malloc(strlen("create enveloped message test data") + 1);
+  sprintf((char *) test_data.chars, "create enveloped message test data");
+  test_data.len = strlen("create enveloped message test data");
+
+  charbuf test_status = { .chars = NULL, .len = 0 };
+  test_status.chars = malloc(strlen("create enveloped message status") + 1);
+  sprintf((char *) test_data.chars, "create enveloped message status");
+  test_data.len = strlen("create enveloped message status");
+
+  // ASN.1 DER encode: test that NULL input message is handled as expected
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_DER_ENCODE_NULL_MSG_IN,
+                               &result);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // ASN.1 DER encode: test that NULL output buffer pointer is handled as expected
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_DER_ENCODE_NULL_BUF_OUT,
+                               &result);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // ASN.1 DER encode: test with valid test input should produce expected encoded result
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_CREATE_DER_ENCODE_FUNCTIONALITY,
+                               &result);
+  CU_ASSERT(result == MSG_TEST_OK);
+
+  // load certificate for 'CA' that signed test keys
   TableResponseStatus status;
   uint64_t handle = 0;
-  int result = -1;
 
   if (pelz_load_file_to_enclave("test/data/ca_pub.der.nkl", &handle) == 0)
   {
@@ -1098,234 +1280,249 @@ void test_der_encode_pelz_msg(void)
     pelz_log(LOG_INFO, "CA Table add complete");
     handle = 0;
   }
-  size_t ca_cnt = 0;
-  table_id_count(eid, &status, CA_TABLE, &ca_cnt);
-  pelz_log(LOG_DEBUG, "CA table size = %zu", ca_cnt);
 
-  BIO *test_req_cert_bio = BIO_new_file("test/data/msg_test_req_pub.pem", "r");
-  if (test_req_cert_bio == NULL)
-  {
-    CU_FAIL("error creating BIO for reading test requestor cert from file");
-  }
-  X509 *test_req_cert = PEM_read_bio_X509(test_req_cert_bio, NULL, 0, NULL);
-  if (test_req_cert == NULL)
-  {
-    CU_FAIL("error creating test X509 certificate for requestor");
-  }
-  BIO_free(test_req_cert_bio);
-  size_t test_der_req_cert_len = 0;
-  uint8_t *test_der_req_cert = NULL;
-  test_der_req_cert_len = (size_t) i2d_X509(test_req_cert,
-                                            &test_der_req_cert);
-  if ((test_der_req_cert == NULL) || (test_der_req_cert_len == 0))
-  {
-    CU_FAIL("error creating DER-formatted test requestor certificate");
-  }
-  X509_free(test_req_cert);
+  // create test cert/key inputs
+  //   - sign_priv:    message creator's private key used to sign
+  //   - verify_cert:  message creator's public key (certificate) used to verify
+  charbuf sign_priv = { .chars = NULL, .len = 0 };
+  charbuf verify_cert = { .chars = NULL, .len = 0 };
 
-  BIO * test_req_key_bio = BIO_new_file("test/data/msg_test_req_priv.pem", "r");
-  if (test_req_key_bio == NULL)
+  result = pem_priv_to_der("test/data/msg_test_req_priv.pem", &sign_priv);
+  if (result != 0)
   {
-    CU_FAIL("error creating BIO for reading test requestor key from file");
+    CU_FAIL("DER key from file (test/data/msg_test_req_priv.pem) error");
   }
-  EVP_PKEY * test_req_key = PEM_read_bio_PrivateKey(test_req_key_bio,
-                                                    NULL,
-                                                    0,
-                                                    NULL);
-  if (test_req_key == NULL)
+  result = pem_cert_to_der("test/data/msg_test_req_pub.pem", &verify_cert);
+  if (result != 0)
   {
-    CU_FAIL("error creating test requestor EC private key for signing");
+    CU_FAIL("DER cert from file (test/data/msg_test_req_pub.pem) error");
   }
-  BIO_free(test_req_key_bio);
-  size_t test_der_req_key_len = 0;
-  uint8_t *test_der_req_key = NULL;
-  test_der_req_key_len = (size_t) i2d_PrivateKey(test_req_key,
-                                                 &test_der_req_key);
-  if ((test_der_req_key == NULL) || (test_der_req_key_len == 0))
-  {
-    CU_FAIL("error creating DER-formatted test requestor EC private key");
-  }
-  EVP_PKEY_free(test_req_key);
-
-  BIO *test_resp_cert_bio = BIO_new_file("test/data/msg_test_resp_pub.pem", "r");
-  if (test_resp_cert_bio == NULL)
-  {
-    CU_FAIL("error creating BIO for reading test responder cert from file");
-  }
-  X509 *test_resp_cert = PEM_read_bio_X509(test_resp_cert_bio, NULL, 0, NULL);
-  if (test_resp_cert == NULL)
-  {
-    CU_FAIL("error creating test X509 certificate for responder");
-  }
-  BIO_free(test_resp_cert_bio);
-  size_t test_der_resp_cert_len = 0;
-  uint8_t *test_der_resp_cert = NULL;
-  test_der_resp_cert_len = (size_t) i2d_X509(test_resp_cert,
-                                             &test_der_resp_cert);
-  if ((test_der_resp_cert == NULL) || (test_der_resp_cert_len == 0))
-  {
-    CU_FAIL("error creating DER-formatted test responder certificate");
-  }
-  X509_free(test_resp_cert);
-
-  BIO * test_resp_key_bio = BIO_new_file("test/data/msg_test_resp_priv.pem", "r");
-  if (test_resp_key_bio == NULL)
-  {
-    CU_FAIL("error creating BIO for reading test responder key from file");
-  }
-  EVP_PKEY * test_resp_key = PEM_read_bio_PrivateKey(test_resp_key_bio,
-                                                     NULL,
-                                                     0,
-                                                     NULL);
-  if (test_resp_key == NULL)
-  {
-    CU_FAIL("error creating test responder EC private key");
-  }
-  BIO_free(test_resp_key_bio);
-  size_t test_der_resp_key_len = 0;
-  uint8_t *test_der_resp_key = NULL;
-  test_der_resp_key_len = (size_t) i2d_PrivateKey(test_resp_key,
-                                                  &test_der_resp_key);
-  if ((test_der_resp_key == NULL) || (test_der_resp_key_len == 0))
-  {
-    CU_FAIL("error creating DER-formatted test responder EC private key");
-  }
-  EVP_PKEY_free(test_resp_key);
-
-  // ASN.1 DER encode: test that NULL input message is handled as expected
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        ASN1_CREATE_DER_ENCODE_NULL_MSG_IN);
-  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
-
-  // ASN.1 DER encode: test that NULL output buffer pointer is handled as expected
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        ASN1_CREATE_DER_ENCODE_NULL_BUF_OUT);
-  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
-
-  // ASN.1 DER encode: test with valid test input should produce expected encoded result
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        ASN1_CREATE_DER_ENCODE_FUNCTIONALITY);
-  CU_ASSERT(result == MSG_TEST_OK);
 
   // DER encode signed CMS: test that NULL input message is handled as expected
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        CMS_SIGN_DER_ENCODE_NULL_MSG_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_SIGN_DER_ENCODE_NULL_MSG_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // DER encode signed CMS: test that NULL input message is handled as expected
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        CMS_SIGN_DER_ENCODE_NULL_BUF_OUT);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_SIGN_DER_ENCODE_NULL_BUF_OUT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // DER encode signed CMS: test valid input produces expected encoded result
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        CMS_SIGN_DER_ENCODE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_SIGN_DER_ENCODE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_OK);
 
+  // create test cert/key inputs
+  //   - encrypt_cert: message recipient's public key (certificate) used to encrypt
+  //   - decrypt_priv: message recipeients private key used to decrypt
+  charbuf encrypt_cert = { .chars = NULL, .len = 0 };
+  charbuf decrypt_priv = { .chars = NULL, .len = 0 };
+
+  result = pem_cert_to_der("test/data/msg_test_resp_pub.pem", &encrypt_cert);
+  if (result != 0)
+  {
+    CU_FAIL("DER cert from file (test/data/msg_test_resp_pub.pem) error");
+  }
+  result = pem_priv_to_der("test/data/msg_test_resp_priv.pem", &decrypt_priv);
+  if (result != 0)
+  {
+    CU_FAIL("DER key from file (test/data/msg_test_resp_priv.pem) error");
+  }
+
   // DER encode enveloped CMS: test that NULL input message is handled as expected
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        CMS_ENCRYPT_DER_ENCODE_NULL_MSG_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_ENCRYPT_DER_ENCODE_NULL_MSG_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // DER encode enveloped CMS: test that NULL input message is handled as expected
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        CMS_ENCRYPT_DER_ENCODE_NULL_BUF_OUT);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_ENCRYPT_DER_ENCODE_NULL_BUF_OUT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // DER encode enveloped CMS: test valid input produces expected encoded result
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        CMS_ENCRYPT_DER_ENCODE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_ENCRYPT_DER_ENCODE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_OK);
+
+  // Clean-up
+  free_charbuf(&test_cipher);
+  free_charbuf(&test_key_id);
+  free_charbuf(&test_data);
+  free_charbuf(&test_status);
+  free_charbuf(&sign_priv);
+  free_charbuf(&verify_cert);
+  free_charbuf(&encrypt_cert);
+  free_charbuf(&decrypt_priv);
+  if (empty_CA_table(eid, NULL) != 0)
+  {
+    CU_FAIL("error emptying CA table");
+  }
 }
 
 void test_der_decode_pelz_msg(void)
 {
   pelz_log(LOG_DEBUG, "Start der_decode_pelz_msg() functionality test");
 
+  sgx_status_t retval = SGX_ERROR_UNEXPECTED;
+  MsgTestStatus result = MSG_TEST_UNKNOWN_ERROR;
+
+  // specify test pelz test field values
+  PELZ_MSG_TYPE test_msg_type = REQUEST;
+  PELZ_REQ_TYPE test_req_type = KEY_WRAP;
+
+  charbuf test_cipher = { .chars = NULL, .len = 0 };
+  test_cipher.chars = malloc(strlen("AES/KeyWrap/RFC3394NoPadding/128") + 1);
+  sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+  test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_key_id = { .chars = NULL, .len = 0 };
+  test_key_id.chars = malloc(strlen("file://test.key") + 1);
+  sprintf((char *) test_key_id.chars, "file://test.key");
+  test_key_id.len = strlen("file://test.key");
+
+  charbuf test_data = { .chars = NULL, .len = 0 };
+  test_data.chars = malloc(strlen("create enveloped message test data") + 1);
+  sprintf((char *) test_data.chars, "create enveloped message test data");
+  test_data.len = strlen("create enveloped message test data");
+
+  charbuf test_status = { .chars = NULL, .len = 0 };
+  test_status.chars = malloc(strlen("create enveloped message status") + 1);
+  sprintf((char *) test_data.chars, "create enveloped message status");
+  test_data.len = strlen("create enveloped message status");
+
+  // ASN.1 DER decode: test NULL pointer to input byte array handled
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_DER_DECODE_NULL_BUF_IN,
+                               &result);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // ASN.1 DER decode: test empty input byte array handled
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_DER_DECODE_EMPTY_BUF_IN,
+                               &result);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // ASN.1 DER decode: test invalid decoded message format parameter handled
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_DER_DECODE_INVALID_FORMAT,
+                               &result);
+  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
+
+  // ASN.1 DER decode: test valid input produces expected message output
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               0, NULL,
+                               ASN1_PARSE_DER_DECODE_FUNCTIONALITY,
+                               &result);
+  CU_ASSERT(result == MSG_TEST_OK);
+
   TableResponseStatus status;
   uint64_t handle = 0;
-  int result = -1;
 
   if (pelz_load_file_to_enclave("test/data/ca_pub.der.nkl", &handle) == 0)
   {
@@ -1338,255 +1535,216 @@ void test_der_decode_pelz_msg(void)
   table_id_count(eid, &status, CA_TABLE, &ca_cnt);
   pelz_log(LOG_DEBUG, "CA table size = %zu", ca_cnt);
 
-  BIO *test_req_cert_bio = BIO_new_file("test/data/msg_test_req_pub.pem", "r");
-  if (test_req_cert_bio == NULL)
-  {
-    CU_FAIL("error creating BIO for reading test requestor cert from file");
-  }
-  X509 *test_req_cert = PEM_read_bio_X509(test_req_cert_bio, NULL, 0, NULL);
-  if (test_req_cert == NULL)
-  {
-    CU_FAIL("error creating test X509 certificate for requestor");
-  }
-  BIO_free(test_req_cert_bio);
-  size_t test_der_req_cert_len = 0;
-  uint8_t *test_der_req_cert = NULL;
-  test_der_req_cert_len = (size_t) i2d_X509(test_req_cert,
-                                            &test_der_req_cert);
-  if ((test_der_req_cert == NULL) || (test_der_req_cert_len == 0))
-  {
-    CU_FAIL("error creating DER-formatted test requestor certificate");
-  }
-  X509_free(test_req_cert);
+  // create test cert/key inputs
+  //   - sign_priv:    message creator's private key used to sign
+  //   - verify_cert:  message creator's public key (certificate) used to verify
+  charbuf sign_priv = { .chars = NULL, .len = 0 };
+  charbuf verify_cert = { .chars = NULL, .len = 0 };
 
-  BIO * test_req_key_bio = BIO_new_file("test/data/msg_test_req_priv.pem", "r");
-  if (test_req_key_bio == NULL)
+  result = pem_priv_to_der("test/data/msg_test_req_priv.pem", &sign_priv);
+  if (result != 0)
   {
-    CU_FAIL("error creating BIO for reading test requestor key from file");
+    CU_FAIL("DER key from file (test/data/msg_test_req_priv.pem) error");
   }
-  EVP_PKEY * test_req_key = PEM_read_bio_PrivateKey(test_req_key_bio,
-                                                    NULL,
-                                                    0,
-                                                    NULL);
-  if (test_req_key == NULL)
+  result = pem_cert_to_der("test/data/msg_test_req_pub.pem", &verify_cert);
+  if (result != 0)
   {
-    CU_FAIL("error creating test requestor EC private key for signing");
+    CU_FAIL("DER cert from file (test/data/msg_test_req_pub.pem) error");
   }
-  BIO_free(test_req_key_bio);
-  size_t test_der_req_key_len = 0;
-  uint8_t *test_der_req_key = NULL;
-  test_der_req_key_len = (size_t) i2d_PrivateKey(test_req_key,
-                                                 &test_der_req_key);
-  if ((test_der_req_key == NULL) || (test_der_req_key_len == 0))
-  {
-    CU_FAIL("error creating DER-formatted test requestor EC private key");
-  }
-  EVP_PKEY_free(test_req_key);
-
-  BIO *test_resp_cert_bio = BIO_new_file("test/data/msg_test_resp_pub.pem", "r");
-  if (test_resp_cert_bio == NULL)
-  {
-    CU_FAIL("error creating BIO for reading test responder cert from file");
-  }
-  X509 *test_resp_cert = PEM_read_bio_X509(test_resp_cert_bio, NULL, 0, NULL);
-  if (test_resp_cert == NULL)
-  {
-    CU_FAIL("error creating test X509 certificate for responder");
-  }
-  BIO_free(test_resp_cert_bio);
-  size_t test_der_resp_cert_len = 0;
-  uint8_t *test_der_resp_cert = NULL;
-  test_der_resp_cert_len = (size_t) i2d_X509(test_resp_cert,
-                                             &test_der_resp_cert);
-  if ((test_der_resp_cert == NULL) || (test_der_resp_cert_len == 0))
-  {
-    CU_FAIL("error creating DER-formatted test responder certificate");
-  }
-  X509_free(test_resp_cert);
-
-  BIO * test_resp_key_bio = BIO_new_file("test/data/msg_test_resp_priv.pem", "r");
-  if (test_resp_key_bio == NULL)
-  {
-    CU_FAIL("error creating BIO for reading test responder key from file");
-  }
-  EVP_PKEY * test_resp_key = PEM_read_bio_PrivateKey(test_resp_key_bio,
-                                                     NULL,
-                                                     0,
-                                                     NULL);
-  if (test_resp_key == NULL)
-  {
-    CU_FAIL("error creating test responder EC private key");
-  }
-  BIO_free(test_resp_key_bio);
-  size_t test_der_resp_key_len = 0;
-  uint8_t *test_der_resp_key = NULL;
-  test_der_resp_key_len = (size_t) i2d_PrivateKey(test_resp_key,
-                                                  &test_der_resp_key);
-  if ((test_der_resp_key == NULL) || (test_der_resp_key_len == 0))
-  {
-    CU_FAIL("error creating DER-formatted test responder EC private key");
-  }
-  EVP_PKEY_free(test_resp_key);
-
-  // ASN.1 DER decode: test NULL pointer to input byte array handled
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        ASN1_PARSE_DER_DECODE_NULL_BUF_IN);
-  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
-
-  // ASN.1 DER decode: test empty input byte array handled
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        ASN1_PARSE_DER_DECODE_EMPTY_BUF_IN);
-  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
-
-  // ASN.1 DER decode: test invalid decoded message format parameter handled
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        ASN1_PARSE_DER_DECODE_INVALID_FORMAT);
-  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
-
-  // ASN.1 DER decode: test valid input produces expected message output
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        ASN1_PARSE_DER_DECODE_FUNCTIONALITY);
-  CU_ASSERT(result == MSG_TEST_OK);
 
   // DER decode to signed CMS: test NULL pointer to input byte array handled
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        CMS_VERIFY_DER_DECODE_NULL_BUF_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_VERIFY_DER_DECODE_NULL_BUF_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // DER decode to signed CMS: test invalid decoded message format parameter handled
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        CMS_VERIFY_DER_DECODE_INVALID_FORMAT);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_VERIFY_DER_DECODE_INVALID_FORMAT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // DER decode to signed CMS: test valid input produces expected message output
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        CMS_VERIFY_DER_DECODE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               0, NULL,
+                               0, NULL,
+                               CMS_VERIFY_DER_DECODE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_OK);
 
+  // create test cert/key inputs
+  //   - encrypt_cert: message recipient's public key (certificate) used to encrypt
+  //   - decrypt_priv: message recipeients private key used to decrypt
+  charbuf encrypt_cert = { .chars = NULL, .len = 0 };
+  charbuf decrypt_priv = { .chars = NULL, .len = 0 };
+
+  result = pem_cert_to_der("test/data/msg_test_resp_pub.pem", &encrypt_cert);
+  if (result != 0)
+  {
+    CU_FAIL("DER cert from file (test/data/msg_test_resp_pub.pem) error");
+  }
+  result = pem_priv_to_der("test/data/msg_test_resp_priv.pem", &decrypt_priv);
+  if (result != 0)
+  {
+    CU_FAIL("DER key from file (test/data/msg_test_resp_priv.pem) error");
+  }
+
   // DER decode to enveloped CMS: test NULL pointer to input byte array handled
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        CMS_DECRYPT_DER_DECODE_NULL_BUF_IN);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_DECRYPT_DER_DECODE_NULL_BUF_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
-  // DER decode to enveloped CMS: test invalid decoded message format parameter handled
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        CMS_DECRYPT_DER_DECODE_INVALID_FORMAT);
+  // DER decode to enveloped CMS: test invalid message format parameter handled
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_DECRYPT_DER_DECODE_INVALID_FORMAT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // DER decode to enveloped CMS: test valid input produces expected message output
-  result = pelz_enclave_msg_test_helper(eid, &result,
-                                        REQUEST, KEY_UNWRAP,
-                                        32, (unsigned char *) "AES/KeyWrap/RFC3394NoPadding/128",
-                                        15, (unsigned char *) "file://test.key",
-                                        14, (unsigned char *) "Test,test,test",
-                                        11, (unsigned char *) "some status",
-                                        test_der_req_key_len, test_der_req_key,
-                                        test_der_req_cert_len, test_der_req_cert,
-                                        test_der_resp_cert_len, test_der_resp_cert,
-                                        test_der_resp_key_len, test_der_resp_key,
-                                        CMS_DECRYPT_DER_DECODE_FUNCTIONALITY);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CMS_DECRYPT_DER_DECODE_FUNCTIONALITY,
+                               &result);
   CU_ASSERT(result == MSG_TEST_OK);
+
+  // Clean-up
+  free_charbuf(&test_cipher);
+  free_charbuf(&test_key_id);
+  free_charbuf(&test_data);
+  free_charbuf(&test_status);
+  free_charbuf(&sign_priv);
+  free_charbuf(&verify_cert);
+  free_charbuf(&encrypt_cert);
+  free_charbuf(&decrypt_priv);
+  if (empty_CA_table(eid, NULL) != 0)
+  {
+    CU_FAIL("error emptying CA table");
+  }
 }
 
 void test_construct_deconstruct_pelz_msg(void)
 {
   pelz_log(LOG_DEBUG, "Start end-to-end pelz message functionality test");
 
-  int result = 0;
+  sgx_status_t retval = SGX_ERROR_UNEXPECTED;
+  MsgTestStatus result = MSG_TEST_UNKNOWN_ERROR;
 
-  char *test_cipher = "AES/KeyWrap/RFC3394NoPadding/128\0";
-  size_t test_cipher_len = (size_t) strlen(test_cipher);
-  char *test_key_id = "file://test_key.pem\0";
-  size_t test_key_id_len = (size_t) strlen(test_key_id);
-  char *test_data = "pelz end-to-end test message data\0";
-  size_t test_data_len = (size_t) strlen(test_data);
-  char *test_status = "pelz end-to-end test message status\0";
-  size_t test_status_len = (size_t) strlen(test_status);
+  // specify test pelz test field values
+  PELZ_MSG_TYPE test_msg_type = REQUEST;
+  PELZ_REQ_TYPE test_req_type = KEY_WRAP;
 
-  // load CA certificate into table
+  charbuf test_cipher = { .chars = NULL, .len = 0 };
+  test_cipher.chars = malloc(strlen("AES/KeyWrap/RFC3394NoPadding/128") + 1);
+  sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+  test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_key_id = { .chars = NULL, .len = 0 };
+  test_key_id.chars = malloc(strlen("file://test.key") + 1);
+  sprintf((char *) test_key_id.chars, "file://test.key");
+  test_key_id.len = strlen("file://test.key");
+
+  charbuf test_data = { .chars = NULL, .len = 0 };
+  test_data.chars = malloc(strlen("create enveloped message test data") + 1);
+  sprintf((char *) test_data.chars, "create enveloped message test data");
+  test_data.len = strlen("create enveloped message test data");
+
+  charbuf test_status = { .chars = NULL, .len = 0 };
+  test_status.chars = malloc(strlen("create enveloped message status") + 1);
+  sprintf((char *) test_data.chars, "create enveloped message status");
+  test_data.len = strlen("create enveloped message status");
+
+  // create test cert/key inputs
+  //   - sign_priv:    message creator's private key used to sign
+  //   - verify_cert:  message creator's public key (certificate) used to verifye test cert/key inputs
+  //   - encrypt_cert: message recipient's public key (certificate) used to encrypt
+  //   - decrypt_priv: message recipients private key used to decrypt
+  charbuf sign_priv = { .chars = NULL, .len = 0 };
+  charbuf verify_cert = { .chars = NULL, .len = 0 };
+  charbuf encrypt_cert = { .chars = NULL, .len = 0 };
+  charbuf decrypt_priv = { .chars = NULL, .len = 0 };
+  result = pem_priv_to_der("test/data/msg_test_req_priv.pem", &sign_priv);
+  if (result != 0)
+  {
+    CU_FAIL("DER key from file (test/data/msg_test_req_priv.pem) error");
+  }
+  result = pem_cert_to_der("test/data/msg_test_req_pub.pem", &verify_cert);
+  if (result != 0)
+  {
+    CU_FAIL("DER cert from file (test/data/msg_test_req_pub.pem) error");
+  }
+  result = pem_cert_to_der("test/data/msg_test_resp_pub.pem", &encrypt_cert);
+  if (result != 0)
+  {
+    CU_FAIL("DER cert from file (test/data/msg_test_resp_pub.pem) error");
+  }
+  result = pem_priv_to_der("test/data/msg_test_resp_priv.pem", &decrypt_priv);
+  if (result != 0)
+  {
+    CU_FAIL("DER key from file (test/data/msg_test_resp_priv.pem) error");
+  }
+
+  // load CA cert into enclave table
   TableResponseStatus status;
   uint64_t handle = 0;
+
   if (pelz_load_file_to_enclave("test/data/ca_pub.der.nkl", &handle) == 0)
   {
     add_cert_to_table(eid, &status, CA_TABLE, handle);
@@ -1594,390 +1752,194 @@ void test_construct_deconstruct_pelz_msg(void)
     pelz_log(LOG_INFO, "CA Table add complete");
     handle = 0;
   }
-  size_t ca_cnt = 0;
-  table_id_count(eid, &status, CA_TABLE, &ca_cnt);
-  CU_ASSERT(status == OK && ca_cnt == 1);
-
-  // create DER-formatted test certs/keys for requestor and responder
-  BIO *test_req_cert_bio = BIO_new_file("test/data/msg_test_req_pub.pem", "r");
-  if (test_req_cert_bio == NULL)
-  {
-    CU_FAIL("error creating BIO for reading test requestor cert from file");
-  }
-  X509 *test_req_cert = PEM_read_bio_X509(test_req_cert_bio, NULL, 0, NULL);
-  if (test_req_cert == NULL)
-  {
-    CU_FAIL("error creating test requestor X509 certificate");
-  }
-  BIO_free(test_req_cert_bio);
-  int test_der_req_cert_len = -1;
-  uint8_t *test_der_req_cert = NULL;
-  test_der_req_cert_len = i2d_X509(test_req_cert, &test_der_req_cert);
-  if ((test_der_req_cert == NULL) || (test_der_req_cert_len <= 0))
-  {
-    CU_FAIL("error creating DER-formatted test requestor certificate");
-  }
-  BIO *test_req_priv_bio = BIO_new_file("test/data/msg_test_req_priv.pem", "r");
-  if (test_req_priv_bio == NULL)
-  {
-    CU_FAIL("error creating BIO to read test requestor private key from file");
-  }
-  EVP_PKEY *test_req_priv = PEM_read_bio_PrivateKey(test_req_priv_bio,
-                                                    NULL,
-                                                    0,
-                                                    NULL);
-  if (test_req_priv == NULL)
-  {
-    CU_FAIL("error creating test requestor EC private key");
-  }
-  BIO_free(test_req_priv_bio);
-  int test_der_req_priv_len = -1;
-  uint8_t *test_der_req_priv = NULL;
-  test_der_req_priv_len = i2d_PrivateKey(test_req_priv, &test_der_req_priv);
-  if ((test_der_req_priv == NULL) || (test_der_req_priv_len <= 0))
-  {
-    CU_FAIL("error creating DER-formatted test requestor private key");
-  }
-  BIO *test_resp_cert_bio = BIO_new_file("test/data/msg_test_resp_pub.pem",
-                                         "r");
-  if (test_resp_cert_bio == NULL)
-  {
-    CU_FAIL("error creating BIO for reading test responder cert from file");
-  }
-  X509 *test_resp_cert = PEM_read_bio_X509(test_resp_cert_bio, NULL, 0, NULL);
-  if (test_resp_cert == NULL)
-  {
-    CU_FAIL("error creating test responder X509 certificate");
-  }
-  BIO_free(test_resp_cert_bio);
-  int test_der_resp_cert_len = -1;
-  uint8_t *test_der_resp_cert = NULL;
-  test_der_resp_cert_len = i2d_X509(test_resp_cert, &test_der_resp_cert);
-  if ((test_der_resp_cert == NULL) || (test_der_resp_cert_len <= 0))
-  {
-    CU_FAIL("error creating DER-formatted test responder certificate");
-  }
-  BIO *test_resp_priv_bio = BIO_new_file("test/data/msg_test_resp_priv.pem",
-                                         "r");
-  if (test_resp_priv_bio == NULL)
-  {
-    CU_FAIL("error creating BIO to read test responder private key from file");
-  }
-  EVP_PKEY *test_resp_priv = PEM_read_bio_PrivateKey(test_resp_priv_bio,
-                                                    NULL,
-                                                    0,
-                                                    NULL);
-  if (test_resp_priv == NULL)
-  {
-    CU_FAIL("error creating test responder EC private key");
-  }
-  BIO_free(test_resp_priv_bio);
-  int test_der_resp_priv_len = -1;
-  uint8_t *test_der_resp_priv = NULL;
-  test_der_resp_priv_len = i2d_PrivateKey(test_resp_priv, &test_der_resp_priv);
-  if ((test_der_resp_priv == NULL) || (test_der_resp_priv_len <= 0))
-  {
-    CU_FAIL("error creating DER-formatted test responder private key");
-  }
 
   // test NULL pointer as input byte array parameter to "construct"
-  test_end_to_end_pelz_msg_helper(eid,
-                                  &result,
-                                  REQUEST,
-                                  KEY_WRAP,
-                                  test_cipher_len,
-                                  (uint8_t *) test_cipher,
-                                  test_key_id_len,
-                                  (uint8_t *) test_key_id,
-                                  test_data_len,
-                                  (uint8_t *) test_data,
-                                  test_status_len,
-                                  (uint8_t *) test_status,
-                                  (size_t) test_der_req_cert_len,
-                                  test_der_req_cert,
-                                  (size_t) test_der_req_priv_len,
-                                  test_der_req_priv,
-                                  (size_t) test_der_resp_cert_len,
-                                  test_der_resp_cert,
-                                  (size_t) test_der_resp_priv_len,
-                                  test_der_resp_priv,
-                                  CONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CONSTRUCT_NULL_MSG_DATA_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // test NULL pointer as input local certificate parameter to "construct"
-  test_end_to_end_pelz_msg_helper(eid,
-                                  &result,
-                                  REQUEST,
-                                  KEY_WRAP,
-                                  test_cipher_len,
-                                  (uint8_t *) test_cipher,
-                                  test_key_id_len,
-                                  (uint8_t *) test_key_id,
-                                  test_data_len,
-                                  (uint8_t *) test_data,
-                                  test_status_len,
-                                  (uint8_t *) test_status,
-                                  (size_t) test_der_req_cert_len,
-                                  test_der_req_cert,
-                                  (size_t) test_der_req_priv_len,
-                                  test_der_req_priv,
-                                  (size_t) test_der_resp_cert_len,
-                                  test_der_resp_cert,
-                                  (size_t) test_der_resp_priv_len,
-                                  test_der_resp_priv,
-                                  CONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CONSTRUCT_NULL_CERT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // test NULL pointer as input local private key parameter to "construct"
-  test_end_to_end_pelz_msg_helper(eid,
-                                  &result,
-                                  REQUEST,
-                                  KEY_WRAP,
-                                  test_cipher_len,
-                                  (uint8_t *) test_cipher,
-                                  test_key_id_len,
-                                  (uint8_t *) test_key_id,
-                                  test_data_len,
-                                  (uint8_t *) test_data,
-                                  test_status_len,
-                                  (uint8_t *) test_status,
-                                  (size_t) test_der_req_cert_len,
-                                  test_der_req_cert,
-                                  (size_t) test_der_req_priv_len,
-                                  test_der_req_priv,
-                                  (size_t) test_der_resp_cert_len,
-                                  test_der_resp_cert,
-                                  (size_t) test_der_resp_priv_len,
-                                  test_der_resp_priv,
-                                  CONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CONSTRUCT_NULL_PRIV,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // test NULL pointer as input peer certificate parameter to "construct"
-  test_end_to_end_pelz_msg_helper(eid,
-                                  &result,
-                                  REQUEST,
-                                  KEY_WRAP,
-                                  test_cipher_len,
-                                  (uint8_t *) test_cipher,
-                                  test_key_id_len,
-                                  (uint8_t *) test_key_id,
-                                  test_data_len,
-                                  (uint8_t *) test_data,
-                                  test_status_len,
-                                  (uint8_t *) test_status,
-                                  (size_t) test_der_req_cert_len,
-                                  test_der_req_cert,
-                                  (size_t) test_der_req_priv_len,
-                                  test_der_req_priv,
-                                  (size_t) test_der_resp_cert_len,
-                                  test_der_resp_cert,
-                                  (size_t) test_der_resp_priv_len,
-                                  test_der_resp_priv,
-                                  CONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CONSTRUCT_NULL_PEER_CERT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // test NULL pointer as output byte array parameter to "construct"
-  test_end_to_end_pelz_msg_helper(eid,
-                                  &result,
-                                  REQUEST,
-                                  KEY_WRAP,
-                                  test_cipher_len,
-                                  (uint8_t *) test_cipher,
-                                  test_key_id_len,
-                                  (uint8_t *) test_key_id,
-                                  test_data_len,
-                                  (uint8_t *) test_data,
-                                  test_status_len,
-                                  (uint8_t *) test_status,
-                                  (size_t) test_der_req_cert_len,
-                                  test_der_req_cert,
-                                  (size_t) test_der_req_priv_len,
-                                  test_der_req_priv,
-                                  (size_t) test_der_resp_cert_len,
-                                  test_der_resp_cert,
-                                  (size_t) test_der_resp_priv_len,
-                                  test_der_resp_priv,
-                                  CONSTRUCT_PELZ_MSG_NULL_OUT_BUF_TEST);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CONSTRUCT_NULL_BUF_OUT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
+  // test "construct" pelz message functionality
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               CONSTRUCT_FUNCTIONALITY,
+                               &result);
+  CU_ASSERT(result == MSG_TEST_OK);
+
   // test NULL pointer as input message byte array parameter to "deconstruct"
-  test_end_to_end_pelz_msg_helper(eid,
-                                  &result,
-                                  REQUEST,
-                                  KEY_WRAP,
-                                  test_cipher_len,
-                                  (uint8_t *) test_cipher,
-                                  test_key_id_len,
-                                  (uint8_t *) test_key_id,
-                                  test_data_len,
-                                  (uint8_t *) test_data,
-                                  test_status_len,
-                                  (uint8_t *) test_status,
-                                  (size_t) test_der_req_cert_len,
-                                  test_der_req_cert,
-                                  (size_t) test_der_req_priv_len,
-                                  test_der_req_priv,
-                                  (size_t) test_der_resp_cert_len,
-                                  test_der_resp_cert,
-                                  (size_t) test_der_resp_priv_len,
-                                  test_der_resp_priv,
-                                  DECONSTRUCT_PELZ_MSG_NULL_MSG_IN_TEST);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               DECONSTRUCT_NULL_MSG_IN,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // test NULL pointer as input local certificate parameter to "deconstruct"
-  test_end_to_end_pelz_msg_helper(eid,
-                                  &result,
-                                  REQUEST,
-                                  KEY_WRAP,
-                                  test_cipher_len,
-                                  (uint8_t *) test_cipher,
-                                  test_key_id_len,
-                                  (uint8_t *) test_key_id,
-                                  test_data_len,
-                                  (uint8_t *) test_data,
-                                  test_status_len,
-                                  (uint8_t *) test_status,
-                                  (size_t) test_der_req_cert_len,
-                                  test_der_req_cert,
-                                  (size_t) test_der_req_priv_len,
-                                  test_der_req_priv,
-                                  (size_t) test_der_resp_cert_len,
-                                  test_der_resp_cert,
-                                  (size_t) test_der_resp_priv_len,
-                                  test_der_resp_priv,
-                                  DECONSTRUCT_PELZ_MSG_NULL_LOCAL_CERT_TEST);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               DECONSTRUCT_NULL_CERT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
   // test NULL pointer as input local private key parameter to "deconstruct"
-  test_end_to_end_pelz_msg_helper(eid,
-                                  &result,
-                                  REQUEST,
-                                  KEY_WRAP,
-                                  test_cipher_len,
-                                  (uint8_t *) test_cipher,
-                                  test_key_id_len,
-                                  (uint8_t *) test_key_id,
-                                  test_data_len,
-                                  (uint8_t *) test_data,
-                                  test_status_len,
-                                  (uint8_t *) test_status,
-                                  (size_t) test_der_req_cert_len,
-                                  test_der_req_cert,
-                                  (size_t) test_der_req_priv_len,
-                                  test_der_req_priv,
-                                  (size_t) test_der_resp_cert_len,
-                                  test_der_resp_cert,
-                                  (size_t) test_der_resp_priv_len,
-                                  test_der_resp_priv,
-                                  DECONSTRUCT_PELZ_MSG_NULL_LOCAL_PRIV_TEST);
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               DECONSTRUCT_NULL_PRIV,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
-  // test NULL double pointer to peer cert output parameter for "deconstruct"
-  test_end_to_end_pelz_msg_helper(eid,
-                                  &result,
-                                  REQUEST,
-                                  KEY_WRAP,
-                                  test_cipher_len,
-                                  (uint8_t *) test_cipher,
-                                  test_key_id_len,
-                                  (uint8_t *) test_key_id,
-                                  test_data_len,
-                                  (uint8_t *) test_data,
-                                  test_status_len,
-                                  (uint8_t *) test_status,
-                                  (size_t) test_der_req_cert_len,
-                                  test_der_req_cert,
-                                  (size_t) test_der_req_priv_len,
-                                  test_der_req_priv,
-                                  (size_t) test_der_resp_cert_len,
-                                  test_der_resp_cert,
-                                  (size_t) test_der_resp_priv_len,
-                                  test_der_resp_priv,
-                                  DECONSTRUCT_PELZ_MSG_NULL_PEER_CERT_TEST);
+  // test NULL pointer to peer cert output parameter for "deconstruct"
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               DECONSTRUCT_NULL_PEER_CERT_OUT,
+                               &result);
   CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
 
-  // test preallocated buffer for peer cert output parameter to "deconstruct"
-  test_end_to_end_pelz_msg_helper(eid,
-                                  &result,
-                                  REQUEST,
-                                  KEY_WRAP,
-                                  test_cipher_len,
-                                  (uint8_t *) test_cipher,
-                                  test_key_id_len,
-                                  (uint8_t *) test_key_id,
-                                  test_data_len,
-                                  (uint8_t *) test_data,
-                                  test_status_len,
-                                  (uint8_t *) test_status,
-                                  (size_t) test_der_req_cert_len,
-                                  test_der_req_cert,
-                                  (size_t) test_der_req_priv_len,
-                                  test_der_req_priv,
-                                  (size_t) test_der_resp_cert_len,
-                                  test_der_resp_cert,
-                                  (size_t) test_der_resp_priv_len,
-                                  test_der_resp_priv,
-                                  DECONSTRUCT_PELZ_MSG_PREALLOC_PEER_CERT_TEST);
-  CU_ASSERT(result == MSG_TEST_PARAM_HANDLING_OK);
-
-  // test end-to-end "construct" then "deconstruct" pelz message
-  test_end_to_end_pelz_msg_helper(eid,
-                                  &result,
-                                  REQUEST,
-                                  KEY_WRAP,
-                                  test_cipher_len,
-                                  (uint8_t *) test_cipher,
-                                  test_key_id_len,
-                                  (uint8_t *) test_key_id,
-                                  test_data_len,
-                                  (uint8_t *) test_data,
-                                  test_status_len,
-                                  (uint8_t *) test_status,
-                                  (size_t) test_der_req_cert_len,
-                                  test_der_req_cert,
-                                  (size_t) test_der_req_priv_len,
-                                  test_der_req_priv,
-                                  (size_t) test_der_resp_cert_len,
-                                  test_der_resp_cert,
-                                  (size_t) test_der_resp_priv_len,
-                                  test_der_resp_priv,
-                                  CONSTRUCT_DECONSTRUCT_PELZ_MSG_BASIC_TEST);
-  CU_ASSERT(result == MSG_TEST_SUCCESS);
-  pelz_log(LOG_DEBUG, "result = %d", result);
-
-  // test end-to-end "construct" then "deconstruct" pelz message
-  // with mismatched certificates and keys
-  test_end_to_end_pelz_msg_helper(eid,
-                                  &result,
-                                  REQUEST,
-                                  KEY_WRAP,
-                                  test_cipher_len,
-                                  (uint8_t *) test_cipher,
-                                  test_key_id_len,
-                                  (uint8_t *) test_key_id,
-                                  test_data_len,
-                                  (uint8_t *) test_data,
-                                  test_status_len,
-                                  (uint8_t *) test_status,
-                                  (size_t) test_der_req_cert_len,
-                                  test_der_req_cert,
-                                  (size_t) test_der_resp_priv_len,
-                                  test_der_resp_priv,
-                                  (size_t) test_der_resp_cert_len,
-                                  test_der_resp_cert,
-                                  (size_t) test_der_req_priv_len,
-                                  test_der_req_priv,
-                                  CONSTRUCT_DECONSTRUCT_PELZ_MSG_BASIC_TEST);
-  CU_ASSERT(result == MSG_TEST_SETUP_ERROR);
+  // test "deconstruct" pelz message functionality
+  pelz_enclave_msg_test_helper(eid, &retval,
+                               (uint8_t) test_msg_type,
+                               (uint8_t) test_req_type,
+                               test_cipher.len, test_cipher.chars,
+                               test_key_id.len, test_key_id.chars,
+                               test_data.len, test_data.chars,
+                               test_status.len, test_status.chars,
+                               sign_priv.len, sign_priv.chars,
+                               verify_cert.len, verify_cert.chars,
+                               encrypt_cert.len, encrypt_cert.chars,
+                               decrypt_priv.len, decrypt_priv.chars,
+                               DECONSTRUCT_FUNCTIONALITY,
+                               &result);
+  CU_ASSERT(result == MSG_TEST_OK);
 
   // Clean-up
+  free_charbuf(&test_cipher);
+  free_charbuf(&test_key_id);
+  free_charbuf(&test_data);
+  free_charbuf(&test_status);
+  free_charbuf(&sign_priv);
+  free_charbuf(&verify_cert);
+  free_charbuf(&encrypt_cert);
+  free_charbuf(&decrypt_priv);
   if (empty_CA_table(eid, NULL) != 0)
   {
     CU_FAIL("error emptying CA table");
   }
-  free(test_der_req_cert);
-  free(test_der_req_priv);
-  free(test_der_resp_cert);
-  free(test_der_resp_priv);
-
 }

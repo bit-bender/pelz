@@ -6,6 +6,7 @@ enclave
 
   include "common_table.h"
   include "charbuf.h"
+  include "test_helper_functions.h"
 
   trusted
   {
@@ -29,7 +30,7 @@ enclave
       [out] size_t *outData_len,
       [out] unsigned char **outData);
 
-    public int pelz_enclave_msg_test_helper(
+    public sgx_status_t pelz_enclave_msg_test_helper(
       uint8_t msg_type,
       uint8_t req_type,
       size_t cipher_size,
@@ -48,7 +49,8 @@ enclave
       [in, size=der_encrypt_cert_size] unsigned char * der_encrypt_cert,
       size_t der_decrypt_priv_size,
       [in, size=der_decrypt_priv_size] unsigned char * der_decrypt_priv,
-      uint8_t test_select);
+      uint8_t test_select,
+      [out] MsgTestStatus *test_result);
 
   };
 };

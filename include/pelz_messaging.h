@@ -50,8 +50,8 @@ typedef enum
   PELZ_MSG_ASN1_CREATE_INVALID_RESULT = -33,
 
   // ASN.1 message parse error(s)
-  PELZ_MSG_ASN1_TAG_ERROR = -65,
-  PELZ_MSG_ASN1_PARSE_ERROR = -64,
+  PELZ_MSG_ASN1_TAG_ERROR = -64,
+  PELZ_MSG_ASN1_PARSE_ERROR = -65,
   PELZ_MSG_ASN1_PARSE_INVALID_RESULT = -66,
 
   // DER encode (serialization) error(s)
@@ -85,8 +85,6 @@ typedef enum
   PELZ_MSG_DECRYPT_INVALID_RESULT = -259
 } PelzMessagingStatus;
 
-
-
 typedef struct PELZ_MSG_DATA
 {
   PELZ_MSG_TYPE msg_type;
@@ -106,6 +104,11 @@ typedef struct PELZ_MSG
   ASN1_OCTET_STRING *data;
   ASN1_UTF8STRING *status;
 } PELZ_MSG;
+
+DECLARE_ASN1_FUNCTIONS(PELZ_MSG);
+DECLARE_ASN1_PRINT_FUNCTION(PELZ_MSG);
+
+void PELZ_MSG_DATA_free(PELZ_MSG_DATA *msg_data_in);
 
 /**
  * <pre>
@@ -396,7 +399,7 @@ void *der_decode_pelz_msg(charbuf der_bytes_in,
  *                             signed, encrypted, pelz message data in
  *                             a format ready to be sent to a recipient.
  *
- * @return                     Zero (0 = PELZ_MSG_SUCCESS) on success;
+ * @return                     Zero (0 = PELZ_MSG_OK) on success;
  *                             error code (negative integer) otherwise
  */
 PelzMessagingStatus construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
@@ -454,7 +457,7 @@ PelzMessagingStatus construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
  *                             and parsed pelz message data struct
  *                             (PELZ_MSG_DATA *).
  *
- * @return                     Zero (PELZ_MSG_SUCCESS = 0) on success;
+ * @return                     Zero (PELZ_MSG_OK = 0) on success;
  *                             error code (negative integer) otherwise
  */
 PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf,

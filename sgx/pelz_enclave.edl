@@ -279,7 +279,6 @@ enclave
                       size_t req_msg_in_size,
                       [out] unsigned char **resp_msg_out,
                       [out] size_t *resp_msg_out_size);
-
   };
 
   untrusted

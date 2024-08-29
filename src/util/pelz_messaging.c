@@ -17,9 +17,6 @@
 
 #include ENCLAVE_HEADER_TRUSTED
 
-DECLARE_ASN1_FUNCTIONS(PELZ_MSG);
-DECLARE_ASN1_PRINT_FUNCTION(PELZ_MSG);
-
 ASN1_SEQUENCE(PELZ_MSG) = {
   ASN1_SIMPLE(PELZ_MSG, msg_type, ASN1_ENUMERATED),
   ASN1_SIMPLE(PELZ_MSG, req_type, ASN1_ENUMERATED),
@@ -33,6 +30,13 @@ IMPLEMENT_ASN1_FUNCTIONS(PELZ_MSG);
 IMPLEMENT_ASN1_DUP_FUNCTION(PELZ_MSG);
 IMPLEMENT_ASN1_PRINT_FUNCTION(PELZ_MSG);
 
+void PELZ_MSG_DATA_free(PELZ_MSG_DATA *msg_data_in)
+{
+  free_charbuf(&(msg_data_in->cipher));
+  free_charbuf(&(msg_data_in->key_id));
+  free_charbuf(&(msg_data_in->data));
+  free_charbuf(&(msg_data_in->status));
+}
 
 PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA msg_data_in)
 {
@@ -704,110 +708,11 @@ void *der_decode_pelz_msg(charbuf der_bytes_in,
   return msg_out;
 }
 
-PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf_in,
-                                         X509 *local_cert_in,
-                                         EVP_PKEY *local_priv_in,
-                                         X509 **peer_cert_out,
-                                         PELZ_MSG_DATA *msg_data_out)
-{
-  PelzMessagingStatus deconstruct_status = PELZ_MSG_UNKNOWN_ERROR;
-  
-  // check for NULL (or empty in one case) input parameters
-  if((rcvd_msg_buf_in.chars == NULL) ||
-     (rcvd_msg_buf_in.len == 0) ||
-     (local_cert_in == NULL) ||
-     (local_priv_in == NULL))
-  {
-    pelz_sgx_log(LOG_ERR, "NULL or empty input parameter");
-    return PELZ_MSG_INVALID_PARAM;
-  }
-
-  // check output parameter validity
-  if ((peer_cert_out == NULL) ||
-      (msg_data_out == NULL))
-  {
-    pelz_sgx_log(LOG_ERR, "invalid output parameter");
-    return PELZ_MSG_INVALID_PARAM;
-  }
-
-  // DER-decode signed, enveloped CMS pelz message
-  CMS_ContentInfo *env_msg = NULL;
-  env_msg = (CMS_ContentInfo *) der_decode_pelz_msg(rcvd_msg_buf_in,
-                                                    CMS);
-  if (env_msg == NULL)
-  {
-    pelz_sgx_log(LOG_ERR, "error DER-decoding enveloped pelz CMS message");
-    return PELZ_MSG_DER_DECODE_CMS_ERROR;
-  }
-
-  // CMS decrypt enveloped pelz message
-  charbuf der_signed_msg = { .chars = NULL, .len = 0 };
-  deconstruct_status = decrypt_pelz_enveloped_msg(env_msg,
-                                                  local_cert_in,
-                                                  local_priv_in,
-                                                  &der_signed_msg);
-  CMS_ContentInfo_free(env_msg);
-  if ((deconstruct_status != PELZ_MSG_OK) ||
-      (der_signed_msg.chars == NULL) ||
-      (der_signed_msg.len == 0))
-  {
-    pelz_sgx_log(LOG_ERR, "error decrypting enveloped pelz CMS message");
-    return PELZ_MSG_DECRYPT_ERROR;
-  }
-
-  // DER-decode decrypted, signed CMS pelz message
-  CMS_ContentInfo *signed_msg = NULL;
-  signed_msg = (CMS_ContentInfo *) der_decode_pelz_msg(der_signed_msg,
-                                                       CMS);
-  free(der_signed_msg.chars);
-  if (signed_msg == NULL)
-  {
-    pelz_sgx_log(LOG_ERR, "error DER-decoding decrypted, signed pelz message");
-    return PELZ_MSG_DER_DECODE_CMS_ERROR;
-  }
-
-  // verify signed CMS pelz message
-  charbuf der_asn1_msg = { .chars = NULL, .len = 0 };
-  deconstruct_status = verify_pelz_signed_msg(signed_msg,
-                                              peer_cert_out,
-                                              &der_asn1_msg);
-  CMS_ContentInfo_free(signed_msg);
-  if ((deconstruct_status != PELZ_MSG_OK) ||
-      (der_asn1_msg.chars == NULL) ||
-      (der_asn1_msg.len == 0))
-  {
-    pelz_sgx_log(LOG_ERR, "error verifying signed pelz CMS message");
-    return PELZ_MSG_VERIFY_ERROR;
-  }
-
-  // DER-decode ASN.1 formatted pelz message
-  PELZ_MSG *asn1_msg = NULL;
-  asn1_msg = (PELZ_MSG *) der_decode_pelz_msg(der_asn1_msg,
-                                              ASN1);
-  free(der_asn1_msg.chars);
-  if (asn1_msg == NULL)
-  {
-    pelz_sgx_log(LOG_ERR, "error DER-decoding ASN.1 pelz message");
-    return PELZ_MSG_DER_DECODE_ASN1_ERROR;
-  }
-
-  // parse ASN.1 formatted pelz request message
-  deconstruct_status = parse_pelz_asn1_msg(asn1_msg, msg_data_out);
-  PELZ_MSG_free(asn1_msg);
-  if (deconstruct_status != PELZ_MSG_OK)
-  {
-    pelz_sgx_log(LOG_ERR, "error parsing ASN.1 pelz message");
-    return PELZ_MSG_ASN1_PARSE_ERROR;
-  }
-
-  return PELZ_MSG_OK;
-}
-
-int construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
-                       X509 *local_cert_in,
-                       EVP_PKEY *local_priv_in,
-                       X509 *peer_cert_in,
-                       charbuf *tx_msg_buf)
+PelzMessagingStatus construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
+                                       X509 *local_cert_in,
+                                       EVP_PKEY *local_priv_in,
+                                       X509 *peer_cert_in,
+                                       charbuf *tx_msg_buf)
 {
   PelzMessagingStatus construct_status = PELZ_MSG_UNKNOWN_ERROR;
 
@@ -907,3 +812,103 @@ int construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
 
   return PELZ_MSG_OK;
 }
+
+PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf_in,
+                                         X509 *local_cert_in,
+                                         EVP_PKEY *local_priv_in,
+                                         X509 **peer_cert_out,
+                                         PELZ_MSG_DATA *msg_data_out)
+{
+  PelzMessagingStatus deconstruct_status = PELZ_MSG_UNKNOWN_ERROR;
+  
+  // check for NULL (or empty in one case) input parameters
+  if((rcvd_msg_buf_in.chars == NULL) ||
+     (rcvd_msg_buf_in.len == 0) ||
+     (local_cert_in == NULL) ||
+     (local_priv_in == NULL))
+  {
+    pelz_sgx_log(LOG_ERR, "NULL or empty input parameter");
+    return PELZ_MSG_INVALID_PARAM;
+  }
+
+  // check output parameter validity
+  if ((peer_cert_out == NULL) ||
+      (msg_data_out == NULL))
+  {
+    pelz_sgx_log(LOG_ERR, "invalid output parameter");
+    return PELZ_MSG_INVALID_PARAM;
+  }
+
+  // DER-decode signed, enveloped CMS pelz message
+  CMS_ContentInfo *env_msg = NULL;
+  env_msg = (CMS_ContentInfo *) der_decode_pelz_msg(rcvd_msg_buf_in,
+                                                    CMS);
+  if (env_msg == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error DER-decoding enveloped pelz CMS message");
+    return PELZ_MSG_DER_DECODE_CMS_ERROR;
+  }
+
+  // CMS decrypt enveloped pelz message
+  charbuf der_signed_msg = { .chars = NULL, .len = 0 };
+  deconstruct_status = decrypt_pelz_enveloped_msg(env_msg,
+                                                  local_cert_in,
+                                                  local_priv_in,
+                                                  &der_signed_msg);
+  CMS_ContentInfo_free(env_msg);
+  if ((deconstruct_status != PELZ_MSG_OK) ||
+      (der_signed_msg.chars == NULL) ||
+      (der_signed_msg.len == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error decrypting enveloped pelz CMS message");
+    return PELZ_MSG_DECRYPT_ERROR;
+  }
+
+  // DER-decode decrypted, signed CMS pelz message
+  CMS_ContentInfo *signed_msg = NULL;
+  signed_msg = (CMS_ContentInfo *) der_decode_pelz_msg(der_signed_msg,
+                                                       CMS);
+  free(der_signed_msg.chars);
+  if (signed_msg == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error DER-decoding decrypted, signed pelz message");
+    return PELZ_MSG_DER_DECODE_CMS_ERROR;
+  }
+
+  // verify signed CMS pelz message
+  charbuf der_asn1_msg = { .chars = NULL, .len = 0 };
+  deconstruct_status = verify_pelz_signed_msg(signed_msg,
+                                              peer_cert_out,
+                                              &der_asn1_msg);
+  CMS_ContentInfo_free(signed_msg);
+  if ((deconstruct_status != PELZ_MSG_OK) ||
+      (der_asn1_msg.chars == NULL) ||
+      (der_asn1_msg.len == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error verifying signed pelz CMS message");
+    return PELZ_MSG_VERIFY_ERROR;
+  }
+
+  // DER-decode ASN.1 formatted pelz message
+  PELZ_MSG *asn1_msg = NULL;
+  asn1_msg = (PELZ_MSG *) der_decode_pelz_msg(der_asn1_msg,
+                                              ASN1);
+  free(der_asn1_msg.chars);
+  if (asn1_msg == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error DER-decoding ASN.1 pelz message");
+    return PELZ_MSG_DER_DECODE_ASN1_ERROR;
+  }
+
+  // parse ASN.1 formatted pelz request message
+  deconstruct_status = parse_pelz_asn1_msg(asn1_msg, msg_data_out);
+  PELZ_MSG_free(asn1_msg);
+  if (deconstruct_status != PELZ_MSG_OK)
+  {
+    pelz_sgx_log(LOG_ERR, "error parsing ASN.1 pelz message");
+    return PELZ_MSG_ASN1_PARSE_ERROR;
+  }
+
+  return PELZ_MSG_OK;
+}
+

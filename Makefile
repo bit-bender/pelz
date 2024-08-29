@@ -617,7 +617,7 @@ sgx/$(Enclave_Name): sgx/pelz_enclave_t.o \
 	@echo "LINK =>  $@"
 
 sgx/$(Enclave_Signing_Key):
-	$(error $(err_no_enclave_signing_key))
+	@$(error $(err_no_enclave_signing_key))
 
 sgx/$(Signed_Enclave_Name): sgx/$(Enclave_Name) sgx/$(Enclave_Signing_Key)
 	@$(SGX_ENCLAVE_SIGNER) sign -key sgx/$(Enclave_Signing_Key) \
@@ -655,6 +655,7 @@ sgx/$(Test_Enclave_Name): sgx/test_enclave_t.o \
                           sgx/pelz_cipher.o \
                           sgx/ca_table.o \
                           sgx/secure_socket_enclave.o \
+                          sgx/unsecure_socket_enclave.o \
                           sgx/pelz_messaging.o
 	@$(CXX) $^ -o $@ $(Enclave_Link_Flags) $(ENCLAVE_HEADERS)
 	@echo "LINK =>	$@"

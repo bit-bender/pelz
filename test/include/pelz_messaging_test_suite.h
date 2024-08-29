@@ -18,8 +18,8 @@
 #include "pelz_loaders.h"
 #include "pelz_messaging.h"
 
+#include "test_defines.h"
 #include "test_helper_functions.h"
-#include "enclave_helper_functions.h"
 
 #include "sgx_urts.h"
 #include "pelz_enclave.h"

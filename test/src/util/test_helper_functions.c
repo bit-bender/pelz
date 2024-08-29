@@ -24,56 +24,55 @@ charbuf copy_CWD_to_id(const char *prefix, const char *postfix)
   return (newBuf);
 }
 
-int pem_priv_to_der(char *priv_pem_fn, charbuf *der_priv_out)
+int priv_pem_to_der(char *priv_pem_fn, charbuf *der_priv_out)
 {
-  BIO * priv_bio = BIO_new_file(priv_pem_fn, "r");
-  if (priv_bio == NULL)
+  FILE *pem_fp = fopen(priv_pem_fn, "r");
+  if (pem_fp == NULL)
   {
-    pelz_log(LOG_ERR, "error creating BIO for reading private key from file");
+    pelz_log(LOG_ERR, "error opening private key file (%s)", priv_pem_fn);
     return 1;
   }
-  EVP_PKEY * priv = PEM_read_bio_PrivateKey(priv_bio, NULL, 0, NULL);
-  if (priv == NULL)
-  {
-    pelz_log(LOG_ERR, "error reading private key from file (%s)", priv_pem_fn);
-    return 1;
-  }
-  BIO_free(priv_bio);
+
+  pelz_log(LOG_DEBUG, "opened PEM key file");
+
+  EVP_PKEY *priv = PEM_read_PrivateKey(pem_fp, NULL, 0, NULL);
+  pelz_log(LOG_DEBUG, "created EVP_PKEY");
+
   der_priv_out->len = (size_t) i2d_PrivateKey(priv, &(der_priv_out->chars));
   if ((der_priv_out->chars == NULL) || (der_priv_out->len == 0))
   {
     pelz_log(LOG_ERR, "error creating DER-formatted private key");
     return 1;
   }
+  pelz_log(LOG_DEBUG,"DER-encoded key (%zu bytes)", der_priv_out->len);
+
   EVP_PKEY_free(priv);
 
   return 0;
 }
 
-int pem_cert_to_der(char *cert_pem_fn, charbuf *der_cert_out)
+int cert_pem_to_der(char *cert_pem_fn, charbuf *der_cert_out)
 {
-  // use PEM file data to create X509 certificate
-  BIO *cert_bio = BIO_new_file(cert_pem_fn, "r");
-  if (cert_bio == NULL)
+  FILE *pem_fp = fopen(cert_pem_fn, "r");
+  if (pem_fp == NULL)
   {
-    pelz_log(LOG_ERR, "error creating BIO for reading certficate from file");
+    pelz_log(LOG_ERR, "error opening X509 certificate file (%s)", cert_pem_fn);
     return 1;
   }
-  X509 *cert = PEM_read_bio_X509(cert_bio, NULL, 0, NULL);
-  if (cert == NULL)
-  {
-    pelz_log(LOG_ERR, "error reading X509 cert from file (%s)", cert_pem_fn);
-    return 1;
-  }
-  BIO_free(cert_bio);
 
-  // DER-format X509 certificate
+  pelz_log(LOG_DEBUG, "opened PEM cert file");
+
+  X509 *cert = PEM_read_X509(pem_fp, NULL, 0, NULL);
+  pelz_log(LOG_DEBUG, "created X509");
+
   der_cert_out->len = (size_t) i2d_X509(cert, &(der_cert_out->chars));
   if ((der_cert_out->chars == NULL) || (der_cert_out->len == 0))
   {
-    pelz_log(LOG_ERR, "error creating DER-formatted certificate");
+    pelz_log(LOG_ERR, "error creating DER-formatted X509 certificate");
     return 1;
   }
+  pelz_log(LOG_DEBUG,"DER-encoded cert (%zu bytes)", der_cert_out->len);
+
   X509_free(cert);
 
   return 0;

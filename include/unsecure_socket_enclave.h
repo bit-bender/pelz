@@ -18,6 +18,4 @@
 #include "pelz_request_handler.h"
 #include "pelz_enclave_log.h"
 
-#include ENCLAVE_HEADER_TRUSTED
-
 #endif

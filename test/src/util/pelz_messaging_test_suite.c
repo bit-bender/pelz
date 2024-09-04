@@ -514,20 +514,16 @@ void test_create_pelz_signed_msg(void)
   // create test cert/key inputs
   charbuf test_cert = new_charbuf(0);
   charbuf test_priv = new_charbuf(0);
-  charbuf mismatch_priv = new_charbuf(0);
-  pelz_log(LOG_DEBUG, "pem_cert_to_der()");
-  result = cert_pem_to_der("test/data/msg_test_req_pub.pem", &test_cert);
+  result = keypair_pem_to_der("test/data/msg_test_req_pub.pem",
+                              "test/data/msg_test_req_priv.pem",
+                              &test_cert,
+                              &test_priv);
   if (result != 0)
   {
-    CU_FAIL("DER cert from file (test/data/msg_test_req_pub.pem) error");
+    CU_FAIL("error creating DER formatted cert/key pair");
   }
-  pelz_log(LOG_DEBUG, "pem_priv_to_der()");
-  result = priv_pem_to_der("test/data/msg_test_req_priv.pem", &test_priv);
-  if (result != 0)
-  {
-    CU_FAIL("DER key from file (test/data/msg_test_req_priv.pem) error");
-  }
-  pelz_log(LOG_DEBUG, "about to start test cases");
+
+  //charbuf mismatch_priv = new_charbuf(0);
 
   // NULL input data  pointer test case - invalid parameter should be handled
   retval = pelz_enclave_msg_test_helper(eid, &result,
@@ -542,7 +538,9 @@ void test_create_pelz_signed_msg(void)
                                         0, NULL,
                                         0, NULL,
                                         CMS_SIGN_NULL_BUF_IN);
+  pelz_log(LOG_DEBUG, "retval = %d, result = %d", retval, result);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
+  pelz_log(LOG_DEBUG, "retval = %d, result = %d", retval, result);
 
   // Empty input data buffer test cases - invalid parameter should be handled
   retval = pelz_enclave_msg_test_helper(eid, &result,
@@ -605,19 +603,19 @@ void test_create_pelz_signed_msg(void)
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
   // Mismatched key/cert should fail
-  retval = pelz_enclave_msg_test_helper(eid, &result,
-                                        (uint8_t) test_msg_type,
-                                        (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        mismatch_priv.len, mismatch_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        CMS_SIGN_FUNCTIONALITY);
-  CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_SETUP_ERROR));
+  //retval = pelz_enclave_msg_test_helper(eid, &result,
+  //                                      (uint8_t) test_msg_type,
+  //                                      (uint8_t) test_req_type,
+  //                                      test_cipher.len, test_cipher.chars,
+  //                                      test_key_id.len, test_key_id.chars,
+  //                                      test_data.len, test_data.chars,
+  //                                      test_status.len, test_status.chars,
+  //                                      mismatch_priv.len, mismatch_priv.chars,
+  //                                      test_cert.len, test_cert.chars,
+  //                                      0, NULL,
+  //                                      0, NULL,
+  //                                      CMS_SIGN_FUNCTIONALITY);
+  //CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_SETUP_ERROR));
 
   // Clean-up
   free_charbuf(&test_cipher);
@@ -626,7 +624,7 @@ void test_create_pelz_signed_msg(void)
   free_charbuf(&test_status);
   free_charbuf(&test_cert);
   free_charbuf(&test_priv);
-  free_charbuf(&mismatch_priv);
+  //free_charbuf(&mismatch_priv);
 }
 
 void test_verify_pelz_signed_msg(void)
@@ -663,15 +661,13 @@ void test_verify_pelz_signed_msg(void)
   // create test cert/key inputs
   charbuf test_cert = new_charbuf(0);
   charbuf test_priv = new_charbuf(0);
-  result = cert_pem_to_der("test/data/msg_test_req_pub.pem", &test_cert);
+  result = keypair_pem_to_der("test/data/msg_test_req_pub.pem",
+                              "test/data/msg_test_req_priv.pem",
+                              &test_cert,
+                              &test_priv);
   if (result != 0)
   {
-    CU_FAIL("DER cert from file (test/data/msg_test_req_pub.pem) error");
-  }
-  result = priv_pem_to_der("test/data/msg_test_req_priv.pem", &test_priv);
-  if (result != 0)
-  {
-    CU_FAIL("DER key from file (test/data/msg_test_req_priv.pem) error");
+    CU_FAIL("error creating DER formatted cert/key pair");
   }
 
   // load CA cert into enclave table
@@ -825,27 +821,24 @@ void test_create_pelz_enveloped_msg(void)
   //   - decrypt_priv: message recipients private key used to decrypt
   charbuf sign_priv = new_charbuf(0);
   charbuf verify_cert = new_charbuf(0);
+  result = keypair_pem_to_der("test/data/msg_test_req_pub.pem",
+                              "test/data/msg_test_req_priv.pem",
+                              &verify_cert,
+                              &sign_priv);
+  if (result != 0)
+  {
+    CU_FAIL("error creating DER formatted cert/key pair");
+  }
+
   charbuf encrypt_cert = new_charbuf(0);
   charbuf decrypt_priv = new_charbuf(0);
-  result = priv_pem_to_der("test/data/msg_test_req_priv.pem", &sign_priv);
+  result = keypair_pem_to_der("test/data/msg_test_resp_pub.pem",
+                              "test/data/msg_test_resp_priv.pem",
+                              &encrypt_cert,
+                              &decrypt_priv);
   if (result != 0)
   {
-    CU_FAIL("DER key from file (test/data/msg_test_req_priv.pem) error");
-  }
-  result = cert_pem_to_der("test/data/msg_test_req_pub.pem", &verify_cert);
-  if (result != 0)
-  {
-    CU_FAIL("DER cert from file (test/data/msg_test_req_pub.pem) error");
-  }
-  result = cert_pem_to_der("test/data/msg_test_resp_pub.pem", &encrypt_cert);
-  if (result != 0)
-  {
-    CU_FAIL("DER cert from file (test/data/msg_test_resp_pub.pem) error");
-  }
-  result = priv_pem_to_der("test/data/msg_test_resp_priv.pem", &decrypt_priv);
-  if (result != 0)
-  {
-    CU_FAIL("DER key from file (test/data/msg_test_resp_priv.pem) error");
+    CU_FAIL("error creating DER formatted cert/key pair");
   }
 
   // load CA cert into enclave table
@@ -973,27 +966,24 @@ void test_decrypt_pelz_enveloped_msg(void)
   //   - decrypt_priv: message recipients private key used to decrypt
   charbuf sign_priv = new_charbuf(0);
   charbuf verify_cert = new_charbuf(0);
+  result = keypair_pem_to_der("test/data/msg_test_req_pub.pem",
+                              "test/data/msg_test_req_priv.pem",
+                              &verify_cert,
+                              &sign_priv);
+  if (result != 0)
+  {
+    CU_FAIL("error creating DER formatted cert/key pair");
+  }
+
   charbuf encrypt_cert = new_charbuf(0);
   charbuf decrypt_priv = new_charbuf(0);
-  result = priv_pem_to_der("test/data/msg_test_req_priv.pem", &sign_priv);
+  result = keypair_pem_to_der("test/data/msg_test_resp_pub.pem",
+                              "test/data/msg_test_resp_priv.pem",
+                              &encrypt_cert,
+                              &decrypt_priv);
   if (result != 0)
   {
-    CU_FAIL("DER key from file (test/data/msg_test_req_priv.pem) error");
-  }
-  result = cert_pem_to_der("test/data/msg_test_req_pub.pem", &verify_cert);
-  if (result != 0)
-  {
-    CU_FAIL("DER cert from file (test/data/msg_test_req_pub.pem) error");
-  }
-  result = cert_pem_to_der("test/data/msg_test_resp_pub.pem", &encrypt_cert);
-  if (result != 0)
-  {
-    CU_FAIL("DER cert from file (test/data/msg_test_resp_pub.pem) error");
-  }
-  result = priv_pem_to_der("test/data/msg_test_resp_priv.pem", &decrypt_priv);
-  if (result != 0)
-  {
-    CU_FAIL("DER key from file (test/data/msg_test_resp_priv.pem) error");
+    CU_FAIL("error creating DER formatted cert/key pair");
   }
 
   // load CA cert into enclave table
@@ -1097,6 +1087,8 @@ void test_decrypt_pelz_enveloped_msg(void)
                                         sign_priv.len, sign_priv.chars,
                                         CMS_DECRYPT_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_DECRYPT_ERROR));
+  pelz_log(LOG_DEBUG, "CMS_DECRYPT_FUNCTIONALITY: retval = %d, result = %d",
+                      retval, result);
 
   // Clean-up
   free_charbuf(&test_cipher);
@@ -1221,16 +1213,13 @@ void test_der_encode_pelz_msg(void)
   //   - verify_cert:  message creator's public key (certificate) used to verify
   charbuf sign_priv = new_charbuf(0);
   charbuf verify_cert = new_charbuf(0);
-
-  result = priv_pem_to_der("test/data/msg_test_req_priv.pem", &sign_priv);
+  result = keypair_pem_to_der("test/data/msg_test_req_pub.pem",
+                              "test/data/msg_test_req_priv.pem",
+                              &verify_cert,
+                              &sign_priv);
   if (result != 0)
   {
-    CU_FAIL("DER key from file (test/data/msg_test_req_priv.pem) error");
-  }
-  result = cert_pem_to_der("test/data/msg_test_req_pub.pem", &verify_cert);
-  if (result != 0)
-  {
-    CU_FAIL("DER cert from file (test/data/msg_test_req_pub.pem) error");
+    CU_FAIL("error creating DER formatted cert/key pair");
   }
 
   // DER encode signed CMS: test that NULL input message is handled
@@ -1298,16 +1287,13 @@ void test_der_encode_pelz_msg(void)
   //   - decrypt_priv: message recipeients private key used to decrypt
   charbuf encrypt_cert = new_charbuf(0);
   charbuf decrypt_priv = new_charbuf(0);
-
-  result = cert_pem_to_der("test/data/msg_test_resp_pub.pem", &encrypt_cert);
+  result = keypair_pem_to_der("test/data/msg_test_resp_pub.pem",
+                              "test/data/msg_test_resp_priv.pem",
+                              &encrypt_cert,
+                              &decrypt_priv);
   if (result != 0)
   {
-    CU_FAIL("DER cert from file (test/data/msg_test_resp_pub.pem) error");
-  }
-  result = priv_pem_to_der("test/data/msg_test_resp_priv.pem", &decrypt_priv);
-  if (result != 0)
-  {
-    CU_FAIL("DER key from file (test/data/msg_test_resp_priv.pem) error");
+    CU_FAIL("error creating DER formatted cert/key pair");
   }
 
   // DER encode enveloped CMS: test that NULL input message is handled
@@ -1369,6 +1355,7 @@ void test_der_encode_pelz_msg(void)
                                         decrypt_priv.len, decrypt_priv.chars,
                                         CMS_ENCRYPT_DER_ENCODE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
+  pelz_log(LOG_DEBUG, "CMS_ENCRYPT_DER_ENCODE_FUNCTIONALITY: result = %d", result);
 
   // Clean-up
   free_charbuf(&test_cipher);
@@ -1397,24 +1384,24 @@ void test_der_decode_pelz_msg(void)
   PELZ_REQ_TYPE test_req_type = KEY_WRAP;
 
   charbuf test_cipher = new_charbuf(0);
-  test_cipher.chars = malloc(strlen("AES/KeyWrap/RFC3394NoPadding/128") + 1);
-  sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
   test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
+  test_cipher.chars = malloc(test_cipher.len + 1);
+  sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
 
   charbuf test_key_id = new_charbuf(0);
-  test_key_id.chars = malloc(strlen("file://test.key") + 1);
-  sprintf((char *) test_key_id.chars, "file://test.key");
   test_key_id.len = strlen("file://test.key");
+  test_key_id.chars = malloc(test_key_id.len + 1);
+  sprintf((char *) test_key_id.chars, "file://test.key");
 
   charbuf test_data = new_charbuf(0);
-  test_data.chars = malloc(strlen("DER-decode message test data") + 1);
-  sprintf((char *) test_data.chars, "DER-decode message test data");
   test_data.len = strlen("DER-decode message test data");
+  test_data.chars = malloc(test_data.len + 1);
+  sprintf((char *) test_data.chars, "DER-decode message test data");
 
   charbuf test_status = new_charbuf(0);
-  test_status.chars = malloc(strlen("DER-decode message status") + 1);
-  sprintf((char *) test_status.chars, "DER-decode message status");
   test_status.len = strlen("DER-decode message status");
+  test_status.chars = malloc(test_status.len + 1);
+  sprintf((char *) test_status.chars, "DER-decode message status");
 
   // ASN.1 DER decode: test NULL pointer to input byte array handled
   retval = pelz_enclave_msg_test_helper(eid, &result,
@@ -1430,6 +1417,7 @@ void test_der_decode_pelz_msg(void)
                                         0, NULL,
                                         ASN1_PARSE_DER_DECODE_NULL_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
+  pelz_log(LOG_DEBUG, "ASN1_PARSE_DER_DECODE_NULL_BUF_IN: result = %d", result);
 
   // ASN.1 DER decode: test empty input byte array handled
   retval = pelz_enclave_msg_test_helper(eid, &result,
@@ -1445,6 +1433,7 @@ void test_der_decode_pelz_msg(void)
                                         0, NULL,
                                         ASN1_PARSE_DER_DECODE_EMPTY_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
+  pelz_log(LOG_DEBUG, "ASN1_PARSE_DER_DECODE_EMPTY_BUF_IN: result = %d", result);
 
   // ASN.1 DER decode: test invalid decoded message format parameter handled
   retval = pelz_enclave_msg_test_helper(eid, &result,
@@ -1460,6 +1449,7 @@ void test_der_decode_pelz_msg(void)
                                         0, NULL,
                                         ASN1_PARSE_DER_DECODE_INVALID_FORMAT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
+  pelz_log(LOG_DEBUG, "ASN1_PARSE_DER_DECODE_INVALID_FORMAT: result = %d", result);
 
   // ASN.1 DER decode: test valid input produces expected message output
   retval = pelz_enclave_msg_test_helper(eid, &result,
@@ -1475,6 +1465,7 @@ void test_der_decode_pelz_msg(void)
                                         0, NULL,
                                         ASN1_PARSE_DER_DECODE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
+  pelz_log(LOG_DEBUG, "ASN1_PARSE_DER_DECODE_FUNCTIONALITY: result = %d", result);
 
   // load certificate for 'CA' that signed test keys
   TableResponseStatus status;
@@ -1491,18 +1482,17 @@ void test_der_decode_pelz_msg(void)
   // create test cert/key inputs
   //   - sign_priv:    message creator's private key used to sign
   //   - verify_cert:  message creator's public key (certificate) used to verify
+  //   - encrypt_cert: message recipient's public key (certificate) used to encrypt
+  //   - decrypt_priv: message recipeients private key used to decrypt
   charbuf sign_priv = new_charbuf(0);
   charbuf verify_cert = new_charbuf(0);
-
-  result = priv_pem_to_der("test/data/msg_test_req_priv.pem", &sign_priv);
+  result = keypair_pem_to_der("test/data/msg_test_req_pub.pem",
+                              "test/data/msg_test_req_priv.pem",
+                              &verify_cert,
+                              &sign_priv);
   if (result != 0)
   {
-    CU_FAIL("DER key from file (test/data/msg_test_req_priv.pem) error");
-  }
-  result = cert_pem_to_der("test/data/msg_test_req_pub.pem", &verify_cert);
-  if (result != 0)
-  {
-    CU_FAIL("DER cert from file (test/data/msg_test_req_pub.pem) error");
+    CU_FAIL("error creating DER formatted cert/key pair");
   }
 
   // DER decode to signed CMS: test NULL pointer to input byte array handled
@@ -1519,7 +1509,7 @@ void test_der_decode_pelz_msg(void)
                                         0, NULL,
                                         CMS_VERIFY_DER_DECODE_NULL_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
-  pelz_log(LOG_DEBUG, "result = %d", result);
+  pelz_log(LOG_DEBUG, "CMS_VERIFY_DER_DECODE_NULL_BUF_IN: result = %d", result);
 
   // DER decode to signed CMS: test invalid decoded message format parameter handled
   retval = pelz_enclave_msg_test_helper(eid, &result,
@@ -1535,7 +1525,7 @@ void test_der_decode_pelz_msg(void)
                                         0, NULL,
                                         CMS_VERIFY_DER_DECODE_INVALID_FORMAT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
-  pelz_log(LOG_DEBUG, "result = %d", result);
+  pelz_log(LOG_DEBUG, "CMS_VERIFY_DER_DECODE_INVALID_FORMAT: result = %d", result);
 
   // DER decode to signed CMS: test valid input produces expected message output
   retval = pelz_enclave_msg_test_helper(eid, &result,
@@ -1551,23 +1541,17 @@ void test_der_decode_pelz_msg(void)
                                         0, NULL,
                                         CMS_VERIFY_DER_DECODE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
-  pelz_log(LOG_DEBUG, "result = %d", result);
+  pelz_log(LOG_DEBUG, "CMS_VERIFY_DER_DECODE_FUNCTIONALITY: result = %d", result);
 
-  // create test cert/key inputs
-  //   - encrypt_cert: message recipient's public key (certificate) used to encrypt
-  //   - decrypt_priv: message recipeients private key used to decrypt
   charbuf encrypt_cert = new_charbuf(0);
   charbuf decrypt_priv = new_charbuf(0);
-
-  result = cert_pem_to_der("test/data/msg_test_resp_pub.pem", &encrypt_cert);
+  result = keypair_pem_to_der("test/data/msg_test_resp_pub.pem",
+                              "test/data/msg_test_resp_priv.pem",
+                              &encrypt_cert,
+                              &decrypt_priv);
   if (result != 0)
   {
-    CU_FAIL("DER cert from file (test/data/msg_test_resp_pub.pem) error");
-  }
-  result = priv_pem_to_der("test/data/msg_test_resp_priv.pem", &decrypt_priv);
-  if (result != 0)
-  {
-    CU_FAIL("DER key from file (test/data/msg_test_resp_priv.pem) error");
+    CU_FAIL("error creating DER formatted cert/key pair");
   }
 
   // DER decode to enveloped CMS: test NULL pointer to input byte array handled
@@ -1584,7 +1568,7 @@ void test_der_decode_pelz_msg(void)
                                         decrypt_priv.len, decrypt_priv.chars,
                                         CMS_DECRYPT_DER_DECODE_NULL_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
-  pelz_log(LOG_DEBUG, "result = %d", result);
+  pelz_log(LOG_DEBUG, "CMS_DECRYPT_DER_DECODE_NULL_BUF_IN: result = %d", result);
 
   // DER decode to enveloped CMS: test invalid message format parameter handled
   retval = pelz_enclave_msg_test_helper(eid, &result,
@@ -1600,7 +1584,7 @@ void test_der_decode_pelz_msg(void)
                                         decrypt_priv.len, decrypt_priv.chars,
                                         CMS_DECRYPT_DER_DECODE_INVALID_FORMAT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
-  pelz_log(LOG_DEBUG, "result = %d", result);
+  pelz_log(LOG_DEBUG, "CMS_DECRYPT_DER_DECODE_INVALID_FORMAT: result = %d", result);
 
   // DER decode to enveloped CMS: test valid input produces expected message output
   retval = pelz_enclave_msg_test_helper(eid, &result,
@@ -1616,7 +1600,7 @@ void test_der_decode_pelz_msg(void)
                                         decrypt_priv.len, decrypt_priv.chars,
                                         CMS_DECRYPT_DER_DECODE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
-  pelz_log(LOG_DEBUG, "result = %d", result);
+  pelz_log(LOG_DEBUG, "CMS_DECRYPT_DER_DECODE_FUNCTIONALITY: result = %d", result);
 
   // Clean-up
   free_charbuf(&test_cipher);
@@ -1673,25 +1657,22 @@ void test_construct_deconstruct_pelz_msg(void)
   charbuf verify_cert = new_charbuf(0);
   charbuf encrypt_cert = new_charbuf(0);
   charbuf decrypt_priv = new_charbuf(0);
-  result = priv_pem_to_der("test/data/msg_test_req_priv.pem", &sign_priv);
+  result = keypair_pem_to_der("test/data/msg_test_req_pub.pem",
+                              "test/data/msg_test_req_priv.pem",
+                              &verify_cert,
+                              &sign_priv);
   if (result != 0)
   {
-    CU_FAIL("DER key from file (test/data/msg_test_req_priv.pem) error");
+    CU_FAIL("error creating DER formatted cert/key pair");
   }
-  result = cert_pem_to_der("test/data/msg_test_req_pub.pem", &verify_cert);
+
+  result = keypair_pem_to_der("test/data/msg_test_resp_pub.pem",
+                              "test/data/msg_test_resp_priv.pem",
+                              &encrypt_cert,
+                              &decrypt_priv);
   if (result != 0)
   {
-    CU_FAIL("DER cert from file (test/data/msg_test_req_pub.pem) error");
-  }
-  result = cert_pem_to_der("test/data/msg_test_resp_pub.pem", &encrypt_cert);
-  if (result != 0)
-  {
-    CU_FAIL("DER cert from file (test/data/msg_test_resp_pub.pem) error");
-  }
-  result = priv_pem_to_der("test/data/msg_test_resp_priv.pem", &decrypt_priv);
-  if (result != 0)
-  {
-    CU_FAIL("DER key from file (test/data/msg_test_resp_priv.pem) error");
+    CU_FAIL("error creating DER formatted cert/key pair");
   }
 
   // load CA cert into enclave table

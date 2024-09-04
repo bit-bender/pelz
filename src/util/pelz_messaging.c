@@ -489,10 +489,11 @@ CMS_ContentInfo *create_pelz_enveloped_msg(charbuf msg_data_in,
   BIO *cms_enc_bio = BIO_new_mem_buf(msg_data_in.chars,
                                      (int) msg_data_in.len);
 
-  CMS_ContentInfo *msg_out = CMS_encrypt(cert_stack,
-                                         cms_enc_bio,
-                                         EVP_aes_256_gcm(),
-                                         CMS_BINARY);
+  CMS_ContentInfo *msg_out = CMS_ContentInfo_new();
+  msg_out = CMS_encrypt(cert_stack,
+                        cms_enc_bio,
+                        EVP_aes_256_gcm(),
+                        CMS_BINARY);
   if (msg_out == NULL)
   {
     pelz_sgx_log(LOG_ERR, "CMS_encrypt() error");
@@ -673,7 +674,7 @@ void *der_decode_pelz_msg(charbuf der_bytes_in,
   }
 
   // DER-decode into appropriate output message format (ASN.1 or CMS)
-  const unsigned char * buf_in = der_bytes_in.chars;
+  const unsigned char *buf_in = der_bytes_in.chars;
   long buf_in_size = (long) der_bytes_in.len;
   void *msg_out = NULL;
 

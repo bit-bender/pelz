@@ -33,10 +33,12 @@ charbuf copy_CWD_to_id(const char *prefix, const char *postfix);
 
 /**
  * <pre>
- * This function creates a charbuf containing a DER-formatted private
- * key. An EVP_PKEY struct is first created from the contents of a specified
- * PEM formatted file. That EVP_PKEY private key is then DER encoded.
+ * This function creates two DER-formatted character buffers (charbufs)
+ * containing a matched certificate and private key pair.
  * </pre>
+ *
+ * @param[in]  cert_pem_fn   The character string specifying the file name of
+ *                           the input PEM-formatted certificate file.
  *
  * @param[in]  priv_pem_fn   The character string specifying the file name of
  *                           the input PEM-formatted private key file.
@@ -45,26 +47,15 @@ charbuf copy_CWD_to_id(const char *prefix, const char *postfix);
  *                           resultant DER-formatted private key will be placed
  *                           for use by the caller.
  *
- * @return                   zero (0) on success, one (1) on failure
- */
-int priv_pem_to_der(char *priv_pem_fn, charbuf *der_priv_out);
-
-/**
- * <pre>
- * This function creates a charbuf containing a DER-formatted certificate.
- * An X509 struct is first created from the contents of a specified
- * PEM formatted file. That X509 certificate is then DER encoded.
- * </pre>
- *
- * @param[in]  cert_pem_fn   The character string specifying the file name of
- *                           the input PEM-formatted certificate file.
- *
  * @param[out] der_cert_out  Pointer to the byte buffer (charbuf) where the
  *                           resultant DER-formatted certificate will be placed
  *                           for use by the caller.
  *
  * @return                   zero (0) on success, one (1) on failure
  */
-int cert_pem_to_der(char *cert_pem_fn, charbuf *der_cert_out);
+int keypair_pem_to_der(char *cert_pem_fn,
+                       char *priv_pem_fn,
+                       charbuf *der_cert_out,
+                       charbuf *der_priv_out);
 
 #endif /* TEST_HELPER_FUNCTIONS_H_ */

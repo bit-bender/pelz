@@ -33,8 +33,9 @@ charbuf copy_CWD_to_id(const char *prefix, const char *postfix);
 
 /**
  * <pre>
- * This function creates two DER-formatted character buffers (charbufs)
- * containing a matched certificate and private key pair.
+ * This function creates two DER-formatted character buffers (charbufs), one
+ * containing a certificate and one containing a private key. These provide
+ * a matched public/private key pair.
  * </pre>
  *
  * @param[in]  cert_pem_fn   The character string specifying the file name of

@@ -13,7 +13,7 @@ int pelz_messaging_suite_add_tests(CU_pSuite suite)
   {
     return 1;
   }
-  
+
   if (NULL == CU_add_test(suite, "pelz ASN.1 formatted message parsing",
                                  test_parse_pelz_asn1_msg))
   {
@@ -31,7 +31,7 @@ int pelz_messaging_suite_add_tests(CU_pSuite suite)
   {
     return 1;
   }
-  
+
   if (NULL == CU_add_test(suite, "pelz enveloped CMS message creation",
                                  test_create_pelz_enveloped_msg))
   {
@@ -43,7 +43,7 @@ int pelz_messaging_suite_add_tests(CU_pSuite suite)
   {
     return 1;
   }
-  
+
   if (NULL == CU_add_test(suite, "pelz message DER encode functionality",
                                  test_der_encode_pelz_msg))
   {
@@ -82,6 +82,10 @@ void test_create_pelz_asn1_msg(void)
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
 
+  charbuf test_tag = new_charbuf(0);
+
+  charbuf test_iv = new_charbuf(0);
+
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
   test_key_id.chars = malloc(test_key_id.len + 1);
@@ -101,6 +105,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         MSG_TYPE_MIN - 1, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -115,6 +121,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         MSG_TYPE_MAX + 1, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_data.len, test_status.chars,
@@ -129,6 +137,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, REQ_TYPE_MIN - 1,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -143,6 +153,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, REQ_TYPE_MAX + 1,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -157,6 +169,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, NULL,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -171,6 +185,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         0, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -185,6 +201,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, NULL,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -199,6 +217,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         0, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -213,6 +233,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, NULL,
                                         test_status.len, test_status.chars,
@@ -227,6 +249,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         0, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -241,6 +265,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, NULL,
@@ -255,6 +281,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         0, test_status.chars,
@@ -269,6 +297,8 @@ void test_create_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -281,6 +311,8 @@ void test_create_pelz_asn1_msg(void)
 
   // Clean-up
   free_charbuf(&test_cipher);
+  free_charbuf(&test_tag);
+  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -302,6 +334,10 @@ void test_parse_pelz_asn1_msg(void)
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
 
+  charbuf test_tag = new_charbuf(0);
+
+  charbuf test_iv = new_charbuf(0);
+
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
   test_key_id.chars = malloc(test_key_id.len + 1);
@@ -321,6 +357,8 @@ void test_parse_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -335,6 +373,8 @@ void test_parse_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -349,6 +389,8 @@ void test_parse_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -363,6 +405,8 @@ void test_parse_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -377,6 +421,8 @@ void test_parse_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -391,6 +437,8 @@ void test_parse_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -405,6 +453,8 @@ void test_parse_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -419,6 +469,8 @@ void test_parse_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -433,6 +485,8 @@ void test_parse_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -447,6 +501,8 @@ void test_parse_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -461,6 +517,8 @@ void test_parse_pelz_asn1_msg(void)
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         test_msg_type, test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -473,6 +531,8 @@ void test_parse_pelz_asn1_msg(void)
 
   // Clean-up
   free_charbuf(&test_cipher);
+  free_charbuf(&test_tag);
+  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -493,6 +553,10 @@ void test_create_pelz_signed_msg(void)
   test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_tag = new_charbuf(0);
+
+  charbuf test_iv = new_charbuf(0);
 
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
@@ -532,11 +596,15 @@ void test_create_pelz_signed_msg(void)
     CU_FAIL("error creating DER formatted cert/key pair");
   }
 
+  pelz_log(LOG_DEBUG, "before CMS_SIGN_NULL_BUF_IN test");
+
   // NULL input data  pointer test case - invalid parameter should be handled
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -545,15 +613,15 @@ void test_create_pelz_signed_msg(void)
                                         0, NULL,
                                         0, NULL,
                                         CMS_SIGN_NULL_BUF_IN);
-  pelz_log(LOG_DEBUG, "retval = %d, result = %d", retval, result);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
-  pelz_log(LOG_DEBUG, "retval = %d, result = %d", retval, result);
 
   // Empty input data buffer test cases - invalid parameter should be handled
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -569,6 +637,8 @@ void test_create_pelz_signed_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -584,6 +654,8 @@ void test_create_pelz_signed_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -599,6 +671,8 @@ void test_create_pelz_signed_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -614,6 +688,8 @@ void test_create_pelz_signed_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -626,6 +702,8 @@ void test_create_pelz_signed_msg(void)
 
   // Clean-up
   free_charbuf(&test_cipher);
+  free_charbuf(&test_tag);
+  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -650,6 +728,10 @@ void test_verify_pelz_signed_msg(void)
   test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_tag = new_charbuf(0);
+
+  charbuf test_iv = new_charbuf(0);
 
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
@@ -695,6 +777,8 @@ void test_verify_pelz_signed_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -710,6 +794,8 @@ void test_verify_pelz_signed_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -725,6 +811,8 @@ void test_verify_pelz_signed_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -740,6 +828,8 @@ void test_verify_pelz_signed_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -768,6 +858,8 @@ void test_verify_pelz_signed_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -780,6 +872,8 @@ void test_verify_pelz_signed_msg(void)
 
   // Clean-up
   free_charbuf(&test_cipher);
+  free_charbuf(&test_tag);
+  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -806,6 +900,10 @@ void test_create_pelz_enveloped_msg(void)
   test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_tag = new_charbuf(0);
+
+  charbuf test_iv = new_charbuf(0);
 
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
@@ -866,6 +964,8 @@ void test_create_pelz_enveloped_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -881,6 +981,8 @@ void test_create_pelz_enveloped_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -896,6 +998,8 @@ void test_create_pelz_enveloped_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -911,6 +1015,8 @@ void test_create_pelz_enveloped_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -923,6 +1029,8 @@ void test_create_pelz_enveloped_msg(void)
 
   // Clean-up
   free_charbuf(&test_cipher);
+  free_charbuf(&test_tag);
+  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -951,6 +1059,10 @@ void test_decrypt_pelz_enveloped_msg(void)
   test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_tag = new_charbuf(0);
+
+  charbuf test_iv = new_charbuf(0);
 
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
@@ -1011,6 +1123,8 @@ void test_decrypt_pelz_enveloped_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1026,6 +1140,8 @@ void test_decrypt_pelz_enveloped_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1041,6 +1157,8 @@ void test_decrypt_pelz_enveloped_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1056,6 +1174,8 @@ void test_decrypt_pelz_enveloped_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1071,6 +1191,8 @@ void test_decrypt_pelz_enveloped_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1086,6 +1208,8 @@ void test_decrypt_pelz_enveloped_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1098,6 +1222,8 @@ void test_decrypt_pelz_enveloped_msg(void)
 
   // Clean-up
   free_charbuf(&test_cipher);
+  free_charbuf(&test_tag);
+  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -1127,6 +1253,10 @@ void test_der_encode_pelz_msg(void)
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
 
+  charbuf test_tag = new_charbuf(0);
+
+  charbuf test_iv = new_charbuf(0);
+
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
   test_key_id.chars = malloc(test_key_id.len + 1);
@@ -1147,6 +1277,8 @@ void test_der_encode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1159,17 +1291,19 @@ void test_der_encode_pelz_msg(void)
 
   // ASN.1 DER encode: test that NULL output buffer pointer is handled as expected
   retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                       (uint8_t) test_msg_type,
-                                       (uint8_t) test_req_type,
-                                       test_cipher.len, test_cipher.chars,
-                                       test_key_id.len, test_key_id.chars,
-                                       test_data.len, test_data.chars,
-                                       test_status.len, test_status.chars,
-                                       0, NULL,
-                                       0, NULL,
-                                       0, NULL,
-                                       0, NULL,
-                                       ASN1_CREATE_DER_ENCODE_NULL_BUF_OUT);
+                                        (uint8_t) test_msg_type,
+                                        (uint8_t) test_req_type,
+                                        test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
+                                        test_key_id.len, test_key_id.chars,
+                                        test_data.len, test_data.chars,
+                                        test_status.len, test_status.chars,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        0, NULL,
+                                        ASN1_CREATE_DER_ENCODE_NULL_BUF_OUT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // ASN.1 DER encode: test that invalid format parameter is handled as expected
@@ -1177,6 +1311,8 @@ void test_der_encode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1192,6 +1328,8 @@ void test_der_encode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1233,6 +1371,8 @@ void test_der_encode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1248,6 +1388,8 @@ void test_der_encode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1263,6 +1405,8 @@ void test_der_encode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1278,6 +1422,8 @@ void test_der_encode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1307,6 +1453,8 @@ void test_der_encode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1322,6 +1470,8 @@ void test_der_encode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1337,6 +1487,8 @@ void test_der_encode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1352,6 +1504,8 @@ void test_der_encode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1364,6 +1518,8 @@ void test_der_encode_pelz_msg(void)
 
   // Clean-up
   free_charbuf(&test_cipher);
+  free_charbuf(&test_tag);
+  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -1393,6 +1549,10 @@ void test_der_decode_pelz_msg(void)
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
 
+  charbuf test_tag = new_charbuf(0);
+
+  charbuf test_iv = new_charbuf(0);
+
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
   test_key_id.chars = malloc(test_key_id.len + 1);
@@ -1413,6 +1573,8 @@ void test_der_decode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1428,6 +1590,8 @@ void test_der_decode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1443,6 +1607,8 @@ void test_der_decode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1458,6 +1624,8 @@ void test_der_decode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1501,6 +1669,8 @@ void test_der_decode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1516,6 +1686,8 @@ void test_der_decode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1531,6 +1703,8 @@ void test_der_decode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1546,6 +1720,8 @@ void test_der_decode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1572,6 +1748,8 @@ void test_der_decode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1587,6 +1765,8 @@ void test_der_decode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1602,6 +1782,8 @@ void test_der_decode_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1614,6 +1796,8 @@ void test_der_decode_pelz_msg(void)
 
   // Clean-up
   free_charbuf(&test_cipher);
+  free_charbuf(&test_tag);
+  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -1642,6 +1826,10 @@ void test_construct_deconstruct_pelz_msg(void)
   test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
+
+  charbuf test_tag = new_charbuf(0);
+
+  charbuf test_iv = new_charbuf(0);
 
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
@@ -1702,6 +1890,8 @@ void test_construct_deconstruct_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1717,6 +1907,8 @@ void test_construct_deconstruct_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1732,6 +1924,8 @@ void test_construct_deconstruct_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1747,6 +1941,8 @@ void test_construct_deconstruct_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1762,6 +1958,8 @@ void test_construct_deconstruct_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1777,6 +1975,8 @@ void test_construct_deconstruct_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1792,6 +1992,8 @@ void test_construct_deconstruct_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1807,6 +2009,8 @@ void test_construct_deconstruct_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1822,6 +2026,8 @@ void test_construct_deconstruct_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1837,6 +2043,8 @@ void test_construct_deconstruct_pelz_msg(void)
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
                                         test_cipher.len, test_cipher.chars,
+                                        test_tag.len, test_tag.chars,
+                                        test_iv.len, test_iv.chars,
                                         test_key_id.len, test_key_id.chars,
                                         test_data.len, test_data.chars,
                                         test_status.len, test_status.chars,
@@ -1849,6 +2057,8 @@ void test_construct_deconstruct_pelz_msg(void)
 
   // Clean-up
   free_charbuf(&test_cipher);
+  free_charbuf(&test_tag);
+  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);

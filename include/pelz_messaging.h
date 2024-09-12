@@ -90,6 +90,8 @@ typedef struct PELZ_MSG_DATA
   PELZ_MSG_TYPE msg_type;
   PELZ_REQ_TYPE req_type;
   charbuf cipher;
+  charbuf tag;
+  charbuf iv;
   charbuf key_id;
   charbuf data;
   charbuf status;
@@ -100,6 +102,8 @@ typedef struct PELZ_MSG
   ASN1_ENUMERATED *msg_type;
   ASN1_ENUMERATED *req_type;
   ASN1_UTF8STRING *cipher;
+  ASN1_OCTET_STRING *tag;
+  ASN1_OCTET_STRING *iv;
   ASN1_UTF8STRING *key_id;
   ASN1_OCTET_STRING *data;
   ASN1_UTF8STRING *status;
@@ -125,6 +129,17 @@ void PELZ_MSG_DATA_free(PELZ_MSG_DATA *msg_data_in);
  *                            req_type: Unsigned integer value specifying
  *                                      the pelz request type (e.g.,
  *                                      1 = AES key wrap, 2 = AES key unwrap)
+ *
+ *                            cipher: Character buffer (charbuf) value used to
+ *                                    specify the key wrap/unwrap cipher
+ *
+ *                            tag: Character buffer (charbuf) value used to
+ *                                 specify a cryptographic "tag" used by the
+ *                                 key wrap/unwrap cipher
+ *
+ *                            iv: Character buffer (charbuf) value used to
+ *                                specify an "initialization vector" used
+ *                                by the key wrap/unwrap cipher
  *
  *                            key_id: Character buffer (charbuf) struct value
  *                                    used to specify the KEK ID (URL)

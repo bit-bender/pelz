@@ -41,6 +41,7 @@ void PELZ_MSG_DATA_free(PELZ_MSG_DATA *msg_data_in)
 PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA msg_data_in)
 {
   // input parameter checks
+  //   Note: cipher 'tag' and 'iv' fields can be NULL/empty
   if ((msg_data_in.msg_type < MSG_TYPE_MIN) ||
       (msg_data_in.msg_type > MSG_TYPE_MAX))
   {
@@ -77,8 +78,11 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA msg_data_in)
   }
 
   // construct test request (using ASN.1 specified format)
+  //   Note: setting NULL/empty 'tag' or 'iv' data should not error
+  //         but make the ASN.1 octet string pointer parameter NULL
   PELZ_MSG *msg = PELZ_MSG_new();
 
+  msg->msg_type = ASN1_ENUMERATED_new();
   int64_t msg_type_val = msg_data_in.msg_type;
   if (ASN1_ENUMERATED_set_int64(msg->msg_type, msg_type_val) != 1)
   {
@@ -86,12 +90,15 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA msg_data_in)
     return NULL;
   }
 
+  msg->req_type = ASN1_ENUMERATED_new();
   int64_t req_type_val = msg_data_in.req_type;
   if (ASN1_ENUMERATED_set_int64(msg->req_type, req_type_val) != 1)
   {
     pelz_sgx_log(LOG_ERR, "set 'req_type' field error");
     return NULL;
   }
+
+  msg->cipher = ASN1_UTF8STRING_new();
   if (ASN1_STRING_set(msg->cipher,
                       msg_data_in.cipher.chars,
                       (int) msg_data_in.cipher.len) != 1)
@@ -99,6 +106,26 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA msg_data_in)
     pelz_sgx_log(LOG_ERR, "set 'cipher' field error");
     return NULL;
   }
+
+  msg->tag = ASN1_OCTET_STRING_new();
+  if (ASN1_OCTET_STRING_set(msg->tag,
+                            msg_data_in.tag.chars,
+                            (int) msg_data_in.tag.len) != 1)
+  {
+    pelz_sgx_log(LOG_ERR, "set 'tag' field error");
+    return NULL;
+  }
+
+  msg->iv = ASN1_OCTET_STRING_new();
+  if (ASN1_OCTET_STRING_set(msg->iv,
+                            msg_data_in.iv.chars,
+                            (int) msg_data_in.iv.len) != 1)
+  {
+    pelz_sgx_log(LOG_ERR, "set 'iv' field error");
+    return NULL;
+  }
+
+  msg->key_id = ASN1_UTF8STRING_new();
   if (ASN1_STRING_set(msg->key_id,
                       msg_data_in.key_id.chars,
                       (int) msg_data_in.key_id.len) != 1)
@@ -106,6 +133,8 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA msg_data_in)
     pelz_sgx_log(LOG_ERR, "set 'key ID' field error");
     return NULL;
   }
+
+  msg->data = ASN1_OCTET_STRING_new();
   if (ASN1_OCTET_STRING_set(msg->data,
                             msg_data_in.data.chars,
                             (int) msg_data_in.data.len) != 1)
@@ -113,6 +142,8 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA msg_data_in)
     pelz_sgx_log(LOG_ERR, "set 'data' field error");
     return NULL;
   }
+
+  msg->status = ASN1_UTF8STRING_new();
   if (ASN1_STRING_set((ASN1_STRING *) msg->status,
                       msg_data_in.status.chars,
                       (int) msg_data_in.status.len) != 1)
@@ -127,6 +158,7 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA msg_data_in)
 PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
                                         PELZ_MSG_DATA *parsed_msg_out)
 {
+  pelz_sgx_log(LOG_DEBUG, "starting parse_pelz_asn1_msg()");
   int tag = -1;
 
   // parse message type (msg_type) field
@@ -210,6 +242,93 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
       e = ERR_get_error();
     }
     return PELZ_MSG_ASN1_PARSE_ERROR;
+  }
+
+  // parse cipher 'tag' message field
+  if (msg_in->tag == NULL)
+  {
+    free_charbuf(&(parsed_msg_out->tag));
+  }
+  else
+  {
+    pelz_sgx_log(LOG_DEBUG, "else");
+    tag = ASN1_STRING_type(msg_in->tag);
+    if (tag != V_ASN1_OCTET_STRING)
+    {
+      pelz_sgx_log(LOG_ERR, "invalid cipher 'tag' field format");
+      return PELZ_MSG_ASN1_TAG_ERROR;
+    }
+    parsed_msg_out->tag.len = (size_t) ASN1_STRING_length(msg_in->tag);
+    if (parsed_msg_out->tag.len > 0)
+    {
+      parsed_msg_out->tag.chars = calloc(parsed_msg_out->tag.len + 1,
+                                         sizeof(unsigned char));
+      if (parsed_msg_out->tag.chars == NULL)
+      {
+        pelz_sgx_log(LOG_ERR, "error allocating memory for message 'tag' field");
+        return PELZ_MSG_MALLOC_ERROR;
+      }
+      const unsigned char *parsed_tag_bytes = ASN1_STRING_get0_data(msg_in->tag);
+      memcpy(parsed_msg_out->tag.chars,
+             parsed_tag_bytes,
+             parsed_msg_out->tag.len);
+      if ((parsed_msg_out->tag.chars == NULL) || (parsed_msg_out->tag.len == 0))
+      {
+        pelz_sgx_log(LOG_ERR, "cipher 'tag' field parse error");
+        unsigned long e = ERR_get_error();
+        while (e != 0)
+        {
+          char estring[256] = { 0 };
+          ERR_error_string_n(e, estring, 256);
+          pelz_sgx_log(LOG_ERR, estring);
+          e = ERR_get_error();
+        }
+        return PELZ_MSG_ASN1_PARSE_ERROR;
+      }
+    }
+  }
+
+  // parse cipher 'iv' message field
+  if (msg_in->iv == NULL)
+  {
+    free_charbuf(&(parsed_msg_out->iv));
+  }
+  else
+  {
+    tag = ASN1_STRING_type(msg_in->iv);
+    if (tag != V_ASN1_OCTET_STRING)
+    {
+      pelz_sgx_log(LOG_ERR, "invalid cipher 'iv' field format");
+      return PELZ_MSG_ASN1_TAG_ERROR;
+    }
+    parsed_msg_out->iv.len = (size_t) ASN1_STRING_length(msg_in->iv);
+    if (parsed_msg_out->iv.len > 0)
+    {
+      parsed_msg_out->iv.chars = calloc(parsed_msg_out->iv.len + 1,
+                                        sizeof(unsigned char));
+      if (parsed_msg_out->iv.chars == NULL)
+      {
+        pelz_sgx_log(LOG_ERR, "error allocating memory for message 'iv' field");
+        return PELZ_MSG_MALLOC_ERROR;
+      }
+      const unsigned char *parsed_iv_bytes = ASN1_STRING_get0_data(msg_in->iv);
+      memcpy(parsed_msg_out->iv.chars,
+             parsed_iv_bytes,
+             parsed_msg_out->iv.len);
+      if ((parsed_msg_out->iv.chars == NULL) || (parsed_msg_out->iv.len == 0))
+      {
+        pelz_sgx_log(LOG_ERR, "cipher 'iv' field parse error");
+        unsigned long e = ERR_get_error();
+        while (e != 0)
+        {
+          char estring[256] = { 0 };
+          ERR_error_string_n(e, estring, 256);
+          pelz_sgx_log(LOG_ERR, estring);
+          e = ERR_get_error();
+        }
+        return PELZ_MSG_ASN1_PARSE_ERROR;
+      }
+    }
   }
 
   // parse 'key ID' message field

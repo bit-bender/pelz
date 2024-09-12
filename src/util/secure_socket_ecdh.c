@@ -53,8 +53,6 @@
 #include "pelz_enclave.h"
 #include ENCLAVE_HEADER_UNTRUSTED
 
-int generate_response(uint32_t session_id);
-
 /* Function Description:
  *  This function responds to initiator enclave's connection request by generating and sending back ECDH message 1
  * Parameter Description:

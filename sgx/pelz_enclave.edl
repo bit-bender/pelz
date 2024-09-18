@@ -241,23 +241,35 @@ enclave
      * <pre>
      *
      * @param[in]  session_id        the session identifier
-     * @param[in]  req_message       a pointer to the incoming message
-     * @param[in]  req_message_size  the size of the incoming message
-     * @param[in]  max_payload_size  the maximum size of the outgoing message payload
-     * @param[in]  max_resp_message_size
-     * @param[out] resp_message      a pointer to the outgoing response message
-     * @param[out] resp_message_size the size of the outgoing response message
+     *
+     * @param[in]  req_in            pointer to the incoming secure socket
+     *                               pelz request message
+     *
+     * @param[in]  req_in_size       size (in bytes) of the incoming
+     *                               secure socket pelz request message
+     *
+     * @param[in]  max_payload_size  maximum size (in bytes) of the outgoing
+     *                               pelz response message payload
+     *
+     * @param[in]  max_resp_msg_size maximum size (in bytes) of the outgoing
+     *                               secure socket pelz response message
+     *
+     * @param[out] resp_out          double pointer to the outgoing response
+     *                               secure socket pelz response message buffer
+     *
+     * @param[out] resp_out_size     pointer to size of the outgoing secure
+     *                               socket pelz response message
      *
      * @return 0 on success, an error number indicating the type of error otherwise.
      */
-    public uint32_t handle_secure_socket_msg(
+    public uint32_t secure_socket_pelz_request(
                       uint32_t session_id,
-                      [in, size=req_message_size] secure_message_t *req_message,
-                      size_t req_message_size,
+                      [in, size=req_in_size] secure_message_t *req_in,
+                      size_t req_in_size,
                       size_t max_payload_size,
-                      size_t max_resp_message_size,
-                      [out, size=max_resp_message_size] secure_message_t *resp_message,
-                      [out] size_t *resp_message_size);
+                      size_t max_resp_msg_size,
+                      [out] secure_message_t **resp_out,
+                      [out] size_t *resp_out_size);
 
 
     /**
@@ -274,7 +286,7 @@ enclave
      *
      * @return 0 on success, an error number indicating the type of error otherwise.
      */
-    public uint32_t handle_unsecure_socket_msg(
+    public uint32_t unsecure_socket_pelz_request(
                       [in, size=req_msg_in_size] unsigned char *req_msg_in,
                       size_t req_msg_in_size,
                       [out] unsigned char **resp_msg_out,

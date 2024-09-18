@@ -38,37 +38,41 @@ uint32_t verify_peer_enclave_trust(
 
 /**
  * <pre>
- * Process an incoming secure socket pelz request message.
+ * Perform attestation layer decryption on received secure socket
+ * pelz request message to recover DER-encoded, CMS signed and enveloped
+ * pelz request payload.
  * <pre>
  *
- * @param[in] session_id        the session identifier
- * @param[in] req_message       a pointer to the incoming message
- * @param[in] req_message_size  the size of the incoming message
+ * @param[in] session_state     pointer to the session state for the
+ *                              incoming request message being handled
+ * @param[in] req_msg_bytes     a pointer to the incoming message bytes
  *
  * @return 0 on success, an error number indicating the type of error otherwise.
  */
-ATTESTATION_STATUS handle_incoming_msg(uint32_t session_id,
-                                       secure_message_t *req_message,
-                                       size_t req_message_size);
+ATTESTATION_STATUS handle_attested_request_in(dh_session_t *session_state,
+                                              secure_message_t *req_msg_in,
+                                              size_t req_msg_in_size);
 
 /**
  * <pre>
  * Construct an outgoing message containing data stored in the session object.
  * <pre>
  *
- * @param[in]  session_id              the session identifier
+ * @param[in]  session_id              pointer to the session state for the
+ *                                     outgoing response message being handled
  * @param[in]  max_payload_size        the maximum size of the outgoing message payload
- * @param[in]  resp_message_max_size   the maximum size of the outgoing message
- * @param[out] resp_message            a pointer to the constructed outgoing message, allocated inside the call
- * @param[out] resp_message_size       the size of the constructed outgoing message
+ * @param[in]  resp_msg_max_size       the maximum size of the outgoing message
+ * @param[out] resp_msg                a pointer to the constructed outgoing
+ *                                     message, allocated inside the call
+ * @param[out] resp_msg_size           the size of the constructed outgoing message
  *
  * @return 0 on success, an error number indicating the type of error otherwise.
  */
-ATTESTATION_STATUS handle_outgoing_msg(uint32_t session_id,
-                                       size_t max_payload_size,
-                                       size_t resp_message_max_size,
-                                       secure_message_t **resp_message,
-                                       size_t *resp_message_size);
+ATTESTATION_STATUS handle_attested_response_out(dh_session_t *session_state,
+                                                size_t max_payload_size,
+                                                size_t resp_msg_max_size,
+                                                secure_message_t **resp_msg,
+                                                size_t *resp_msg_size);
 
 uint32_t get_protection_key(uint32_t session_id,
                             uint8_t **key_out,

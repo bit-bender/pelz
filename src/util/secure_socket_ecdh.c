@@ -156,62 +156,65 @@ int process_exchange_report(int clientfd, SESSION_MSG2 * msg2)
 }
 
 /* Function Description:
- *  This function process received message communication from client
+ *  This function processes a received pelz request message communication
+    from client.
  * Parameter Description:
  *  [input] clientfd: this is client's connection id
- *  [input] req_msg: this is pointer to received message from client
+ *  [input] fifo_req_msg: this is pointer to received message from client
  * */
-int process_msg_transfer(int clientfd, FIFO_MSGBODY_REQ *req_msg)
+int process_pelz_request(int clientfd, SESSION_PELZ_REQ *pelz_req_msg)
 {
   uint32_t status = 0;
   sgx_status_t ret = SGX_SUCCESS;
-  FIFO_MSG * fifo_resp = NULL;
-  secure_message_t *resp_message = NULL;
-  size_t resp_message_size = 0;
-  size_t resp_message_max_size;
 
-  if (!req_msg)
+  if (!pelz_req_msg)
   {
-    pelz_log(LOG_ERR, "NULL reference to input message parameter");
+    pelz_log(LOG_ERR, "NULL reference to input pelz request message parameter");
     return -1;
   }
 
-  resp_message_max_size = sizeof(secure_message_t) + req_msg->max_payload_size;
+  secure_message_t *req_msg_in = (secure_message_t *) pelz_req_msg->buf;
+  size_t req_msg_in_size = pelz_req_msg->size;
+
+  size_t resp_msg_max_size = sizeof(secure_message_t) +
+                             pelz_req_msg->max_payload_size;
+
+  secure_message_t *resp_msg_out = NULL;
+  size_t resp_msg_out_size = 0;
 
   // call pelz request message handler for secure socket messaging
-  ret = handle_secure_socket_msg(eid,
-                                 &status,
-                                 req_msg->session_id,
-                                 (secure_message_t *) req_msg->buf,
-                                 req_msg->size,
-                                 req_msg->max_payload_size,
-                                 resp_message_max_size,
-                                 resp_message,
-                                 &resp_message_size);
-  if ((ret != SGX_SUCCESS) ||
-      (status != SUCCESS))
+  ret = secure_socket_pelz_request(eid,
+                                   &status,
+                                   pelz_req_msg->session_id,
+                                   req_msg_in,
+                                   req_msg_in_size,
+                                   pelz_req_msg->max_payload_size,
+                                   resp_msg_max_size,
+                                   &resp_msg_out,
+                                   &resp_msg_out_size);
+  if ((ret != SGX_SUCCESS) || (status != SUCCESS))
   {
-    pelz_log(LOG_ERR, "handle_secure_socket_msg error");
+    pelz_log(LOG_ERR, "error: ECALL to service secure socket pelz request");
     return -1;
   }
 
-  fifo_resp = (FIFO_MSG *) malloc(sizeof(FIFO_MSG) + resp_message_size);
-  if (!fifo_resp)
+  size_t fifo_resp_size = sizeof(FIFO_MSG) + resp_msg_out_size;
+  FIFO_MSG *fifo_resp = (FIFO_MSG *) calloc(fifo_resp_size, 1);
+  if (fifo_resp == NULL)
   {
     pelz_log(LOG_ERR, "memory allocation failure.");
-    free(resp_message);
+    free(resp_msg_out);
     return -1;
   }
-  memset(fifo_resp, 0, sizeof(FIFO_MSG) + resp_message_size);
 
-  fifo_resp->header.type = FIFO_DH_MSG_RESP;
-  fifo_resp->header.size = resp_message_size;
-  memcpy(fifo_resp->msgbuf, resp_message, resp_message_size);
+  fifo_resp->header.type = FIFO_DH_PELZ_RESP;
+  fifo_resp->header.size = resp_msg_out_size;
+  memcpy(fifo_resp->msgbuf, resp_msg_out, resp_msg_out_size);
 
-  free(resp_message);
+  free(resp_msg_out);
 
-  pelz_log(LOG_DEBUG, "sending %d byte message", resp_message_size);
-  if (send(clientfd, (char *)fifo_resp, sizeof(FIFO_MSG) + resp_message_size, 0) == -1)
+  pelz_log(LOG_DEBUG, "sending %d byte message", resp_msg_out_size);
+  if (send(clientfd, (char *)fifo_resp, sizeof(FIFO_MSG) + resp_msg_out_size, 0) == -1)
   {
     pelz_log(LOG_ERR, "server_send() failure.");
     free(fifo_resp);
@@ -258,7 +261,7 @@ int process_close_req(int clientfd, SESSION_CLOSE_REQ * close_req)
   return 0;
 }
 
-int handle_message(int sockfd, FIFO_MSG * message)
+int handle_secure_socket_message(int sockfd, FIFO_MSG * message)
 {
   switch (message->header.type)
   {
@@ -267,7 +270,7 @@ int handle_message(int sockfd, FIFO_MSG * message)
       // process ECDH session connection request
       if (generate_and_send_session_msg1_resp(sockfd) != 0)
       {
-        pelz_log(LOG_ERR, "failed to generate and send session msg1 resp.");
+        pelz_log(LOG_ERR, "process ECDH session connection request error");
         return -1;
       }
     }
@@ -279,19 +282,19 @@ int handle_message(int sockfd, FIFO_MSG * message)
       if (process_exchange_report(sockfd,
                                   (SESSION_MSG2 *) message->msgbuf) != 0)
       {
-        pelz_log(LOG_ERR, "failed to process exchange_report request.");
+        pelz_log(LOG_ERR, "process ECDH session message 2 error");
         return -1;
       }
     }
     break;
 
-  case FIFO_DH_MSG_REQ:
+  case FIFO_DH_PELZ_REQ:
     {
-      // process message transfer request
-      if (process_msg_transfer(sockfd,
-                               (FIFO_MSGBODY_REQ *) message->msgbuf) != 0)
+      // process pelz request message
+      if (process_pelz_request(sockfd,
+                               (SESSION_PELZ_REQ *) message->msgbuf) != 0)
       {
-        pelz_log(LOG_ERR, "failed to process message transfer request.");
+        pelz_log(LOG_ERR, "process pelz request error");
         return -1;
       }
     }
@@ -299,7 +302,7 @@ int handle_message(int sockfd, FIFO_MSG * message)
 
   case FIFO_DH_CLOSE_REQ:
     {
-      // process message close request
+      // process ECDH session close request
       if (process_close_req(sockfd,
                             (SESSION_CLOSE_REQ *) message->msgbuf) != 0)
       {
@@ -311,7 +314,8 @@ int handle_message(int sockfd, FIFO_MSG * message)
 
   default:
     {
-      pelz_log(LOG_ERR, "Unknown message.");
+      pelz_log(LOG_ERR, "unknown ECDH session message type");
+      return -1;
     }
     break;
   }

@@ -33,6 +33,8 @@ IMPLEMENT_ASN1_PRINT_FUNCTION(PELZ_MSG);
 void PELZ_MSG_DATA_free(PELZ_MSG_DATA *msg_data_in)
 {
   free_charbuf(&(msg_data_in->cipher));
+  free_charbuf(&(msg_data_in->tag));
+  free_charbuf(&(msg_data_in->iv));
   free_charbuf(&(msg_data_in->key_id));
   free_charbuf(&(msg_data_in->data));
   free_charbuf(&(msg_data_in->status));

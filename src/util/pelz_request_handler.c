@@ -30,14 +30,14 @@ RequestResponseStatus service_pelz_request_msg(charbuf req_in,
   // Deconstruct (decrypt, verify, parse) received pelz request
   X509 *requestor_cert = NULL;
   PELZ_MSG_DATA rcvd_req_data = { 0 };
-  PelzMessagingStatus deconstruct_status= PELZ_MSG_UNKNOWN_ERROR;
+  PelzMessagingStatus msg_status = PELZ_MSG_UNKNOWN_ERROR;
 
-  deconstruct_status = deconstruct_pelz_msg(req_in,
-                                            pelz_id.cert,
-                                            pelz_id.private_pkey,
-                                            &requestor_cert,
-                                            &rcvd_req_data);
-  if (deconstruct_status != PELZ_MSG_OK)
+  msg_status = deconstruct_pelz_msg(req_in,
+                                    pelz_id.cert,
+                                    pelz_id.private_pkey,
+                                    &requestor_cert,
+                                    &rcvd_req_data);
+  if (msg_status != PELZ_MSG_OK)
   {
     pelz_sgx_log(LOG_ERR, "deconstruct received pelz request error");
     return REQUEST_RESPONSE_MSG_DECONSTRUCT_ERROR;
@@ -57,13 +57,41 @@ RequestResponseStatus service_pelz_request_msg(charbuf req_in,
   switch (response_data.req_type)
   {
   case KEY_WRAP:
-    //handler_status = pelz_encrypt_request_handler(rcvd_req_data.key_id,
-    //                                              rcvd_req_data.cipher,
-    //                                              rcvd_req_data.data,)
+    handler_status = pelz_encrypt_request_handler(response_data.key_id,
+                                                  response_data.cipher,
+                                                  rcvd_req_data.data,
+                                                  &(response_data.data),
+                                                  &(response_data.iv),
+                                                  &(response_data.tag));
     break;
   case KEY_UNWRAP:
+    handler_status = pelz_decrypt_request_handler(response_data.key_id,
+                                                  response_data.cipher,
+                                                  response_data.iv,
+                                                  response_data.tag,
+                                                  rcvd_req_data.data,
+                                                  &(response_data.data));
     break;
   default:
+    pelz_sgx_log(LOG_DEBUG, "invalid request type");
+    break;
+  }
+
+  if (handler_status != REQUEST_RESPONSE_OK)
+  {
+    PELZ_MSG_DATA_free(&response_data);
+    return handler_status;
+  }
+
+  msg_status = construct_pelz_msg(response_data,
+                                  pelz_id.cert,
+                                  pelz_id.private_pkey,
+                                  requestor_cert,
+                                  resp_out);
+  if (msg_status != PELZ_MSG_OK)
+  {
+    PELZ_MSG_DATA_free(&response_data);
+    return REQUEST_RESPONSE_MSG_CONSTRUCT_ERROR;
   }
 
   return REQUEST_RESPONSE_OK;

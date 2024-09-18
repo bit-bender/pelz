@@ -171,7 +171,7 @@ void *secure_socket_process(void *arg)
     pelz_log(LOG_DEBUG, "%d::Request type & Length: %d, %d", sockfd, message->header.type, message->header.size);
 
     pthread_mutex_lock(&lock);
-    ret = handle_message(sockfd, message);
+    ret = handle_secure_socket_message(sockfd, message);
     pthread_mutex_unlock(&lock);
 
     free(message);

@@ -115,12 +115,12 @@ void *unsecure_socket_process(void *arg)
     pelz_log(LOG_DEBUG, "%d::Request & Length: %.*s, %d", new_socket, (int) request.len, request.chars, (int) request.len);
 
     pthread_mutex_lock(&lock);
-    ecall_ret = handle_unsecure_socket_msg(eid,
-                                           &status,
-                                           request.chars,
-                                           request.len,
-                                           &response.chars,
-                                           &response.len);
+    ecall_ret = unsecure_socket_pelz_request(eid,
+                                             &status,
+                                             request.chars,
+                                             request.len,
+                                             &response.chars,
+                                             &response.len);
     pthread_mutex_unlock(&lock);
     if ((ecall_ret != SGX_SUCCESS) || (status != 0))
     {

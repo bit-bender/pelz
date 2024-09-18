@@ -44,6 +44,19 @@
 // This is somewhat arbitrary.
 #define MAX_MSG_SIZE 4096
 
+/**
+ * <pre>
+ * Respond to initiator enclave's connection request by generating and
+ * sending back ECDH message 1
+ * <pre>
+ * 
+ *  @param[in]  clientfd    client's connection id. After generating
+ *                          ECDH message 1, server would send back
+ *                          response through this connection id.
+ * 
+ *  @return   0 on sucess, 1 on error
+ */
+int generate_and_send_session_msg1_resp(int clientfd);
 
 /**
  * <pre>
@@ -53,8 +66,8 @@
  * @param[in] sockfd the socket file descriptor
  * @param[in] message the message content
  *
- * @returns 0 on success, 1 on error
+ * @return   0 on success, -1 on error
  */
-int handle_message(int sockfd, FIFO_MSG * message);
+int handle_secure_socket_message(int sockfd, FIFO_MSG * message);
 
 #endif

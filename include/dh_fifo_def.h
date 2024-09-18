@@ -47,54 +47,54 @@ typedef enum{
 	FIFO_DH_RESP_MSG1,
 	FIFO_DH_MSG2,
 	FIFO_DH_MSG3,
-	FIFO_DH_MSG_REQ,
-	FIFO_DH_MSG_RESP,
+	FIFO_DH_PELZ_REQ,
+	FIFO_DH_PELZ_RESP,
 	FIFO_DH_CLOSE_REQ,
 	FIFO_DH_CLOSE_RESP
-}FIFO_MSG_TYPE;
+} FIFO_MSG_TYPE;
 
 typedef struct _fifomsgheader
 {
 	FIFO_MSG_TYPE type;
 	size_t size; // demonstrate FIFO message content size
 	int sockfd;
-}FIFO_MSG_HEADER;
+} FIFO_MSG_HEADER;
 
 typedef struct _fifomsg
 {
 	FIFO_MSG_HEADER header;
 	unsigned char msgbuf[0];
-}FIFO_MSG;
+} FIFO_MSG;
 
 typedef struct _session_close
 {
 	uint32_t session_id;
-}SESSION_CLOSE_REQ;
+} SESSION_CLOSE_REQ;
 
 typedef struct _session_msg1_response
 {
 	uint32_t sessionid;   // responder create a session ID and input here
 	sgx_dh_msg1_t dh_msg1; // responder returns msg1
-}SESSION_MSG1_RESP;
+} SESSION_MSG1_RESP;
 
 typedef struct _session_msg2
 {
 	uint32_t sessionid;
 	sgx_dh_msg2_t dh_msg2;
-}SESSION_MSG2;
+} SESSION_MSG2;
 
 typedef struct _session_msg3
 {
 	uint32_t sessionid;
 	sgx_dh_msg3_t dh_msg3;
-}SESSION_MSG3;
+} SESSION_MSG3;
 
-typedef struct _fifo_msg_req
+typedef struct _session_pelz_req
 {
 	uint32_t session_id;
 	size_t max_payload_size;
 	size_t size;
 	unsigned char buf[1];
-}FIFO_MSGBODY_REQ;
+} SESSION_PELZ_REQ;
 
 #endif

@@ -168,65 +168,97 @@ ATTESTATION_STATUS secure_socket_pelz_request(uint32_t session_id,
                                               secure_message_t **resp_out,
                                               size_t *resp_out_size)
 {
-  dh_session_t *session_info = dh_sessions[session_id];
-  if((session_info == NULL) || (session_info->status != ACTIVE))
-  {
-    return INVALID_SESSION;
-  }
-
-  ATTESTATION_STATUS result = handle_attested_request_in(session_info,
-                                                         req_in,
-                                                         req_in_size);
+  // extract pelz request message from incoming local attestation message
+  // (result storred to session state)
+  ATTESTATION_STATUS result = handle_la_pelz_request_in(session_id,
+                                                        req_in,
+                                                        req_in_size);
   if (result != SUCCESS)
   {
     return result;
   }
 
-  charbuf req_buf = { .chars = (unsigned char *) session_info->request_data,
-                      .len = session_info->request_data_length };
+  // get (copy) pelz requqest message from session state
+  charbuf req_buf = new_charbuf(0);
+  result = get_request_data(session_id,
+                            (char **) &(req_buf.chars),
+                            &(req_buf.len));
+  if (result != SUCCESS)
+  {
+    return result;
+  }
 
-  charbuf resp_buf = { .chars = (unsigned char *) session_info->response_data,
-                       .len = session_info->response_data_length };
+  // service received pelz request (generate appropriate pelz response)
+  charbuf resp_buf = new_charbuf(0);
 
-  service_pelz_request_msg(req_buf, &resp_buf);
+  RequestResponseStatus handler_result = service_pelz_request_msg(req_buf,
+                                                                 &resp_buf);
+  free_charbuf(&req_buf);
+  if (handler_result != REQUEST_RESPONSE_OK)
+  {
+    free_charbuf(&resp_buf);
+    return ERROR_REQUEST_SERVICE;
+  }
 
-  result = handle_attested_response_out(session_info,
-                                        max_payload_size,
-                                        max_resp_message_size,
-                                        resp_out,
-                                        resp_out_size);
+  // save (copy) constructed pelz response message to session state
+  result = save_response_data(session_id,
+                              (char *) resp_buf.chars,
+                              resp_buf.len);
+  free_charbuf(&resp_buf);
+  if (result != SUCCESS)
+  {
+    return result;
+  }
+
+  result = handle_la_pelz_response_out(session_id,
+                                       max_payload_size,
+                                       max_resp_message_size,
+                                       resp_out,
+                                       resp_out_size);
   if (result != SUCCESS)
   {
     pelz_sgx_log(LOG_ERR, "handle_outgoing_msg error");
+    free(*resp_out);
+    *resp_out = NULL;
     return result;
   }
 
   return SUCCESS;
 }
 
-ATTESTATION_STATUS handle_attested_request_in(dh_session_t *session_state,
-                                              secure_message_t *attested_msg_in,
-                                              size_t attested_msg_size)
+ATTESTATION_STATUS handle_la_pelz_request_in(uint32_t session_id,
+                                             secure_message_t *la_msg_in,
+                                             size_t la_msg_in_size)
 {
+  dh_session_t *session_info;
+
+  // retrieve the session information for the corresponding session id
+  session_info = dh_sessions[session_id];
+  if ((session_info == NULL) ||
+      (session_info->status != ACTIVE))
+  {
+    return INVALID_SESSION;
+  }
+
   uint8_t *decrypted_data = NULL;
   uint32_t decrypted_data_length = 0;
 
   sgx_status_t status;
 
-  if ((attested_msg_in == NULL) || (attested_msg_size == 0))
+  if ((la_msg_in == NULL) || (la_msg_in_size == 0))
   {
     return INVALID_PARAMETER_ERROR;
   }
 
   // set the decrypted data length to the payload size obtained from message
-  decrypted_data_length = attested_msg_in->message_aes_gcm_data.payload_size;
+  decrypted_data_length = la_msg_in->message_aes_gcm_data.payload_size;
 
   // verify the size of the payload
   size_t header_size;
   size_t expected_payload_size;
 
   header_size = sizeof(secure_message_t);
-  expected_payload_size = attested_msg_size - header_size;
+  expected_payload_size = la_msg_in_size - header_size;
   if (expected_payload_size != decrypted_data_length)
   {
     return INVALID_PARAMETER_ERROR;
@@ -241,15 +273,15 @@ ATTESTATION_STATUS handle_attested_request_in(dh_session_t *session_state,
 
   // decrypt the request message payload from source enclave
   status = sgx_rijndael128GCM_decrypt(
-             &session_state->active.AEK,
-             attested_msg_in->message_aes_gcm_data.payload,
+             &session_info->active.AEK,
+             la_msg_in->message_aes_gcm_data.payload,
              decrypted_data_length,
              decrypted_data,
-             (uint8_t *) (&(attested_msg_in->message_aes_gcm_data.reserved)),
-             sizeof(attested_msg_in->message_aes_gcm_data.reserved),
+             (uint8_t *) (&(la_msg_in->message_aes_gcm_data.reserved)),
+             sizeof(la_msg_in->message_aes_gcm_data.reserved),
              NULL,
              0,
-             &attested_msg_in->message_aes_gcm_data.payload_tag);
+             &la_msg_in->message_aes_gcm_data.payload_tag);
 
   if (status != SGX_SUCCESS)
   {
@@ -258,9 +290,9 @@ ATTESTATION_STATUS handle_attested_request_in(dh_session_t *session_state,
   }
 
   // verify if the nonce obtained in the request is equal to the session nonce
-  if ((*((uint32_t *) attested_msg_in->message_aes_gcm_data.reserved) !=
-                                        session_state->active.counter) ||
-      (*((uint32_t *) attested_msg_in->message_aes_gcm_data.reserved) >
+  if ((*((uint32_t *) la_msg_in->message_aes_gcm_data.reserved) !=
+                                        session_info->active.counter) ||
+      (*((uint32_t *) la_msg_in->message_aes_gcm_data.reserved) >
                                         ((uint32_t) -2)))
   {
     SAFE_FREE(decrypted_data);
@@ -268,89 +300,100 @@ ATTESTATION_STATUS handle_attested_request_in(dh_session_t *session_state,
   }
 
   // store plaintext in session object
-  if (session_state->request_data != NULL)
+  if (session_info->request_data != NULL)
   {
-    SAFE_FREE(session_state->request_data);
+    SAFE_FREE(session_info->request_data);
   }
 
-  session_state->request_data = (char *) decrypted_data;
-  session_state->request_data_length = decrypted_data_length;
+  session_info->request_data = (char *) decrypted_data;
+  session_info->request_data_length = decrypted_data_length;
 
   return SUCCESS;
 }
 
 // construct an outgoing message containing data stored in the session object
-ATTESTATION_STATUS handle_attested_response_out(dh_session_t *session_state,
-                                                size_t max_payload_size,
-                                                size_t resp_msg_max_size,
-                                                secure_message_t **resp_msg,
-                                                size_t *resp_msg_size)
+ATTESTATION_STATUS handle_la_pelz_response_out(uint32_t session_id,
+                                               size_t max_payload_size,
+                                               size_t resp_msg_max_size,
+                                               secure_message_t **la_msg_out,
+                                               size_t *la_msg_out_size)
 {
-  char *resp_data;
-  size_t resp_data_length;
-  size_t resp_msg_calc_size;
-  secure_message_t *temp_resp_msg;
-
   sgx_status_t status;
+  dh_session_t *session_info;
 
-  resp_data = session_state->response_data;
-  resp_data_length = session_state->response_data_length;
+  // retrieve the session information for the corresponding session id
+  session_info = dh_sessions[session_id];
+  if ((session_info == NULL) ||
+      (session_info->status != ACTIVE) ||
+      (session_info->response_data == NULL))
+  {
+    return INVALID_SESSION;
+  }
 
-  if (resp_data_length > max_payload_size)
+  // retrieve the response message data from session state and validate
+  char *resp_data = session_info->response_data;
+  size_t resp_data_size = session_info->response_data_length;
+
+  if ((resp_data_size > max_payload_size) || (resp_data_size == 0))
   {
     return OUT_BUFFER_LENGTH_ERROR;
   }
 
-  resp_msg_calc_size = sizeof(secure_message_t) + resp_data_length;
+  // if output message buffer not NULL, free it (prepare for new contents)
 
-  if (resp_msg_calc_size > resp_msg_max_size)
+  // calculate secure (local attestation) response message size
+  size_t msg_out_size = sizeof(secure_message_t) + resp_data_size;
+
+  if (msg_out_size > resp_msg_max_size)
   {
     return OUT_BUFFER_LENGTH_ERROR;
   }
 
-  // code to build the response back to the Source Enclave
-  temp_resp_msg = (secure_message_t *) malloc(resp_msg_calc_size);
-  if (!temp_resp_msg)
+  // allocate buffer for local attestation response back to the source enclave
+  secure_message_t *msg_out = (secure_message_t *) calloc(msg_out_size, 1);
+  if (msg_out == NULL)
   {
     return MALLOC_ERROR;
   }
 
-  memset(temp_resp_msg, 0, sizeof(secure_message_t) + resp_data_length);
-  const uint32_t data2encrypt_length = (uint32_t) resp_data_length;
-  temp_resp_msg->session_id = session_state->session_id;
-  temp_resp_msg->message_aes_gcm_data.payload_size = data2encrypt_length;
+  // build local attestation response message
+  const uint32_t data2encrypt_length = (uint32_t) resp_data_size;
+  msg_out->session_id = session_info->session_id;
+  msg_out->message_aes_gcm_data.payload_size = data2encrypt_length;
 
   // increment the Session Nonce (Replay Protection)
-  session_state->active.counter = session_state->active.counter + 1;
+  session_info->active.counter++;
 
-  // set the response nonce as the session nonce
-  memcpy(&temp_resp_msg->message_aes_gcm_data.reserved,
-         &session_state->active.counter,
-         sizeof(session_state->active.counter));
+  // set the updated session nonce as the response nonce
+  memcpy(&(msg_out->message_aes_gcm_data.reserved),
+         &session_info->active.counter,
+         sizeof(session_info->active.counter));
 
   // prepare the response message with the encrypted payload
   status = sgx_rijndael128GCM_encrypt(
-             &session_state->active.AEK,
+             &session_info->active.AEK,
              (uint8_t*) resp_data,
              data2encrypt_length,
-             (uint8_t *) (&(temp_resp_msg->message_aes_gcm_data.payload)),
-             (uint8_t *) (&(temp_resp_msg->message_aes_gcm_data.reserved)),
-             sizeof(temp_resp_msg->message_aes_gcm_data.reserved),
+             (uint8_t *) (&(msg_out->message_aes_gcm_data.payload)),
+             (uint8_t *) (&(msg_out->message_aes_gcm_data.reserved)),
+             sizeof(msg_out->message_aes_gcm_data.reserved),
              NULL,
              0,
-             &(temp_resp_msg->message_aes_gcm_data.payload_tag));
+             &(msg_out->message_aes_gcm_data.payload_tag));
 
   if(SGX_SUCCESS != status)
   {
-    SAFE_FREE(temp_resp_msg);
+    SAFE_FREE(msg_out);
     return status;
   }
 
-  *resp_msg_size = sizeof(secure_message_t) + resp_data_length;
-  ocall_malloc(*resp_msg_size, (unsigned char **) resp_msg);
-  memcpy(*resp_msg, temp_resp_msg, *resp_msg_size);
-
-  SAFE_FREE(temp_resp_msg);
+  // assign local attestation response message to output parameter
+  if (*la_msg_out != NULL)
+  {
+    SAFE_FREE(*la_msg_out);
+  }
+  *la_msg_out = msg_out;
+  *la_msg_out_size = msg_out_size;
 
   return SUCCESS;
 }
@@ -456,14 +499,36 @@ ATTESTATION_STATUS get_request_data(uint32_t session_id,
   session_info = dh_sessions[session_id];
   if ((session_info == NULL) ||
       (session_info->status != ACTIVE) ||
-      (session_info->request_data == NULL))
+      (session_info->request_data == NULL) ||
+      (session_info->request_data_length == 0))
   {
     return INVALID_SESSION;
   }
 
-  *request_data_length = session_info->request_data_length;
-  ocall_malloc(*request_data_length, (unsigned char **) request_data);
-  memcpy(*request_data, session_info->request_data, *request_data_length);
+  // validate output request data buffer parameters
+  if ((request_data == NULL) || (request_data_length == NULL))
+  {
+    return INVALID_PARAMETER_ERROR;
+  }
+
+  // get request data size
+  size_t buf_size = session_info->request_data_length;
+
+  // if output request data buffer passed in is not NULL/empty,
+  // initialize to be that way
+  if (*request_data != NULL)
+  {
+    SAFE_FREE(*request_data);
+  }
+  *request_data = calloc(buf_size, sizeof(uint8_t));
+  if (*request_data == NULL)
+  {
+    return MALLOC_ERROR;
+  }
+
+  // assign response data/length to output parameters
+  memcpy(*request_data, session_info->request_data, buf_size);
+  *request_data_length = buf_size;
 
   return SUCCESS;
 }
@@ -476,7 +541,9 @@ ATTESTATION_STATUS save_response_data(uint32_t session_id,
 
   // retrieve the session information for the corresponding session id
   session_info = dh_sessions[session_id];
-  if (session_info == NULL || session_info->status != ACTIVE || session_info->request_data == NULL)
+  if ((session_info == NULL) ||
+      (session_info->status != ACTIVE) ||
+      (session_info->request_data == NULL))
   {
     return INVALID_SESSION;
   }

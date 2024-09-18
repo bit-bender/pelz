@@ -43,15 +43,20 @@ uint32_t verify_peer_enclave_trust(
  * pelz request payload.
  * <pre>
  *
- * @param[in] session_state     pointer to the session state for the
+ * @param[in]  session_id       session identifier (number) for the
  *                              incoming request message being handled
- * @param[in] req_msg_bytes     a pointer to the incoming message bytes
+ *
+ * @param[in]  la_msg_in        a pointer to the incoming local attestation
+ *                              pelz request message buffer
+ *
+ * @param[in]  la_msg_in_size   size of the received local attestion pelz
+ *                              request message
  *
  * @return 0 on success, an error number indicating the type of error otherwise.
  */
-ATTESTATION_STATUS handle_attested_request_in(dh_session_t *session_state,
-                                              secure_message_t *req_msg_in,
-                                              size_t req_msg_in_size);
+ATTESTATION_STATUS handle_la_pelz_request_in(uint32_t session_id,
+                                             secure_message_t *la_msg_in,
+                                             size_t la_msg_in_size);
 
 /**
  * <pre>
@@ -68,14 +73,27 @@ ATTESTATION_STATUS handle_attested_request_in(dh_session_t *session_state,
  *
  * @return 0 on success, an error number indicating the type of error otherwise.
  */
-ATTESTATION_STATUS handle_attested_response_out(dh_session_t *session_state,
-                                                size_t max_payload_size,
-                                                size_t resp_msg_max_size,
-                                                secure_message_t **resp_msg,
-                                                size_t *resp_msg_size);
+ATTESTATION_STATUS handle_la_pelz_response_out(uint32_t session_id,
+                                               size_t max_payload_size,
+                                               size_t resp_msg_max_size,
+                                               secure_message_t **la_msg_out,
+                                               size_t *la_msg_out_size);
 
 uint32_t get_protection_key(uint32_t session_id,
                             uint8_t **key_out,
                             size_t *key_size);
+
+ATTESTATION_STATUS get_request_data(uint32_t session_id,
+                                    char **request_data,
+                                    size_t *request_data_length);
+
+ATTESTATION_STATUS save_response_data(uint32_t session_id,
+                                      char *response_data,
+                                      size_t response_data_length);
+
+uint32_t derive_protection_key(uint8_t *key_in,
+                               size_t key_in_len,
+                               uint8_t **key_out,
+                               size_t key_out_len);
 
 #endif

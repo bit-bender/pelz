@@ -105,14 +105,19 @@ RequestResponseStatus pelz_encrypt_request_handler(charbuf key_id,
                                                    charbuf *iv_out,
                                                    charbuf *tag_out)
 {
-  pelz_sgx_log(LOG_DEBUG, "Encrypt Request Handler");
+  // check input plaintext is not NULL or empty
+  if ((plain_data_in.chars == NULL) || (plain_data_in.len == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "plaintext data input NULL or empty");
+    return REQUEST_RESPONSE_DATA_ERROR;
+  }
 
   // use input 'cipher name' to create appropriate cipher_t struct
   unsigned char* cipher_name_string = NULL;
   cipher_name_string = null_terminated_string_from_charbuf(cipher_name);
   if(cipher_name_string == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "Cipher name string missing");
+    pelz_sgx_log(LOG_ERR, "cipher name string missing");
     return REQUEST_RESPONSE_CIPHER_ERROR;
   }
   cipher_t cipher_struct;
@@ -120,7 +125,7 @@ RequestResponseStatus pelz_encrypt_request_handler(charbuf key_id,
   free(cipher_name_string);
   if(cipher_struct.cipher_name == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "Cipher Name in struct missing");
+    pelz_sgx_log(LOG_ERR, "cipher name in struct missing");
     return REQUEST_RESPONSE_CIPHER_ERROR;
   }
 
@@ -128,7 +133,7 @@ RequestResponseStatus pelz_encrypt_request_handler(charbuf key_id,
   size_t index;
   if(key_id.chars == NULL || key_id.len == 0)
   {
-    pelz_sgx_log(LOG_ERR, "Key ID missing");
+    pelz_sgx_log(LOG_ERR, "key ID missing");
     return REQUEST_RESPONSE_KEY_ID_ERROR;
   }
   pelz_sgx_log(LOG_DEBUG, "KEK Load Check");

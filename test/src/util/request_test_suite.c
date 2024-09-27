@@ -4,7 +4,7 @@
 
 #include "request_test_suite.h"
 
-/*
+
 #include "test_helper_functions.h"
 
 #include <string.h>
@@ -27,19 +27,18 @@
 #include "ca_table.h"
 #include "pelz_loaders.h"
 
-static const char* cipher_names[] = {"AES/KeyWrap/RFC3394NoPadding/256",
-                                     "AES/KeyWrap/RFC3394NoPadding/192",
-                                     "AES/KeyWrap/RFC3394NoPadding/128",
-                                     "AES/GCM/NoPadding/256",
-                                     "AES/GCM/NoPadding/192",
-                                     "AES/GCM/NoPadding/128",
-                                     NULL};
+//static const char* cipher_names[] = {"AES/KeyWrap/RFC3394NoPadding/256",
+//                                     "AES/KeyWrap/RFC3394NoPadding/192",
+//                                     "AES/KeyWrap/RFC3394NoPadding/128",
+//                                     "AES/GCM/NoPadding/256",
+//                                     "AES/GCM/NoPadding/192",
+//                                     "AES/GCM/NoPadding/128",
+//                                     NULL};
 
 // Bit of a kludge, we need the correct key lengths to test the
 // encrypt/decrypt cycle, but the code to extract them from the cipher
 // is only built in the enclave.
-static const size_t cipher_key_bytes[] = {32, 24, 16, 32, 24, 16, 0};
-*/
+//static const size_t cipher_key_bytes[] = {32, 24, 16, 32, 24, 16, 0};
 
 // Adds all request handler tests to main test runner.
 int request_suite_add_tests(CU_pSuite suite)
@@ -137,7 +136,7 @@ void test_invalid_key_id(void)
     free_charbuf(&tag);
     free_charbuf(&plaintext);
 
-    pelz_decrypt_request_handler(eid, &response_status, REQ_DEC, key_id, cipher_name, ciphertext, iv, tag, &plaintext, signature, cert, 0);
+    pelz_decrypt_request_handler(REQ_DEC, key_id, cipher_name, ciphertext, iv, tag, &plaintext, signature, cert, 0);
     CU_ASSERT(response_status == KEK_NOT_LOADED);
     CU_ASSERT(plaintext.chars == NULL);
     CU_ASSERT(plaintext.len == 0);

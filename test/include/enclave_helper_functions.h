@@ -14,7 +14,6 @@
 #include "sgx_trts.h"
 #include "test_enclave_t.h"
 
-
 #include "test_defines.h"
 
 /**
@@ -178,5 +177,11 @@ MsgTestStatus pelz_constructed_msg_test_helper(MsgTestSelect test_select,
                                                EVP_PKEY *construct_priv,
                                                X509 *deconstruct_cert,
                                                EVP_PKEY *deconstruct_priv);
+
+int pelz_enclave_req_handler_test_helper(unsigned char *req,
+                                         size_t req_size,
+                                         unsigned char *resp,
+                                         size_t resp_size,
+                                         uint8_t test_select);
 
 #endif

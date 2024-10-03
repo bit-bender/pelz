@@ -4,22 +4,6 @@
 
 #include "enclave_helper_functions.h"
 
-static const size_t cipher_list_size = 6;
-static const char* cipher_names[] = { "AES/KeyWrap/RFC3394NoPadding/256",
-                                      "AES/KeyWrap/RFC3394NoPadding/192",
-                                      "AES/KeyWrap/RFC3394NoPadding/128",
-                                      "AES/GCM/NoPadding/256",
-                                      "AES/GCM/NoPadding/192",
-                                      "AES/GCM/NoPadding/128" };
-
-static const size_t key_id_list_size = 6;
-static const char* key_id_names[] = { "file:/test/data/key1.txt",
-                                      "file:/test/data/key2.txt",
-                                      "file:/test/data/key3.txt",
-                                      "file:/test/data/key4.txt",
-                                      "file:/test/data/key5.txt",
-                                      "file:/test/data/key6.txt" };
-
 X509  *deserialize_cert(const unsigned char *der_cert, long der_cert_size)
 {
   if ((der_cert == NULL) || (der_cert_size <= 0))
@@ -637,16 +621,12 @@ MsgTestStatus pelz_signed_msg_test_helper(MsgTestSelect test_select,
   if (signed_content == NULL)
   {
     CMS_ContentInfo_free(signed_msg);
-    return MSG_TEST_SETUP_ERROR;
+    return MSG_TEST_SIGN_INVALID_RESULT;
   }
   int signed_data_size = ASN1_STRING_length(signed_content);
   const unsigned char * signed_data = ASN1_STRING_get0_data(signed_content);
-  if ((signed_data == NULL) || (signed_data_size <= 0))
-  {
-    CMS_ContentInfo_free(signed_msg);
-    return MSG_TEST_SETUP_ERROR;
-  }
-  if ((signed_data_size != (int) msg_data_in.len) ||
+  if ((signed_data == NULL) ||
+      (signed_data_size != (int) msg_data_in.len) ||
       (memcmp(msg_data_in.chars, signed_data, (size_t) signed_data_size) != 0))
   {
     CMS_ContentInfo_free(signed_msg);
@@ -1572,11 +1552,7 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
 
   if (X509_check_private_key(verify_cert, sign_priv) != 1)
   {
-    pelz_sgx_log(LOG_ERR, "sign/verify key/cert pairing error");
-    free_charbuf (&asn1_pelz_req);
-    EVP_PKEY_free(sign_priv);
-    X509_free(verify_cert);
-    return  MSG_TEST_SETUP_ERROR;
+    pelz_sgx_log(LOG_INFO, "sign/verify key/cert are not paired");
   }
 
   // create signed pelz request message
@@ -1646,17 +1622,10 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
     return  MSG_TEST_SETUP_ERROR;
   }
 
-  //if (X509_check_private_key(encrypt_cert, decrypt_priv) != 1)
-  //{
-  //  pelz_sgx_log(LOG_ERR, "encrypt/decrypt key/cert pairing error");
-  //  free_charbuf(&asn1_pelz_req);
-  //  free_charbuf(&der_signed_pelz_req);
-  //  EVP_PKEY_free(sign_priv);
-  //  X509_free(verify_cert);
-  //  X509_free(encrypt_cert);
-  //  EVP_PKEY_free(decrypt_priv);
-  //  return  MSG_TEST_SETUP_ERROR;
-  //}
+  if (X509_check_private_key(encrypt_cert, decrypt_priv) != 1)
+  {
+    pelz_sgx_log(LOG_INFO, "encrypt/decrypt key/cert pairing error");
+  }
 
   // create enveloped pelz request message
   charbuf der_enveloped_pelz_req = new_charbuf(0);
@@ -1723,32 +1692,25 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
   return ret;
 }
 
-ReqTestStatus pelz_req_handler_enclave_test_helper(size_t key_id_index,
-                                                   size_t cipher_index,
-                                                   ReqTestSelect test_select)
+ReqTestStatus pelz_enclave_req_test_helper(charbuf cipher,
+                                           charbuf key_id,
+                                           ReqTestSelect test_select)
 {
   RequestResponseStatus handler_status = REQUEST_RESPONSE_UNKNOWN_ERROR;
 
   // validate input indices into test cipher name and key_id arrays
-  if ((cipher_index >= cipher_list_size) ||
-      (key_id_index >= key_id_list_size))
+  if (((cipher.chars == NULL) || (cipher.len == 0)) ||
+      ((key_id.chars == NULL) || (key_id.len == 0)))
   {
-    pelz_sgx_log(LOG_ERR, "invalid test cipher name or key ID list index");
+    pelz_sgx_log(LOG_ERR, "invalid test cipher name or key ID URL");
     return REQ_TEST_INVALID_TEST_PARAM;
   }
 
-  const char *key_id_str = key_id_names[key_id_index];
-  charbuf key_id = new_charbuf(strlen(key_id_str));
-  memcpy(key_id.chars, (const unsigned char *) key_id_str, key_id.len);
-
-  const char *pt_str = "abcdefghijklmnopqrstuvwxyz0123456789";
+  const char *pt_str = "abcdefghijklmnopqrstuvwxyz012345";
   charbuf pt = new_charbuf(strlen(pt_str));
   memcpy(pt.chars, (const unsigned char *) pt_str, pt.len);
 
-  charbuf cipher_name = new_charbuf(strlen(cipher_names[cipher_index]));
-  memcpy(cipher_name.chars, cipher_names[cipher_index], cipher_name.len);
-
-  const char *ct_str = "987654321zyxwvutsrqponmlkjihgfedcba";
+  const char *ct_str = "HGFEDCBA543210zyxwvutsrqponmlkjihgfedcba";
   charbuf ct = new_charbuf(strlen(ct_str));
   memcpy(ct.chars, (const unsigned char *) ct_str, ct.len);
 
@@ -1773,13 +1735,13 @@ ReqTestStatus pelz_req_handler_enclave_test_helper(size_t key_id_index,
     break;
   case REQ_TEST_WRAP_NULL_CIPHER_NAME:
   case REQ_TEST_UNWRAP_NULL_CIPHER_NAME:
-    temp_bytes = cipher_name.chars;
-    cipher_name.chars = NULL;
+    temp_bytes = cipher.chars;
+    cipher.chars = NULL;
     break;
   case REQ_TEST_WRAP_EMPTY_CIPHER_NAME:
   case REQ_TEST_UNWRAP_EMPTY_CIPHER_NAME:
-    temp_size = cipher_name.len;
-    cipher_name.len = 0;
+    temp_size = cipher.len;
+    cipher.len = 0;
     break;
   case REQ_TEST_WRAP_NULL_PT_IN:
     temp_bytes = pt.chars;
@@ -1813,7 +1775,7 @@ ReqTestStatus pelz_req_handler_enclave_test_helper(size_t key_id_index,
   case REQ_TEST_WRAP_EMPTY_PT_IN:
   case REQ_TEST_WRAP_INVALID_KEY:
     handler_status = pelz_encrypt_request_handler(key_id,
-                                                  cipher_name,
+                                                  cipher,
                                                   pt,
                                                   &ct,
                                                   &iv,
@@ -1829,7 +1791,7 @@ ReqTestStatus pelz_req_handler_enclave_test_helper(size_t key_id_index,
     // Note - 'iv' and 'tag' parameters can be NULL/empty, so we don't
     //        have NULL/empty test cases for these input parameters
     handler_status = pelz_decrypt_request_handler(key_id,
-                                                  cipher_name,
+                                                  cipher,
                                                   iv,
                                                   tag,
                                                   ct,
@@ -1840,7 +1802,42 @@ ReqTestStatus pelz_req_handler_enclave_test_helper(size_t key_id_index,
     break;
   }
 
-  // invalid parameter test clean-up
+  // invalid parameter test - restore modified charbufs
+  switch(test_select)
+  {
+  case REQ_TEST_WRAP_NULL_KEY_ID:
+  case REQ_TEST_UNWRAP_NULL_KEY_ID:
+    key_id.chars = temp_bytes;
+    break;
+  case REQ_TEST_WRAP_EMPTY_KEY_ID:
+  case REQ_TEST_UNWRAP_EMPTY_KEY_ID:
+    key_id.len = temp_size;
+    break;
+  case REQ_TEST_WRAP_NULL_CIPHER_NAME:
+  case REQ_TEST_UNWRAP_NULL_CIPHER_NAME:
+    cipher.chars = temp_bytes;
+    break;
+  case REQ_TEST_WRAP_EMPTY_CIPHER_NAME:
+  case REQ_TEST_UNWRAP_EMPTY_CIPHER_NAME:
+    cipher.len = temp_size;
+    break;
+  case REQ_TEST_WRAP_NULL_PT_IN:
+    pt.chars = temp_bytes;
+    break;
+  case REQ_TEST_WRAP_EMPTY_PT_IN:
+    pt.len = temp_size;
+    break;
+  case REQ_TEST_UNWRAP_NULL_CT_IN:
+    ct.chars = temp_bytes;
+    break;
+  case REQ_TEST_UNWRAP_EMPTY_CT_IN:
+    ct.len = temp_size;
+    break;
+  default:
+    // do nothing for all other (unmodified charbuf parameter) test cases
+  }
+
+  // invalid parameter test - clean-up memory resources
   switch(test_select)
   {
   case REQ_TEST_WRAP_NULL_KEY_ID:
@@ -1852,13 +1849,11 @@ ReqTestStatus pelz_req_handler_enclave_test_helper(size_t key_id_index,
   case REQ_TEST_WRAP_EMPTY_CIPHER_NAME:
   case REQ_TEST_UNWRAP_EMPTY_CIPHER_NAME:
   case REQ_TEST_WRAP_NULL_PT_IN:
-  case REQ_TEST_UNWRAP_NULL_CT_IN:
   case REQ_TEST_WRAP_EMPTY_PT_IN:
+  case REQ_TEST_UNWRAP_NULL_CT_IN:
   case REQ_TEST_UNWRAP_EMPTY_CT_IN:
   case REQ_TEST_WRAP_INVALID_KEY:
   case REQ_TEST_UNWRAP_INVALID_KEY:
-    free_charbuf(&key_id);
-    free_charbuf(&cipher_name);
     free_charbuf(&pt);
     free_charbuf(&ct);
     free_charbuf(&iv);
@@ -1868,76 +1863,38 @@ ReqTestStatus pelz_req_handler_enclave_test_helper(size_t key_id_index,
     // do nothing for all other (not invalid parameter) test cases
   }
 
-  // invalid parameter test wrap-up
+  // return result of invalid parameter test
   switch(test_select)
   {
   case REQ_TEST_WRAP_NULL_KEY_ID:
-  case REQ_TEST_UNWRAP_NULL_KEY_ID:
-    key_id.chars = temp_bytes;
-    if (handler_status != REQUEST_RESPONSE_KEY_ID_ERROR)
-    {
-      return REQ_TEST_INVALID_PARAM_HANDLING_ERROR;
-    }
-    return REQ_TEST_INVALID_PARAM_HANDLING_OK;
-    break;
   case REQ_TEST_WRAP_EMPTY_KEY_ID:
+  case REQ_TEST_UNWRAP_NULL_KEY_ID:
   case REQ_TEST_UNWRAP_EMPTY_KEY_ID:
-    key_id.len = temp_size;
     if (handler_status != REQUEST_RESPONSE_KEY_ID_ERROR)
     {
-      return REQ_TEST_INVALID_PARAM_HANDLING_ERROR;
+      return REQ_TEST_PARAM_HANDLING_ERROR;
     }
-    return REQ_TEST_INVALID_PARAM_HANDLING_OK;
+    return REQ_TEST_PARAM_HANDLING_OK;
     break;
   case REQ_TEST_WRAP_NULL_CIPHER_NAME:
-  case REQ_TEST_UNWRAP_NULL_CIPHER_NAME:
-    cipher_name.chars = temp_bytes;
-    if (handler_status != REQUEST_RESPONSE_CIPHER_ERROR)
-    {
-      return REQ_TEST_INVALID_PARAM_HANDLING_ERROR;
-    }
-    return REQ_TEST_INVALID_PARAM_HANDLING_OK;
-    break;
   case REQ_TEST_WRAP_EMPTY_CIPHER_NAME:
+  case REQ_TEST_UNWRAP_NULL_CIPHER_NAME:
   case REQ_TEST_UNWRAP_EMPTY_CIPHER_NAME:
-    cipher_name.len = temp_size;
     if (handler_status != REQUEST_RESPONSE_CIPHER_ERROR)
     {
-      return REQ_TEST_INVALID_PARAM_HANDLING_ERROR;
+      return REQ_TEST_PARAM_HANDLING_ERROR;
     }
-    return REQ_TEST_INVALID_PARAM_HANDLING_OK;
+    return REQ_TEST_PARAM_HANDLING_OK;
     break;
   case REQ_TEST_WRAP_NULL_PT_IN:
-    pt.chars = temp_bytes;
-    if (handler_status != REQUEST_RESPONSE_DATA_ERROR)
-    {
-      return REQ_TEST_INVALID_PARAM_HANDLING_ERROR;
-    }
-    return REQ_TEST_INVALID_PARAM_HANDLING_OK;
-    break;
-  case REQ_TEST_UNWRAP_NULL_CT_IN:
-    ct.chars = temp_bytes;
-    if (handler_status != REQUEST_RESPONSE_DATA_ERROR)
-    {
-      return REQ_TEST_INVALID_PARAM_HANDLING_ERROR;
-    }
-    return REQ_TEST_INVALID_PARAM_HANDLING_OK;
-    break;
   case REQ_TEST_WRAP_EMPTY_PT_IN:
-    pt.len = temp_size;
-    if (handler_status != REQUEST_RESPONSE_DATA_ERROR)
-    {
-      return REQ_TEST_INVALID_PARAM_HANDLING_ERROR;
-    }
-    return REQ_TEST_INVALID_PARAM_HANDLING_OK;
-    break;
+  case REQ_TEST_UNWRAP_NULL_CT_IN:
   case REQ_TEST_UNWRAP_EMPTY_CT_IN:
-    ct.len = temp_size;
     if (handler_status != REQUEST_RESPONSE_DATA_ERROR)
     {
-      return REQ_TEST_INVALID_PARAM_HANDLING_ERROR;
+      return REQ_TEST_PARAM_HANDLING_ERROR;
     }
-    return REQ_TEST_INVALID_PARAM_HANDLING_OK;
+    return REQ_TEST_PARAM_HANDLING_OK;
     break;
   case REQ_TEST_WRAP_INVALID_KEY:
   case REQ_TEST_UNWRAP_INVALID_KEY:
@@ -1945,26 +1902,25 @@ ReqTestStatus pelz_req_handler_enclave_test_helper(size_t key_id_index,
         (pt.chars != NULL) ||
         (pt.len != 0))
     {
-      return REQ_TEST_INVALID_PARAM_HANDLING_ERROR;
+      return REQ_TEST_PARAM_HANDLING_ERROR;
     }
-    return REQ_TEST_INVALID_PARAM_HANDLING_OK;
+    return REQ_TEST_PARAM_HANDLING_OK;
     break;
   default:
     // do nothing for all other (not invalid parameter) test cases
     break;
   }
 
+  handler_status = pelz_encrypt_request_handler(key_id,
+                                                cipher,
+                                                pt,
+                                                &ct,
+                                                &iv,
+                                                &tag);
+
   switch(test_select)
   {
   case REQ_TEST_WRAP_FUNCTIONALITY:
-    handler_status = pelz_encrypt_request_handler(key_id,
-                                                  cipher_name,
-                                                  pt,
-                                                  &ct,
-                                                  &iv,
-                                                  &tag);
-    free_charbuf(&cipher_name);
-    free_charbuf(&ct);
     free_charbuf(&iv);
     free_charbuf(&tag);
     free_charbuf(&pt);
@@ -1972,27 +1928,37 @@ ReqTestStatus pelz_req_handler_enclave_test_helper(size_t key_id_index,
         (ct.chars == NULL) ||
         (ct.len == 0))
     {
+      free_charbuf(&ct);
       return REQ_TEST_ENCRYPT_HANDLER_ERROR;
     }
+    free_charbuf(&ct);
     return REQ_TEST_OK;
     break;
   case REQ_TEST_UNWRAP_FUNCTIONALITY:
     handler_status = pelz_decrypt_request_handler(key_id,
-                                                  cipher_name,
+                                                  cipher,
                                                   iv,
                                                   tag,
                                                   ct,
                                                   &pt);
-    free_charbuf(&cipher_name);
     free_charbuf(&ct);
     free_charbuf(&iv);
     free_charbuf(&tag);
-    free_charbuf(&pt);
     if ((handler_status != REQUEST_RESPONSE_OK) ||
         (pt.chars == NULL) ||
         (pt.len == 0))
     {
+      free_charbuf(&pt);
       return REQ_TEST_DECRYPT_HANDLER_ERROR;
+    }
+    free_charbuf(&pt);
+    return REQ_TEST_OK;
+    break;
+  case REQ_TEST_WRAP_UNWRAP:
+    if ((handler_status != REQUEST_RESPONSE_OK) ||
+        (memcmp(pt.chars, (const unsigned char *) pt_str, pt.len) != 0))
+    {
+      return REQ_TEST_ENCRYPT_DECRYPT_ERROR;
     }
     return REQ_TEST_OK;
     break;
@@ -2007,32 +1973,77 @@ ReqTestStatus pelz_req_handler_enclave_test_helper(size_t key_id_index,
   return REQ_TEST_UNKNOWN_ERROR;
 }
 
-int pelz_enclave_service_pelz_req_test_helper(uint8_t cipher_index,
-                                              uint8_t key_id_index,
-                                              size_t der_sign_priv_size,
-                                              unsigned char *der_sign_priv,
-                                              size_t der_verify_cert_size,
-                                              unsigned char *der_verify_cert,
-                                              size_t der_encrypt_cert_size,
-                                              unsigned char *der_encrypt_cert,
-                                              size_t der_decrypt_priv_size,
-                                              unsigned char *der_decrypt_priv,
-                                              uint8_t test_select)
+ReqTestStatus pelz_enclave_service_test_helper(charbuf cipher,
+                                               charbuf key_id,
+                                               charbuf der_req_priv,
+                                               charbuf der_req_cert,
+                                               charbuf der_resp_priv,
+                                               charbuf der_resp_cert)
 {
   // validate input indices into test cipher name and key_id arrays
-  if ((cipher_index >= cipher_list_size) ||
-      (key_id_index >= key_id_list_size))
+  if (((cipher.chars == NULL) || (cipher.len == 0)) ||
+      ((key_id.chars == NULL) || (key_id.len == 0)))
   {
-    pelz_sgx_log(LOG_ERR, "invalid test cipher name or key ID list index");
+    pelz_sgx_log(LOG_ERR, "invalid test cipher name or key ID URL");
     return REQ_TEST_INVALID_TEST_PARAM;
   }
 
-  const char *cipher_str = cipher_names[cipher_index];
-  size_t cipher_str_len = strlen(cipher_str);
+  // deserialize input DER-formatted requestor private key
+  // (used to sign request and decrypt response)
+  EVP_PKEY *req_priv = deserialize_pkey(der_req_priv.chars,
+                                        (long) der_req_priv.len);
+  if (req_priv == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error DER decoding EVP_PKEY");
+    return REQ_TEST_SETUP_ERROR;
+  }
 
-  // setup test data to be used in constructing test request message
-  const char *key_id_str = key_id_names[key_id_index];
-  size_t key_id_len = strlen(key_id_str);
+  // deserialize input DER-formatted requestor public cert
+  // (contains public key used to verify request and encrypt response)
+  X509 *req_cert = deserialize_cert(der_req_cert.chars,
+                                    (long) der_req_cert.len);
+  if (req_cert == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error DER decoding X509 certificate");
+    EVP_PKEY_free(req_priv);
+    return  REQ_TEST_SETUP_ERROR;
+  }
+
+  if (X509_check_private_key(req_cert, req_priv) != 1)
+  {
+    pelz_sgx_log(LOG_INFO, "requestor key/cert are not paired");
+  }
+
+  // deserialize input DER-formatted responder private key
+  // (used to decrypt request and sign response)
+  EVP_PKEY *resp_priv = deserialize_pkey(der_resp_priv.chars,
+                                         (long) der_resp_priv.len);
+  if (resp_priv == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error DER decoding EVP_PKEY");
+    EVP_PKEY_free(req_priv);
+    X509_free(req_cert);
+    return  REQ_TEST_SETUP_ERROR;
+  }
+
+
+  // deserialize input DER-formatted responder public cert
+  // (contains public key used to encrypt request and verify response)
+  X509 *resp_cert = deserialize_cert(der_resp_cert.chars,
+                                     (long) der_resp_cert.len);
+  if (resp_cert == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error DER decoding X509 certificate");
+    EVP_PKEY_free(req_priv);
+    X509_free(req_cert);
+    EVP_PKEY_free(resp_priv);
+    return  REQ_TEST_SETUP_ERROR;
+  }
+
+  if (X509_check_private_key(resp_cert, resp_priv) != 1)
+  {
+    pelz_sgx_log(LOG_INFO, "responder key/cert are not paired");
+  }
 
   const char *pt_str = "abcdefghijklmnopqrstuvwxyz0123456789";
   size_t pt_str_len = strlen(pt_str);
@@ -2042,25 +2053,128 @@ int pelz_enclave_service_pelz_req_test_helper(uint8_t cipher_index,
 
   PELZ_MSG_DATA req_data = { .msg_type = REQUEST,
                              .req_type = KEY_WRAP,
-                             .cipher = new_charbuf(cipher_str_len),
+                             .cipher = cipher,
                              .tag = new_charbuf(0),
                              .iv = new_charbuf(0),
-                             .key_id = new_charbuf(key_id_len),
+                             .key_id = key_id,
                              .data = new_charbuf(pt_str_len),
                              .status = new_charbuf(status_str_len) };
 
-  memcpy(req_data.cipher.chars,
-         (const unsigned char *) cipher_str,
-         cipher_str_len);
-  memcpy(req_data.key_id.chars,
-         (const unsigned char *) key_id_str,
-         key_id_len);
   memcpy(req_data.data.chars,
          (const unsigned char *) pt_str,
          pt_str_len);
   memcpy(req_data.status.chars,
          (const unsigned char *) status_str,
          status_str_len);
+
+  // construct test message
+  charbuf test_request = new_charbuf(0);
+  PelzMessagingStatus msg_retval = PELZ_MSG_UNKNOWN_ERROR;
+
+  msg_retval = construct_pelz_msg(req_data,
+                                  req_cert,
+                                  req_priv,
+                                  resp_cert,
+                                  &test_request);
+  free_charbuf(&(req_data.cipher));
+  free_charbuf(&(req_data.key_id));
+  free_charbuf(&(req_data.data));
+  free_charbuf(&(req_data.status));
+  if ((msg_retval != PELZ_MSG_OK) ||
+      (test_request.chars == NULL) ||
+      (test_request.len == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "error constructing test message");
+    free_charbuf(&test_request);
+    EVP_PKEY_free(req_priv);
+    X509_free(req_cert);
+    EVP_PKEY_free(resp_priv);
+    X509_free(resp_cert);
+    return REQ_TEST_SETUP_ERROR;
+  }
+
+  // test service_pelz_request_msg() functionaliy using constructed test request
+  RequestResponseStatus req_retval = REQUEST_RESPONSE_UNKNOWN_ERROR;
+  charbuf test_response = new_charbuf(0);
+  req_retval = service_pelz_request_msg(test_request, &test_response);
+  free_charbuf(&test_request);
+  EVP_PKEY_free(resp_priv);
+  if ((req_retval != REQUEST_RESPONSE_OK) ||
+      (test_response.chars == NULL) ||
+      (test_response.len == 0))
+  {
+    free_charbuf(&test_response);
+    EVP_PKEY_free(req_priv);
+    X509_free(req_cert);
+    X509_free(resp_cert);
+    return REQ_TEST_SERVICE_REQUEST_ERROR;
+  }
+
+  // deconstruct response message from service_pelz_request_msg() test
+  PELZ_MSG_DATA deconstructed_response_data = { 0 };
+  X509 *deconstructed_responder_cert = X509_new();
+  msg_retval = deconstruct_pelz_msg(test_response,
+                                    req_cert,
+                                    req_priv,
+                                    &deconstructed_responder_cert,
+                                    &deconstructed_response_data);
+  free_charbuf(&test_response);
+  EVP_PKEY_free(req_priv);
+  X509_free(req_cert);
+
+  // check if deconstruction of pelz test response returned errored
+  // or returned incomplete result
+  if ((msg_retval != PELZ_MSG_OK) ||
+      (deconstructed_response_data.cipher.chars == NULL) ||
+      (deconstructed_response_data.cipher.len == 0) ||
+      (deconstructed_response_data.key_id.chars == NULL) ||
+      (deconstructed_response_data.key_id.len == 0) ||
+      (deconstructed_response_data.data.chars == NULL) ||
+      (deconstructed_response_data.data.len == 0) ||
+      (deconstructed_response_data.status.chars == NULL) ||
+      (deconstructed_response_data.status.len == 0))
+  {
+    X509_free(resp_cert);
+    X509_free(deconstructed_responder_cert);
+    free_charbuf(&deconstructed_response_data.cipher);
+    free_charbuf(&deconstructed_response_data.key_id);
+    free_charbuf(&deconstructed_response_data.data);
+    free_charbuf(&deconstructed_response_data.status);
+    return REQ_TEST_SERVICE_REQUEST_INVALID_RESULT;
+  }
+
+  // check peer certificate extracted from message against known copy
+  if (X509_cmp(deconstructed_responder_cert, resp_cert) != 0)
+  {
+    X509_free(deconstructed_responder_cert);
+    X509_free(resp_cert);
+    free_charbuf(&deconstructed_response_data.cipher);
+    free_charbuf(&deconstructed_response_data.key_id);
+    free_charbuf(&deconstructed_response_data.data);
+    free_charbuf(&deconstructed_response_data.status);
+    return REQ_TEST_SERVICE_REQUEST_INVALID_RESULT;
+  }
+  X509_free(deconstructed_responder_cert);
+  X509_free(resp_cert);
+
+  // check the deconstructed result
+  if ((deconstructed_response_data.msg_type != RESPONSE) ||
+      (deconstructed_response_data.req_type != req_data.req_type) ||
+      (memcmp(deconstructed_response_data.cipher.chars,
+              req_data.cipher.chars,
+              deconstructed_response_data.cipher.len) != 0) ||
+      (memcmp(deconstructed_response_data.key_id.chars,
+              req_data.key_id.chars,
+              deconstructed_response_data.key_id.len) != 0))
+  {
+    free_charbuf(&deconstructed_response_data.cipher);
+    free_charbuf(&deconstructed_response_data.key_id);
+    free_charbuf(&deconstructed_response_data.data);
+    free_charbuf(&deconstructed_response_data.status);
+    return REQ_TEST_SERVICE_REQUEST_INVALID_RESULT;
+  }
+
+  free_charbuf(&test_response);
 
   return REQ_TEST_OK;
 }

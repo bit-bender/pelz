@@ -20,6 +20,8 @@
 #include <openssl/x509.h>
 #include <openssl/pem.h>
 
+#include "test_defines.h"
+
 #include "sgx_urts.h"
 #include "pelz_enclave.h"
 #include "test_enclave_u.h"
@@ -27,29 +29,40 @@
 #include "ca_table.h"
 #include "pelz_loaders.h"
 
-//static const char* cipher_names[] = {"AES/KeyWrap/RFC3394NoPadding/256",
-//                                     "AES/KeyWrap/RFC3394NoPadding/192",
-//                                     "AES/KeyWrap/RFC3394NoPadding/128",
-//                                     "AES/GCM/NoPadding/256",
-//                                     "AES/GCM/NoPadding/192",
-//                                     "AES/GCM/NoPadding/128",
-//                                     NULL};
+const size_t cipher_list_size = 6;
+
+const char* cipher[] = { "AES/KeyWrap/RFC3394NoPadding/256",
+                         "AES/KeyWrap/RFC3394NoPadding/192",
+                         "AES/KeyWrap/RFC3394NoPadding/128",
+                         "AES/GCM/NoPadding/256",
+                         "AES/GCM/NoPadding/192",
+                         "AES/GCM/NoPadding/128" };
+
+const char* cipher_key_id[] = { "file:/test/data/key1.txt",
+                                "file:/test/data/key2.txt",
+                                "file:/test/data/key3.txt",
+                                "file:/test/data/key4.txt",
+                                "file:/test/data/key5.txt",
+                                "file:/test/data/key6.txt" };
 
 // Bit of a kludge, we need the correct key lengths to test the
 // encrypt/decrypt cycle, but the code to extract them from the cipher
 // is only built in the enclave.
-//static const size_t cipher_key_bytes[] = {32, 24, 16, 32, 24, 16, 0};
+const size_t cipher_num_key_bytes[] = { 32, 24, 16, 32, 24, 16 };
 
-// Adds all request handler tests to main test runner.
+// test key data sized for largest key length, will be truncated as needed
+const char*  test_key_data = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+
 int request_suite_add_tests(CU_pSuite suite)
 {
-  /*
   if (NULL == CU_add_test(suite,
-                          "Test Pelz Request Invalid Key ID",
-                          test_invalid_key_id))
+                          "Test Pelz Request Handling",
+                          test_request_handling))
   {
     return (1);
   }
+  /*
   if (NULL == CU_add_test(suite,
                           "Test Pelz Encrypt/Decrypt",
                           test_encrypt_decrypt))
@@ -82,6 +95,186 @@ int request_suite_add_tests(CU_pSuite suite)
   }
   */
   return 0;
+}
+
+void test_request_handling(void)
+{
+  ReqTestStatus result = REQ_TEST_UNKNOWN_ERROR;
+  sgx_status_t retval;
+
+  pelz_log(LOG_DEBUG, "start request handler tests");
+
+  TableResponseStatus table_status;
+
+  // initialize the key table as empty
+  table_destroy(eid, &table_status, KEY);
+
+  charbuf test_cipher = new_charbuf(strlen(cipher[0]));
+  memcpy(test_cipher.chars,
+         (const unsigned char *) cipher[0],
+         test_cipher.len);
+
+  charbuf test_key_id = new_charbuf(strlen(cipher_key_id[0]));
+  memcpy(test_key_id.chars,
+         (const unsigned char *) cipher_key_id[0],
+         test_key_id.len);
+
+  // invalid parameter test: NULL input, wrap key ID
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_WRAP_NULL_KEY_ID);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: empty (zero sized) input, wrap key ID
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_WRAP_EMPTY_KEY_ID);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: NULL input, unwrap key ID
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_UNWRAP_NULL_KEY_ID);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: empty (zero sized) input, unwrap key ID
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_UNWRAP_EMPTY_KEY_ID);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: NULL input, wrap cipher name
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_WRAP_NULL_CIPHER_NAME);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: empty (zero sized) input, wrap cipher name
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_WRAP_EMPTY_CIPHER_NAME);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: NULL input, unwrap cipher name
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_UNWRAP_NULL_CIPHER_NAME);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: empty (zero sized) input, unwrap cipher name
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_UNWRAP_EMPTY_CIPHER_NAME);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: NULL input, wrap plaintext
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_WRAP_NULL_PT_IN);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: empty (zero sized) input, wrap plaintext
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_WRAP_EMPTY_PT_IN);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: NULL input, unwrap ciphertext
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_UNWRAP_NULL_CT_IN);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: empty (zero sized) input, unwrap ciphertext
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_UNWRAP_EMPTY_CT_IN);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: invalid (not loaded) input, wrapkey ID
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_WRAP_INVALID_KEY);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // invalid parameter test: invalid (not loaded) input, unwrap key ID
+  retval = pelz_enclave_req_test_helper(eid,
+                                        &result,
+                                        test_cipher,
+                                        test_key_id,
+                                        (uint8_t) REQ_TEST_UNWRAP_INVALID_KEY);
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
+
+  // test encrypt/decrypt handler functionality for all test ciphers
+  for (size_t cipher_index=0; cipher_index<cipher_list_size; cipher_index++)
+  {
+    charbuf test_key = new_charbuf(cipher_num_key_bytes[cipher_index]);
+    memcpy(test_key.chars, test_key_data, test_key.len);
+
+    free(test_key_id.chars);
+    test_key_id.len = strlen(cipher_key_id[cipher_index]);
+    test_key_id.chars = calloc(test_key_id.len, sizeof(unsigned char));
+    if (test_key_id.chars == NULL)
+    {
+      CU_FAIL("error allocating memory for test key ID");
+    }
+    memcpy(test_key_id.chars,
+           (const unsigned char *) cipher_key_id[cipher_index],
+           test_key_id.len);
+
+    key_table_add_key(eid,
+                      &table_status,
+                      test_key_id,
+                      test_key);
+    free_charbuf(&test_key);
+
+    retval = pelz_enclave_req_test_helper(eid,
+                                          &result,
+                                          test_cipher,
+                                          test_key_id,
+                                          (uint8_t) REQ_TEST_WRAP_FUNCTIONALITY);
+    CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_OK));
+
+    retval = pelz_enclave_req_test_helper(eid,
+                                          &result,
+                                          test_cipher,
+                                          test_key_id,
+                                          (uint8_t) REQ_TEST_UNWRAP_FUNCTIONALITY);
+    CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_OK));
+
+    retval = pelz_enclave_req_test_helper(eid,
+                                          &result,
+                                          test_cipher,
+                                          test_key_id,
+                                          (uint8_t) REQ_TEST_WRAP_UNWRAP);
+    CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_OK));
+  }
 }
 
 /*

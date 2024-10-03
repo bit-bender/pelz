@@ -698,7 +698,7 @@ void test_create_pelz_signed_msg(void)
                                         0, NULL,
                                         0, NULL,
                                         CMS_SIGN_FUNCTIONALITY);
-  CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_SETUP_ERROR));
+  CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_SIGN_ERROR));
 
   // Clean-up
   free_charbuf(&test_cipher);

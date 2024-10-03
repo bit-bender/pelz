@@ -54,6 +54,19 @@ enclave
       size_t der_decrypt_priv_size,
       [in, size=der_decrypt_priv_size] unsigned char *der_decrypt_priv,
       uint8_t test_select);
+
+    public ReqTestStatus pelz_enclave_req_test_helper(
+      charbuf cipher,
+      charbuf key_id, 
+      ReqTestSelect test_select);
+
+    public ReqTestStatus pelz_enclave_service_test_helper(
+      charbuf cipher,
+      charbuf key_id,
+      charbuf der_req_priv,
+      charbuf der_req_cert,
+      charbuf der_resp_priv,
+      charbuf der_resp_cert);
   };
 };
 

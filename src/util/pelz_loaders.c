@@ -23,7 +23,7 @@ int pelz_load_key_from_file(char *filename, charbuf * key)
   key_file_handle = fopen(filename, "r");
   if (key_file_handle == NULL)
   {
-    pelz_log(LOG_ERR, "Failed to open key file %s", filename);
+    pelz_log(LOG_ERR, "failed to open key file %s", filename);
     return 1;
   }
 
@@ -32,7 +32,7 @@ int pelz_load_key_from_file(char *filename, charbuf * key)
   // If we've not reached EOF something has probably gone wrong.
   if ((key_len == 0) || (!feof(key_file_handle)))
   {
-    pelz_log(LOG_ERR, "Error: Failed to fully read key file.");
+    pelz_log(LOG_ERR, "Error: Failed to fully read key file");
     secure_memset(tmp_key, 0, key_len);
     fclose(key_file_handle);
     return 1;
@@ -42,7 +42,7 @@ int pelz_load_key_from_file(char *filename, charbuf * key)
   *key = new_charbuf(key_len);
   if (key->len == 0)
   {
-    pelz_log(LOG_ERR, "Error: Failed to allocate memory for key.");
+    pelz_log(LOG_ERR, "Error: Failed to allocate memory for key");
     return 1;
   }
   memcpy(key->chars, tmp_key, key->len);
@@ -60,10 +60,10 @@ int pelz_load_file_to_enclave(char *filename, uint64_t * handle)
 
   if (read_bytes_from_file(filename, &data, &data_len))
   {
-    pelz_log(LOG_ERR, "Unable to read file %s ... exiting", filename);
+    pelz_log(LOG_ERR, "unable to read file %s", filename);
     return (1);
   }
-  pelz_log(LOG_DEBUG, "Read %d bytes from file %s", data_len, filename);
+  pelz_log(LOG_DEBUG, "read %d bytes from file %s", data_len, filename);
 
   ext = get_file_ext(filename);
   switch (ext)
@@ -71,14 +71,14 @@ int pelz_load_file_to_enclave(char *filename, uint64_t * handle)
   case SKI:
     if(pelz_unseal_ski(data, data_len, &data_out, &data_out_len))
     {
-      pelz_log(LOG_ERR, "Failed to tpm-unseal %s ... exiting", filename);
+      pelz_log(LOG_ERR, "failed to tpm-unseal %s", filename);
       free(data);
       return (1);
     }
     free(data);
     if( pelz_unseal_nkl(data_out, data_out_len, handle))
     {
-      pelz_log(LOG_ERR, "Failed to sgx-unseal %s ... exiting", filename);
+      pelz_log(LOG_ERR, "failed to sgx-unseal %s", filename);
       free(data_out);
       return (1);
     }
@@ -87,7 +87,7 @@ int pelz_load_file_to_enclave(char *filename, uint64_t * handle)
   case NKL:
     if(pelz_unseal_nkl(data, data_len, handle))
     {
-      pelz_log(LOG_ERR, "Failed to sgx-unseal %s ... exiting", filename);
+      pelz_log(LOG_ERR, "failed to sgx-unseal %s", filename);
       free(data);
       return (1);
     }
@@ -95,15 +95,26 @@ int pelz_load_file_to_enclave(char *filename, uint64_t * handle)
     break;
   default:
     free(data);
-    pelz_log(LOG_ERR, "Invalid file type of file %s ... exiting", filename);
+    pelz_log(LOG_ERR, "invalid file type of file %s", filename);
     return (1);
   }
   return (0);
 }
 
-int pelz_unseal_ski(uint8_t * data, size_t data_len, uint8_t ** data_out, size_t * data_out_len)
+int pelz_unseal_ski(uint8_t *data,
+                    size_t data_len,
+                    uint8_t **data_out,
+                    size_t *data_out_len)
 {
-  if (tpm2_kmyth_unseal(data, data_len, data_out, data_out_len, NULL, 0, NULL, 0, false))
+  if (tpm2_kmyth_unseal(data,
+                        data_len,
+                        data_out,
+                        data_out_len,
+                        NULL,
+                        0,
+                        NULL,
+                        0,
+                        false))
   {
     pelz_log(LOG_ERR, "TPM unseal failed");
     return (1);
@@ -116,7 +127,7 @@ int pelz_unseal_nkl(uint8_t * data, size_t data_len, uint64_t * handle)
 {
   if (kmyth_sgx_unseal_nkl(eid, data, data_len, handle))
   {
-    pelz_log(LOG_ERR, "Unable to unseal contents ... exiting");
+    pelz_log(LOG_ERR, "unable to unseal contents");
     return (1);
   }
   pelz_log(LOG_DEBUG, "SGX unsealed nkl file with %lu handle", handle);

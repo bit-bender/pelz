@@ -25,14 +25,13 @@ int seal_for_testing(char *filename, char *outpath, size_t outpath_size, bool tp
   uint8_t *tpm_seal = NULL;
   size_t tpm_seal_len = 0;
 
-  pelz_log(LOG_DEBUG, "Seal function");
-  //Validating filename and data from file
+  // validating filename and data from file
   if (read_validate(filename, &data, &data_len))
   {
     return 1;          
   }
 
-  //SGX sealing of data in nkl format
+  // SGX sealing of data in nkl format
   if (seal_nkl_for_testing(data, data_len, &sgx_seal, &sgx_seal_len))
   {
     free(data);
@@ -40,7 +39,7 @@ int seal_for_testing(char *filename, char *outpath, size_t outpath_size, bool tp
   }
   free(data);
 
-  //Checking if TPM seal is requested
+  // checking if TPM seal is requested
   if (tpm)
   {
     //TPM sealing of data in ski format
@@ -52,19 +51,19 @@ int seal_for_testing(char *filename, char *outpath, size_t outpath_size, bool tp
     free(sgx_seal);
   }
 
-  //Checking and/or setting output path
+  // checking and/or setting output path
   if (outpath_validate(filename, &outpath, outpath_size, tpm))
   {
     return 1;
   }
 
-  //Write bytes to file based on outpath
+  // write bytes to file based on outpath
   if (tpm)
   {
     pelz_log(LOG_DEBUG, "Write file to .ski");
     if (write_bytes_to_file(outpath, tpm_seal, tpm_seal_len))
     {
-      pelz_log(LOG_ERR, "error writing data to .ski file ... exiting");
+      pelz_log(LOG_ERR, "error writing data to .ski file");
       free(tpm_seal);
       return 1;
     }
@@ -72,26 +71,32 @@ int seal_for_testing(char *filename, char *outpath, size_t outpath_size, bool tp
   }
   else
   {
-    pelz_log(LOG_DEBUG, "Write file to .nkl: %s, %d", outpath, sgx_seal_len);
+    pelz_log(LOG_DEBUG, "write file to .nkl: %s, %d", outpath, sgx_seal_len);
     if (write_bytes_to_file((char *) outpath, sgx_seal, sgx_seal_len))
     {
-      pelz_log(LOG_ERR, "error writing data to .nkl file ... exiting");
+      pelz_log(LOG_ERR, "error writing data to .nkl file");
       free(sgx_seal);
       return 1;
     }
     free(sgx_seal);
   }
-  pelz_log(LOG_DEBUG, "File sealed and written to outpath.");
+  pelz_log(LOG_DEBUG, "file sealed and written to outpath");
   return 0;
 }
 
-int seal_nkl_for_testing(uint8_t * data, size_t data_len, uint8_t ** data_out, size_t *data_out_len)
+int seal_nkl_for_testing(uint8_t *data,
+                         size_t data_len,
+                         uint8_t **data_out,
+                         size_t *data_out_len)
 {
   int ret;
 
-  pelz_log(LOG_DEBUG, "Seal_nkl function");
-  pelz_log(LOG_DEBUG, "%s", ENCLAVE_PATH);
-  ret = sgx_create_enclave(ENCLAVE_PATH, SGX_DEBUG_FLAG, NULL, NULL, &eid, NULL);
+  ret = sgx_create_enclave(ENCLAVE_PATH,
+                           SGX_DEBUG_FLAG,
+                           NULL,
+                           NULL,
+                           &eid,
+                           NULL);
   if (ret != 0)
   {
     pelz_log(LOG_ERR, "sgx_create_enclave error code %x", ret);
@@ -105,7 +110,13 @@ int seal_nkl_for_testing(uint8_t * data, size_t data_len, uint8_t ** data_out, s
   attribute_mask.flags = 0;
   attribute_mask.xfrm = 0;
 
-  if (kmyth_sgx_seal_nkl(eid, data, data_len, data_out, data_out_len, key_policy, attribute_mask))
+  if (kmyth_sgx_seal_nkl(eid,
+                         data,
+                         data_len,
+                         data_out,
+                         data_out_len,
+                         key_policy,
+                         attribute_mask))
   {
     pelz_log(LOG_ERR, "SGX seal failed");
     sgx_destroy_enclave(eid);
@@ -115,4 +126,3 @@ int seal_nkl_for_testing(uint8_t * data, size_t data_len, uint8_t ** data_out, s
   sgx_destroy_enclave(eid);
   return (0);
 }
-

@@ -27,14 +27,13 @@ int seal(char *filename, char **outpath, size_t outpath_size, bool tpm)
   uint8_t *tpm_seal = NULL;
   size_t tpm_seal_len = 0;
 
-  pelz_log(LOG_DEBUG, "Seal function");
-  //Validating filename and data from file
+  // validating filename and data from file
   if (read_validate(filename, &data, &data_len))
   {
     return 1;          
   }
 
-  //SGX sealing of data in nkl format
+  // SGX sealing of data in nkl format
   if (seal_nkl(data, data_len, &sgx_seal, &sgx_seal_len))
   {
     free(data);
@@ -42,10 +41,10 @@ int seal(char *filename, char **outpath, size_t outpath_size, bool tpm)
   }
   free(data);
 
-  //Checking if TPM seal is requested
+  // checking if TPM seal is requested
   if (tpm)
   {
-    //TPM sealing of data in ski format
+    // TPM sealing of data in ski format
     if (seal_ski(sgx_seal, sgx_seal_len, &tpm_seal, &tpm_seal_len))
     {
       free(sgx_seal);
@@ -54,18 +53,18 @@ int seal(char *filename, char **outpath, size_t outpath_size, bool tpm)
     free(sgx_seal);
   }
 
-  //Checking and/or setting output path
+  // checking and/or setting output path
   if (outpath_validate(filename, outpath, outpath_size, tpm))
   {
     return 1;
   }
 
-  //Write bytes to file based on outpath
+  // write bytes to file based on outpath
   if (tpm)
   {
     if (write_bytes_to_file(*outpath, tpm_seal, tpm_seal_len))
     {
-      pelz_log(LOG_ERR, "error writing data to .ski file ... exiting");
+      pelz_log(LOG_ERR, "error writing data to .ski file");
       free(tpm_seal);
       return 1;
     }
@@ -75,7 +74,7 @@ int seal(char *filename, char **outpath, size_t outpath_size, bool tpm)
   {
     if (write_bytes_to_file(*outpath, sgx_seal, sgx_seal_len))
     {
-      pelz_log(LOG_ERR, "error writing data to .nkl file ... exiting");
+      pelz_log(LOG_ERR, "error writing data to .nkl file");
       free(sgx_seal);
       return 1;
     }
@@ -84,23 +83,34 @@ int seal(char *filename, char **outpath, size_t outpath_size, bool tpm)
   return 0;
 }
 
-int seal_ski(uint8_t * data, size_t data_len, uint8_t ** data_out, size_t * data_out_len)
+int seal_ski(uint8_t *data,
+             size_t data_len,
+             uint8_t **data_out,
+             size_t *data_out_len)
 {
-  pelz_log(LOG_DEBUG, "Seal_ski function");
   if (tpm2_kmyth_seal(data, data_len, data_out, data_out_len, NULL, NULL, NULL, NULL, NULL, false))
   {
-    pelz_log(LOG_ERR, "Kmyth TPM seal failed");
+    pelz_log(LOG_ERR, "kmyth TPM seal failed");
     return 1;
   }
   return (0);
 }
 
-int seal_nkl(uint8_t * data, size_t data_len, uint8_t ** data_out, size_t *data_out_len)
+int seal_nkl(uint8_t * data,
+             size_t data_len,
+             uint8_t ** data_out,
+             size_t *data_out_len)
 {
-  pelz_log(LOG_DEBUG, "Seal_nkl function");        
-  sgx_status_t sgx_status = sgx_create_enclave(ENCLAVE_PATH, SGX_DEBUG_FLAG, NULL, NULL, &eid, NULL);
-  if (sgx_status != SGX_SUCCESS) {
-    pelz_log(LOG_ERR, "Failed to load enclave %s, error code is 0x%x.\n", ENCLAVE_PATH, sgx_status);
+  sgx_status_t sgx_status = sgx_create_enclave(ENCLAVE_PATH,
+                                               SGX_DEBUG_FLAG,
+                                               NULL,
+                                               NULL,
+                                               &eid,
+                                               NULL);
+  if (sgx_status != SGX_SUCCESS)
+  {
+    pelz_log(LOG_ERR, "failed to load enclave %s, error code is 0x%x",
+                      ENCLAVE_PATH, sgx_status);
     return 1;
   }
 
@@ -123,25 +133,24 @@ int seal_nkl(uint8_t * data, size_t data_len, uint8_t ** data_out, size_t *data_
 
 int read_validate(char *filename, uint8_t ** data, size_t *data_len)
 {
-  pelz_log(LOG_DEBUG, "Read_validate function");       
   // Verify input path exists with read permissions
   if (verifyInputFilePath(filename))
   {
-     pelz_log(LOG_ERR, "input path (%s) is not valid ... exiting", filename);
+     pelz_log(LOG_ERR, "input path (%s) is not valid", filename);
      return 1;
   }
 
   if (read_bytes_from_file(filename, data, data_len))
   {
-     pelz_log(LOG_ERR, "seal input data file read error ... exiting");
+     pelz_log(LOG_ERR, "seal input data file read error");
      return 1;
   }
   pelz_log(LOG_DEBUG, "read in %zu bytes of data to be wrapped", *data_len);
 
   // validate non-empty plaintext buffer specified
-  if (data_len == 0 || data == NULL)
+  if ((data_len == 0) || (data == NULL))
   {
-     pelz_log(LOG_ERR, "no input data ... exiting");
+     pelz_log(LOG_ERR, "NULL/empty input data");
      free(data);
      return 1;
   }
@@ -150,7 +159,6 @@ int read_validate(char *filename, uint8_t ** data, size_t *data_len)
 
 int outpath_validate(char *filename, char **outpath, size_t outpath_size, bool tpm)
 {
-  pelz_log(LOG_DEBUG, "Outpath_validate function");        
   if ((*outpath != NULL) && (outpath_size != 0))
   {        
     return 0;
@@ -172,7 +180,6 @@ int outpath_create(char *filename, char **outpath, bool tpm)
   const char *TPM_EXT = ".ski";
   const char *NKL_EXT = ".nkl";
 
-  pelz_log(LOG_DEBUG, "Outpath_create function");
   if (tpm)
   {
     ext = TPM_EXT;
@@ -191,7 +198,7 @@ int outpath_create(char *filename, char **outpath, bool tpm)
   // Make sure resultant default file name does not have empty basename
   if (temp_outpath == NULL)
   {
-    pelz_log(LOG_ERR, "invalid default filename derived ... exiting");
+    pelz_log(LOG_ERR, "invalid default filename derived");
     free(temp_outpath);
     return 1;
   }
@@ -201,7 +208,7 @@ int outpath_create(char *filename, char **outpath, bool tpm)
   struct stat st = { 0 };
   if (!stat(temp_outpath, &st))
   {
-    pelz_log(LOG_ERR, "default output filename (%s) already exists ... exiting", temp_outpath);
+    pelz_log(LOG_ERR, "default output filename (%s) already exists", temp_outpath);
     free(temp_outpath);
     return 1;
   }

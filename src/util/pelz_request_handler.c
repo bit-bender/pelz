@@ -168,13 +168,17 @@ RequestResponseStatus pelz_encrypt_request_handler(charbuf key_id,
 
   // Copy cipher_data_st.cipher to 'cipher_data_out' output parameter
   // (done first because it's the only one that should always be present)
-  ocall_malloc(cipher_data_st.cipher_len, &cipher_data_out->chars);
+  if ((cipher_data_out->chars != NULL) || (cipher_data_out->len != 0))
+  {
+    free_charbuf(cipher_data_out);
+  }
+  cipher_data_out->chars = calloc(cipher_data_st.cipher_len,
+                                  sizeof(unsigned char));
   if (cipher_data_out->chars == NULL)
   {
     free(cipher_data_st.cipher);
     free(cipher_data_st.tag);
     free(cipher_data_st.iv);
-    
     cipher_data_out->len = 0;
     pelz_sgx_log(LOG_ERR, "Cipher data allocation error");
     return REQUEST_RESPONSE_MALLOC_ERROR;
@@ -184,14 +188,12 @@ RequestResponseStatus pelz_encrypt_request_handler(charbuf key_id,
   free(cipher_data_st.cipher);
 
   // create initialization vector (IV) output parameter
-  if (cipher_data_st.iv_len > 0 && cipher_data_st.iv != NULL)
+  if ((cipher_data_st.iv_len > 0) && (cipher_data_st.iv != NULL))
   {
-    ocall_malloc(cipher_data_st.iv_len, &iv_out->chars);
+    iv_out->chars = calloc(cipher_data_st.iv_len, sizeof(unsigned char));
     if (iv_out->chars == NULL)
     {
-      ocall_free(cipher_data_out->chars, cipher_data_out->len);
-      cipher_data_out->chars = NULL;
-      cipher_data_out->len = 0;
+      free_charbuf(cipher_data_out);
       iv_out->len = 0;
       free(cipher_data_st.iv);
       free(cipher_data_st.tag);
@@ -206,16 +208,12 @@ RequestResponseStatus pelz_encrypt_request_handler(charbuf key_id,
   // create cipher 'tag' output parameter
   if (cipher_data_st.tag_len > 0 && cipher_data_st.tag != NULL)
   {
-    ocall_malloc(cipher_data_st.tag_len, &tag_out->chars);
+    tag_out->chars = calloc(cipher_data_st.tag_len, sizeof(unsigned char));
     if (tag_out->chars == NULL)
     {
       pelz_sgx_log(LOG_ERR, "Tag allocation error");
-      ocall_free(cipher_data_out->chars, cipher_data_out->len);
-      cipher_data_out->chars = NULL;
-      cipher_data_out->len = 0;
-      ocall_free(iv_out->chars, iv_out->len);
-      iv_out->chars = NULL;
-      iv_out->len = 0;
+      free_charbuf(cipher_data_out);
+      free_charbuf(iv_out);
       tag_out->len = 0;
       free(cipher_data_st.tag);
       return REQUEST_RESPONSE_MALLOC_ERROR;
@@ -237,6 +235,13 @@ RequestResponseStatus pelz_decrypt_request_handler(charbuf key_id,
                                                    charbuf *plain_data_out)
 {
   pelz_sgx_log(LOG_DEBUG, "Decrypt Request Handler");
+
+  // check input ciphertext is not NULL or empty
+  if ((cipher_data_in.chars == NULL) || (cipher_data_in.len == 0))
+  {
+    pelz_sgx_log(LOG_ERR, "ciphertext data input NULL or empty");
+    return REQUEST_RESPONSE_DATA_ERROR;
+  }
 
   charbuf plain_data_internal;
   size_t index;
@@ -292,7 +297,7 @@ RequestResponseStatus pelz_decrypt_request_handler(charbuf key_id,
   }
 
   plain_data_out->len = plain_data_internal.len;
-  ocall_malloc(plain_data_out->len, &plain_data_out->chars);
+  plain_data_out->chars = calloc(plain_data_out->len, sizeof(unsigned char));
   if (plain_data_out->chars == NULL)
   {
     plain_data_out->len = 0;

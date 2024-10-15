@@ -115,10 +115,10 @@ TableResponseStatus table_delete(TableType type, charbuf id)
       else if (type == SERVER || type == CA_TABLE)
       {
         data_size = i2d_X509(table->entries[i].value.cert, NULL);
-	if(data_size <= 0)
-	{
-	  return ERR;
-	}
+        if(data_size <= 0)
+        {
+          return ERR;
+        }
         table->mem_size = table->mem_size - ((table->entries[i].id.len * sizeof(char)) + sizeof(size_t) + (size_t)data_size);
       }
       free_charbuf(&table->entries[i].id);

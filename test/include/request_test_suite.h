@@ -12,6 +12,7 @@ int request_suite_add_tests(CU_pSuite suite);
 
 // Tests
 void test_request_handling(void);
+void test_service_pelz_request_msg(void);
 //void test_invalid_key_id(void);
 //void test_encrypt_decrypt(void);
 //void test_missing_key_id(void);

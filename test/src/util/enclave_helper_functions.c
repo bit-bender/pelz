@@ -1743,6 +1743,16 @@ ReqTestStatus pelz_enclave_req_test_helper(charbuf cipher,
     temp_size = cipher.len;
     cipher.len = 0;
     break;
+  case REQ_TEST_WRAP_INVALID_CIPHER_NAME:
+  case REQ_TEST_UNWRAP_INVALID_CIPHER_NAME:
+    temp_size = cipher.len;
+    temp_bytes = malloc(temp_size);
+    memcpy(temp_bytes, cipher.chars, temp_size);
+    cipher.len = strlen("fakeciphername");
+    memcpy(cipher.chars,
+           (const unsigned char *) "fakeciphername",
+           cipher.len);
+    break;
   case REQ_TEST_WRAP_NULL_PT_IN:
     temp_bytes = pt.chars;
     pt.chars = NULL;
@@ -1760,7 +1770,7 @@ ReqTestStatus pelz_enclave_req_test_helper(charbuf cipher,
     ct.len = 0;
     break;
   default:
-    // do nothing for all other (not invalid parameter) test cases
+    // do nothing for all other test cases
     break;
   }
 
@@ -1771,6 +1781,7 @@ ReqTestStatus pelz_enclave_req_test_helper(charbuf cipher,
   case REQ_TEST_WRAP_EMPTY_KEY_ID:
   case REQ_TEST_WRAP_NULL_CIPHER_NAME:
   case REQ_TEST_WRAP_EMPTY_CIPHER_NAME:
+  case REQ_TEST_WRAP_INVALID_CIPHER_NAME:
   case REQ_TEST_WRAP_NULL_PT_IN:
   case REQ_TEST_WRAP_EMPTY_PT_IN:
   case REQ_TEST_WRAP_INVALID_KEY:
@@ -1785,6 +1796,7 @@ ReqTestStatus pelz_enclave_req_test_helper(charbuf cipher,
   case REQ_TEST_UNWRAP_EMPTY_KEY_ID:
   case REQ_TEST_UNWRAP_NULL_CIPHER_NAME:
   case REQ_TEST_UNWRAP_EMPTY_CIPHER_NAME:
+  case REQ_TEST_UNWRAP_INVALID_CIPHER_NAME:
   case REQ_TEST_UNWRAP_NULL_CT_IN:
   case REQ_TEST_UNWRAP_EMPTY_CT_IN:
   case REQ_TEST_UNWRAP_INVALID_KEY:
@@ -1821,6 +1833,12 @@ ReqTestStatus pelz_enclave_req_test_helper(charbuf cipher,
   case REQ_TEST_UNWRAP_EMPTY_CIPHER_NAME:
     cipher.len = temp_size;
     break;
+  case REQ_TEST_WRAP_INVALID_CIPHER_NAME:
+  case REQ_TEST_UNWRAP_INVALID_CIPHER_NAME:
+    cipher.len = temp_size;
+    memcpy(cipher.chars, temp_bytes, cipher.len);
+    free(temp_bytes);
+    break;
   case REQ_TEST_WRAP_NULL_PT_IN:
     pt.chars = temp_bytes;
     break;
@@ -1848,6 +1866,8 @@ ReqTestStatus pelz_enclave_req_test_helper(charbuf cipher,
   case REQ_TEST_UNWRAP_NULL_CIPHER_NAME:
   case REQ_TEST_WRAP_EMPTY_CIPHER_NAME:
   case REQ_TEST_UNWRAP_EMPTY_CIPHER_NAME:
+  case REQ_TEST_WRAP_INVALID_CIPHER_NAME:
+  case REQ_TEST_UNWRAP_INVALID_CIPHER_NAME:
   case REQ_TEST_WRAP_NULL_PT_IN:
   case REQ_TEST_WRAP_EMPTY_PT_IN:
   case REQ_TEST_UNWRAP_NULL_CT_IN:
@@ -1878,8 +1898,10 @@ ReqTestStatus pelz_enclave_req_test_helper(charbuf cipher,
     break;
   case REQ_TEST_WRAP_NULL_CIPHER_NAME:
   case REQ_TEST_WRAP_EMPTY_CIPHER_NAME:
+  case REQ_TEST_WRAP_INVALID_CIPHER_NAME:
   case REQ_TEST_UNWRAP_NULL_CIPHER_NAME:
   case REQ_TEST_UNWRAP_EMPTY_CIPHER_NAME:
+  case REQ_TEST_UNWRAP_INVALID_CIPHER_NAME:
     if (handler_status != REQUEST_RESPONSE_CIPHER_ERROR)
     {
       return REQ_TEST_PARAM_HANDLING_ERROR;
@@ -1898,9 +1920,7 @@ ReqTestStatus pelz_enclave_req_test_helper(charbuf cipher,
     break;
   case REQ_TEST_WRAP_INVALID_KEY:
   case REQ_TEST_UNWRAP_INVALID_KEY:
-    if ((handler_status != REQUEST_RESPONSE_KEK_NOT_LOADED) ||
-        (pt.chars != NULL) ||
-        (pt.len != 0))
+    if (handler_status != REQUEST_RESPONSE_KEK_NOT_LOADED)
     {
       return REQ_TEST_PARAM_HANDLING_ERROR;
     }
@@ -2025,7 +2045,6 @@ ReqTestStatus pelz_enclave_service_test_helper(charbuf cipher,
     X509_free(req_cert);
     return  REQ_TEST_SETUP_ERROR;
   }
-
 
   // deserialize input DER-formatted responder public cert
   // (contains public key used to encrypt request and verify response)

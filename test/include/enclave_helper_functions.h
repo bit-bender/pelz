@@ -22,15 +22,13 @@
  * X509 struct.
  * </pre>
  *
- * @param[in]  der_cert       Pointer to the byte array containing the
+ * @param[in]  der_cert       charbuf (byte array and size) struct containing
  *                            DER-formatted data bytes for the certificate.
- *
- * @param[in]  der_cert_size  Length of the input byte array (in bytes)
  *
  * @return                    pointer to converted X509 certificate on success,
  *                            NULL on failure
  */
-X509 *deserialize_cert(const unsigned char *der_cert, long der_cert_size);
+X509 *deserialize_cert(charbuf der_cert);
 
 /**
  * <pre>
@@ -38,15 +36,13 @@ X509 *deserialize_cert(const unsigned char *der_cert, long der_cert_size);
  * EVP_PKEY struct.
  * </pre>
  *
- * @param[in]  der_pkey       Pointer to the byte array containing the
+ * @param[in]  der_pkey       charbuf (byte array and size) struct containing
  *                            DER-formatted data bytes for the private key.
- *
- * @param[in]  der_pkey_size  Length of the input byte array (in bytes)
  *
  * @return                    pointer to converted EVP_PKEY struct on success,
  *                            NULL on failure
  */
-EVP_PKEY *deserialize_pkey(const unsigned char *der_pkey, long der_pkey_size);
+EVP_PKEY *deserialize_pkey(charbuf der_pkey);
 
 /**
  * <pre>
@@ -177,11 +173,5 @@ MsgTestStatus pelz_constructed_msg_test_helper(MsgTestSelect test_select,
                                                EVP_PKEY *construct_priv,
                                                X509 *deconstruct_cert,
                                                EVP_PKEY *deconstruct_priv);
-
-int pelz_enclave_req_handler_test_helper(unsigned char *req,
-                                         size_t req_size,
-                                         unsigned char *resp,
-                                         size_t resp_size,
-                                         uint8_t test_select);
 
 #endif

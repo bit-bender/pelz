@@ -30,30 +30,18 @@ enclave
       [out] size_t *outData_len,
       [out] unsigned char **outData);
 
-    public int pelz_enclave_msg_test_helper(
+    public MsgTestStatus pelz_enclave_msg_test_helper(
       uint8_t msg_type,
       uint8_t req_type,
-      size_t cipher_size,
-      [in, size=cipher_size] unsigned char *cipher,
-      size_t tag_size,
-      [in, size=tag_size] unsigned char *tag,
-      size_t iv_size,
-      [in, size=iv_size] unsigned char *iv,
-      size_t key_id_size,
-      [in, size=key_id_size] unsigned char *key_id,
-      size_t msg_data_size,
-      [in, size=msg_data_size] unsigned char *msg_data,
-      size_t msg_status_size,
-      [in, size=msg_status_size] unsigned char *msg_status,
-      size_t der_sign_priv_size,
-      [in, size=der_sign_priv_size] unsigned char *der_sign_priv,
-      size_t der_verify_cert_size,
-      [in, size=der_verify_cert_size] unsigned char *der_verify_cert,
-      size_t der_encrypt_cert_size,
-      [in, size=der_encrypt_cert_size] unsigned char *der_encrypt_cert,
-      size_t der_decrypt_priv_size,
-      [in, size=der_decrypt_priv_size] unsigned char *der_decrypt_priv,
-      uint8_t test_select);
+      charbuf cipher,
+      charbuf key_id,
+      charbuf msg_data,
+      charbuf msg_status,
+      charbuf der_sign_priv,
+      charbuf der_verify_cert,
+      charbuf der_encrypt_cert,
+      charbuf der_decrypt_priv,
+      MsgTestSelect test_select);
 
     public ReqTestStatus pelz_enclave_req_test_helper(
       charbuf cipher,

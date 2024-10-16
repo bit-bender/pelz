@@ -4,30 +4,37 @@
 
 #include "enclave_helper_functions.h"
 
-X509  *deserialize_cert(const unsigned char *der_cert, long der_cert_size)
+X509  *deserialize_cert(charbuf der_cert)
 {
-  if ((der_cert == NULL) || (der_cert_size <= 0))
+  if ((der_cert.chars == NULL) || (der_cert.len <= 0))
   {
     pelz_sgx_log(LOG_ERR, "NULL/empty input DER-formatted X509 certificate")
     return NULL;
   }
 
+  const unsigned char *der_bytes = der_cert.chars;
   X509 *decoded_cert = X509_new();
-  d2i_X509(&decoded_cert, &der_cert, der_cert_size);
+  d2i_X509(&decoded_cert,
+           &der_bytes,
+           (long) der_cert.len);
 
   return decoded_cert;
 }
 
-EVP_PKEY *deserialize_pkey(const unsigned char *der_pkey, long der_pkey_size)
+EVP_PKEY *deserialize_pkey(charbuf der_pkey)
 {
-  if ((der_pkey == NULL) || (der_pkey_size == 0))
+  if ((der_pkey.chars == NULL) || (der_pkey.len == 0))
   {
     pelz_sgx_log(LOG_ERR, "NULL/empty input DER-formatted EVP_PKEY");
     return NULL;
   }
 
+  const unsigned char *der_bytes = der_pkey.chars;
   EVP_PKEY *decoded_pkey = EVP_PKEY_new();
-  d2i_PrivateKey(EVP_PKEY_EC, &decoded_pkey, &der_pkey, der_pkey_size);
+  d2i_PrivateKey(EVP_PKEY_EC,
+                 &decoded_pkey,
+                 &der_bytes,
+                 (long) der_pkey.len);
 
   return decoded_pkey;
 }
@@ -1451,44 +1458,30 @@ MsgTestStatus pelz_constructed_msg_test_helper(MsgTestSelect test_select,
   return MSG_TEST_OK;
 }
 
-int pelz_enclave_msg_test_helper(uint8_t msg_type,
-                                 uint8_t req_type,
-                                 size_t cipher_size,
-                                 unsigned char *cipher,
-                                 size_t tag_size,
-                                 unsigned char *tag,
-                                 size_t iv_size,
-                                 unsigned char *iv,
-                                 size_t key_id_size,
-                                 unsigned char *key_id,
-                                 size_t msg_data_size,
-                                 unsigned char *msg_data,
-                                 size_t msg_status_size,
-                                 unsigned char *msg_status,
-                                 size_t der_sign_priv_size,
-                                 unsigned char *der_sign_priv,
-                                 size_t der_verify_cert_size,
-                                 unsigned char *der_verify_cert,
-                                 size_t der_encrypt_cert_size,
-                                 unsigned char *der_encrypt_cert,
-                                 size_t der_decrypt_priv_size,
-                                 unsigned char *der_decrypt_priv,
-                                 uint8_t test_select)
+MsgTestStatus pelz_enclave_msg_test_helper(uint8_t msg_type,
+                                           uint8_t req_type,
+                                           charbuf cipher,
+                                           charbuf key_id,
+                                           charbuf msg_data,
+                                           charbuf msg_status,
+                                           charbuf der_sign_priv,
+                                           charbuf der_verify_cert,
+                                           charbuf der_encrypt_cert,
+                                           charbuf der_decrypt_priv,
+                                           MsgTestSelect test_select)
 {
+
+  charbuf test_tag = new_charbuf(0);
+  charbuf test_iv = new_charbuf(0);
+
   PELZ_MSG_DATA test_msg_data = { .msg_type = (PELZ_MSG_TYPE) msg_type,
                                   .req_type = (PELZ_REQ_TYPE) req_type,
-                                  .cipher = { .chars = cipher,
-                                              .len = cipher_size },
-                                  .tag = { .chars = tag,
-                                           .len = tag_size },
-                                  .iv = { .chars = iv,
-                                          .len = iv_size },
-                                  .key_id = { .chars = key_id,
-                                              .len = key_id_size },
-                                  .data = { .chars = msg_data,
-                                            .len = msg_data_size },
-                                  .status = { .chars = msg_status,
-                                              .len = msg_status_size } };
+                                  .cipher = cipher,
+                                  .tag = test_tag,
+                                  .iv = test_iv,
+                                  .key_id = key_id,
+                                  .data = msg_data,
+                                  .status = msg_status };
 
   // create ASN.1 formatted pelz request message
   charbuf asn1_pelz_req = new_charbuf(0);
@@ -1530,8 +1523,7 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
   }
 
   // deserialize input DER-formatted requestor private key (sign key)
-  EVP_PKEY *sign_priv = deserialize_pkey(der_sign_priv,
-                                         (long) der_sign_priv_size);
+  EVP_PKEY *sign_priv = deserialize_pkey(der_sign_priv);
   if (sign_priv == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error DER decoding EVP_PKEY");
@@ -1540,8 +1532,7 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
   }
 
   // deserialize input DER-formatted requestor public cert (verify key)
-  X509 *verify_cert = deserialize_cert(der_verify_cert,
-                                       (long) der_verify_cert_size);
+  X509 *verify_cert = deserialize_cert(der_verify_cert);
   if (verify_cert == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error DER decoding X509 certificate");
@@ -1596,8 +1587,7 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
   }
 
   // deserialize input DER-formatted responder public cert (encrypt key)
-  X509 *encrypt_cert = deserialize_cert(der_encrypt_cert,
-                                        (long) der_encrypt_cert_size);
+  X509 *encrypt_cert = deserialize_cert(der_encrypt_cert);
   if (encrypt_cert == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error DER decoding X509 certificate");
@@ -1609,8 +1599,7 @@ int pelz_enclave_msg_test_helper(uint8_t msg_type,
   }
 
   // deserialize input DER-formatted responder private key (decrypt key)
-  EVP_PKEY *decrypt_priv = deserialize_pkey(der_decrypt_priv,
-                                            (long) der_decrypt_priv_size);
+  EVP_PKEY *decrypt_priv = deserialize_pkey(der_decrypt_priv);
   if (decrypt_priv == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error DER decoding EVP_PKEY");
@@ -2010,8 +1999,7 @@ ReqTestStatus pelz_enclave_service_test_helper(charbuf cipher,
 
   // deserialize input DER-formatted requestor private key
   // (used to sign request and decrypt response)
-  EVP_PKEY *req_priv = deserialize_pkey(der_req_priv.chars,
-                                        (long) der_req_priv.len);
+  EVP_PKEY *req_priv = deserialize_pkey(der_req_priv);
   if (req_priv == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error DER decoding EVP_PKEY");
@@ -2020,8 +2008,7 @@ ReqTestStatus pelz_enclave_service_test_helper(charbuf cipher,
 
   // deserialize input DER-formatted requestor public cert
   // (contains public key used to verify request and encrypt response)
-  X509 *req_cert = deserialize_cert(der_req_cert.chars,
-                                    (long) der_req_cert.len);
+  X509 *req_cert = deserialize_cert(der_req_cert);
   if (req_cert == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error DER decoding X509 certificate");
@@ -2036,8 +2023,7 @@ ReqTestStatus pelz_enclave_service_test_helper(charbuf cipher,
 
   // deserialize input DER-formatted responder private key
   // (used to decrypt request and sign response)
-  EVP_PKEY *resp_priv = deserialize_pkey(der_resp_priv.chars,
-                                         (long) der_resp_priv.len);
+  EVP_PKEY *resp_priv = deserialize_pkey(der_resp_priv);
   if (resp_priv == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error DER decoding EVP_PKEY");
@@ -2048,8 +2034,7 @@ ReqTestStatus pelz_enclave_service_test_helper(charbuf cipher,
 
   // deserialize input DER-formatted responder public cert
   // (contains public key used to encrypt request and verify response)
-  X509 *resp_cert = deserialize_cert(der_resp_cert.chars,
-                                     (long) der_resp_cert.len);
+  X509 *resp_cert = deserialize_cert(der_resp_cert);
   if (resp_cert == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error DER decoding X509 certificate");

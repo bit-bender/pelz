@@ -82,10 +82,6 @@ void test_create_pelz_asn1_msg(void)
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
 
-  charbuf test_tag = new_charbuf(0);
-
-  charbuf test_iv = new_charbuf(0);
-
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
   test_key_id.chars = malloc(test_key_id.len + 1);
@@ -102,217 +98,215 @@ void test_create_pelz_asn1_msg(void)
   sprintf((char *) test_status.chars, "create ASN.1 message status");
 
   // invalid (less than MSG_TYPE_MIN) message type should fail param checks
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        MSG_TYPE_MIN - 1, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        MSG_TYPE_MIN - 1,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_ASN1_CREATE_ERROR));
 
   // invalid (greater than MSG_TYPE_MAX) message type should fail param checks
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        MSG_TYPE_MAX + 1, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_data.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        MSG_TYPE_MAX + 1,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_ASN1_CREATE_ERROR));
 
   // invalid (less than REQ_TYPE_MIN) message type should fail param checks
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, REQ_TYPE_MIN - 1,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        REQ_TYPE_MIN - 1,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_ASN1_CREATE_ERROR));
 
   // invalid (greater than REQ_TYPE_MAX) message type should fail param checks
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, REQ_TYPE_MAX + 1,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        REQ_TYPE_MAX + 1,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_ASN1_CREATE_ERROR));
 
   // null cipher input should fail param checks
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, NULL,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        (charbuf) { .chars = NULL, .len = test_cipher.len },
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_ASN1_CREATE_ERROR));
 
   // empty (zero-length) cipher input should fail param checks
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        0, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        (charbuf) { .chars = test_cipher.chars, .len = 0 },
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_ASN1_CREATE_ERROR));
 
   // NULL KEK key ID input should fail param checks
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, NULL,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        (charbuf) { .chars = NULL, .len = test_key_id.len },
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_ASN1_CREATE_ERROR));
 
   // empty (zero-length) KEK key ID input should fail param checks
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        0, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        (charbuf) { .chars = test_key_id.chars, .len = 0 },
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_ASN1_CREATE_ERROR));
 
   // NULL data input should fail param checks
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, NULL,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        (charbuf) { .chars = NULL, .len = test_data.len },
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_ASN1_CREATE_ERROR));
 
   // empty (zero-length) data input should fail param checks
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        0, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        (charbuf) { .chars = test_data.chars, .len = 0 },
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_ASN1_CREATE_ERROR));
 
   // NULL status input should fail param checks
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        (charbuf) { .chars = NULL, .len = test_status.len },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_ASN1_CREATE_ERROR));
 
   // empty (zero-length) status input should fail param checks
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        0, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        (charbuf) { .chars = test_status.chars, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_ASN1_CREATE_ERROR));
 
   // ASN.1 message creation test case with valid parameters should not error
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
   // Clean-up
   free_charbuf(&test_cipher);
-  free_charbuf(&test_tag);
-  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -334,10 +328,6 @@ void test_parse_pelz_asn1_msg(void)
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
 
-  charbuf test_tag = new_charbuf(0);
-
-  charbuf test_iv = new_charbuf(0);
-
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
   test_key_id.chars = malloc(test_key_id.len + 1);
@@ -354,185 +344,183 @@ void test_parse_pelz_asn1_msg(void)
   sprintf((char *) test_status.chars, "parse ASN.1 message status");
 
   // invalid 'message type' field tag should result in parse error
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_INVALID_MSG_TYPE_TAG);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // invalid message type field value (< MSG_TYPE_MIN) should error
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_INVALID_MSG_TYPE_LO);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // invalid message type field value (> MSG_TYPE_MAX) should error
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_INVALID_MSG_TYPE_HI);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // invalid req_type field tag should result in parse error
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_INVALID_REQ_TYPE_TAG);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // invalid request type field value (< REQ_TYPE_MIN) should error
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_INVALID_REQ_TYPE_LO);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // invalid request type field value (> REQ_TYPE_MAX) should error
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_INVALID_REQ_TYPE_HI);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // invalid cipher field tag should result in parse error
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_INVALID_CIPHER_TAG);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // invalid key ID field tag should result in parse error
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_INVALID_KEY_ID_TAG);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // invalid data field tag should result in parse error
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_INVALID_DATA_TAG);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // invalid status field tag should result in parse error
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_INVALID_STATUS_TAG);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // valid (unmodified) message format/contents should parse successfully
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
-                                        test_msg_type, test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
+                                        test_msg_type,
+                                        test_req_type,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
   // Clean-up
   free_charbuf(&test_cipher);
-  free_charbuf(&test_tag);
-  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -553,10 +541,6 @@ void test_create_pelz_signed_msg(void)
   test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
-
-  charbuf test_tag = new_charbuf(0);
-
-  charbuf test_iv = new_charbuf(0);
 
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
@@ -596,114 +580,104 @@ void test_create_pelz_signed_msg(void)
     CU_FAIL("error creating DER formatted cert/key pair");
   }
 
-  pelz_log(LOG_DEBUG, "before CMS_SIGN_NULL_BUF_IN test");
-
   // NULL input data  pointer test case - invalid parameter should be handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        test_priv,
+                                        test_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_SIGN_NULL_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // Empty input data buffer test cases - invalid parameter should be handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        test_priv,
+                                        test_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_SIGN_EMPTY_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // NULL cert test case - invalid parameter should be handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        test_priv,
+                                        test_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_SIGN_NULL_CERT_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // NULL private signing key should fail
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        test_priv,
+                                        test_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_SIGN_NULL_PRIV_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // valid test case should pass
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        test_priv,
+                                        test_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_SIGN_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
   // Mismatched key/cert should fail
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        test_priv.len, test_priv.chars,
-                                        diff_cert.len, diff_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        test_priv,
+                                        diff_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_SIGN_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_SIGN_ERROR));
 
   // Clean-up
   free_charbuf(&test_cipher);
-  free_charbuf(&test_tag);
-  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -728,10 +702,6 @@ void test_verify_pelz_signed_msg(void)
   test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
-
-  charbuf test_tag = new_charbuf(0);
-
-  charbuf test_iv = new_charbuf(0);
 
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
@@ -773,70 +743,66 @@ void test_verify_pelz_signed_msg(void)
   }
 
   // NULL signed message input test case
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        test_priv,
+                                        test_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_VERIFY_NULL_MSG_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // NULL output certificate pointer test case
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        test_priv,
+                                        test_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_VERIFY_NULL_BUF_OUT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // NULL output certificate test case
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        test_priv,
+                                        test_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_VERIFY_NULL_CERT_OUT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // valid test data should invoke succcessful signature verification test case
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        test_priv,
+                                        test_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_VERIFY_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
@@ -854,26 +820,23 @@ void test_verify_pelz_signed_msg(void)
     handle = 0;
   }
 
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        test_priv.len, test_priv.chars,
-                                        test_cert.len, test_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        test_priv,
+                                        test_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_VERIFY_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_VERIFY_ERROR));
 
   // Clean-up
   free_charbuf(&test_cipher);
-  free_charbuf(&test_tag);
-  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -900,10 +863,6 @@ void test_create_pelz_enveloped_msg(void)
   test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
-
-  charbuf test_tag = new_charbuf(0);
-
-  charbuf test_iv = new_charbuf(0);
 
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
@@ -960,77 +919,71 @@ void test_create_pelz_enveloped_msg(void)
   }
 
   // NULL input data should be handled as invalid parameter
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_ENCRYPT_NULL_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // empty input data should be handled as invalid parameter
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_ENCRYPT_EMPTY_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // NULL input certificate should be handled as invalid parameter
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_ENCRYPT_NULL_CERT_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // valid test case should pass
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_ENCRYPT_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
   // Clean-up
   free_charbuf(&test_cipher);
-  free_charbuf(&test_tag);
-  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -1059,10 +1012,6 @@ void test_decrypt_pelz_enveloped_msg(void)
   test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
-
-  charbuf test_tag = new_charbuf(0);
-
-  charbuf test_iv = new_charbuf(0);
 
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
@@ -1119,111 +1068,103 @@ void test_decrypt_pelz_enveloped_msg(void)
   }
 
   // NULL input message test case
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_DECRYPT_NULL_MSG_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // NULL output buffer test case
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_DECRYPT_NULL_BUF_OUT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // NULL input private key test case
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_DECRYPT_NULL_PRIV);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // NULL input cert test case
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_DECRYPT_NULL_CERT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // valid test data should invoke succcessful CMS decryption test case
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_DECRYPT_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
   // wrong input private decryption key test case
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        sign_priv.len, sign_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        sign_priv,
                                         CMS_DECRYPT_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_DECRYPT_ERROR));
 
   // Clean-up
   free_charbuf(&test_cipher);
-  free_charbuf(&test_tag);
-  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -1253,10 +1194,6 @@ void test_der_encode_pelz_msg(void)
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
 
-  charbuf test_tag = new_charbuf(0);
-
-  charbuf test_iv = new_charbuf(0);
-
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
   test_key_id.chars = malloc(test_key_id.len + 1);
@@ -1273,70 +1210,66 @@ void test_der_encode_pelz_msg(void)
   sprintf((char *) test_status.chars, "DER-encode message status");
 
   // ASN.1 DER encode: test that NULL input message is handled as expected
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_DER_ENCODE_NULL_MSG_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // ASN.1 DER encode: test that NULL output buffer pointer is handled as expected
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_DER_ENCODE_NULL_BUF_OUT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // ASN.1 DER encode: test that invalid format parameter is handled as expected
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_DER_ENCODE_INVALID_FORMAT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // ASN.1 DER encode: test with valid test input should produce expected encoded result
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_CREATE_DER_ENCODE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
@@ -1367,70 +1300,66 @@ void test_der_encode_pelz_msg(void)
   }
 
   // DER encode signed CMS: test that NULL input message is handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_SIGN_DER_ENCODE_NULL_MSG_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // DER encode signed CMS: test that NULL input message is handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_SIGN_DER_ENCODE_NULL_BUF_OUT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // DER encode signed CMS: test that invalid format parameter is handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_SIGN_DER_ENCODE_INVALID_FORMAT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // DER encode signed CMS: test valid input produces expected encoded result
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_SIGN_DER_ENCODE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
@@ -1449,77 +1378,71 @@ void test_der_encode_pelz_msg(void)
   }
 
   // DER encode enveloped CMS: test that NULL input message is handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_ENCRYPT_DER_ENCODE_NULL_MSG_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // DER encode enveloped CMS: test that NULL input message is handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_ENCRYPT_DER_ENCODE_NULL_BUF_OUT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // DER encode enveloped CMS: test that invalid format parameter is handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_ENCRYPT_DER_ENCODE_INVALID_FORMAT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // DER encode enveloped CMS: test valid input produces expected encoded result
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_ENCRYPT_DER_ENCODE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
   // Clean-up
   free_charbuf(&test_cipher);
-  free_charbuf(&test_tag);
-  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -1549,10 +1472,6 @@ void test_der_decode_pelz_msg(void)
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
 
-  charbuf test_tag = new_charbuf(0);
-
-  charbuf test_iv = new_charbuf(0);
-
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
   test_key_id.chars = malloc(test_key_id.len + 1);
@@ -1569,70 +1488,66 @@ void test_der_decode_pelz_msg(void)
   sprintf((char *) test_status.chars, "DER-decode message status");
 
   // ASN.1 DER decode: test NULL pointer to input byte array handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_DER_DECODE_NULL_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // ASN.1 DER decode: test empty input byte array handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_DER_DECODE_EMPTY_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // ASN.1 DER decode: test invalid decoded message format parameter handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_DER_DECODE_INVALID_FORMAT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // ASN.1 DER decode: test valid input produces expected message output
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         ASN1_PARSE_DER_DECODE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
@@ -1665,70 +1580,66 @@ void test_der_decode_pelz_msg(void)
   }
 
   // DER decode to signed CMS: test NULL pointer to input byte array handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_VERIFY_DER_DECODE_NULL_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // DER decode to signed CMS: test empty input byte array handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_VERIFY_DER_DECODE_EMPTY_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // DER decode to signed CMS: test invalid decoded message format parameter handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_VERIFY_DER_DECODE_INVALID_FORMAT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // DER decode to signed CMS: test valid input produces expected message output
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        0, NULL,
-                                        0, NULL,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        (charbuf) { .chars = NULL, .len = 0 },
+                                        (charbuf) { .chars = NULL, .len = 0 },
                                         CMS_VERIFY_DER_DECODE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
@@ -1744,60 +1655,55 @@ void test_der_decode_pelz_msg(void)
   }
 
   // DER decode to enveloped CMS: test NULL pointer to input byte array handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_DECRYPT_DER_DECODE_NULL_BUF_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // DER decode to enveloped CMS: test invalid message format parameter handled
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_DECRYPT_DER_DECODE_INVALID_FORMAT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // DER decode to enveloped CMS: test valid input produces expected message output
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CMS_DECRYPT_DER_DECODE_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
   // Clean-up
   free_charbuf(&test_cipher);
-  free_charbuf(&test_tag);
-  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);
@@ -1826,10 +1732,6 @@ void test_construct_deconstruct_pelz_msg(void)
   test_cipher.len = strlen("AES/KeyWrap/RFC3394NoPadding/128");
   test_cipher.chars = malloc(test_cipher.len + 1);
   sprintf((char *) test_cipher.chars, "AES/KeyWrap/RFC3394NoPadding/128");
-
-  charbuf test_tag = new_charbuf(0);
-
-  charbuf test_iv = new_charbuf(0);
 
   charbuf test_key_id = new_charbuf(0);
   test_key_id.len = strlen("file://test.key");
@@ -1886,179 +1788,167 @@ void test_construct_deconstruct_pelz_msg(void)
   }
 
   // test NULL pointer as input local certificate parameter to "construct"
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CONSTRUCT_NULL_CERT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // test NULL pointer as input local private key parameter to "construct"
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CONSTRUCT_NULL_PRIV);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // test NULL pointer as input peer certificate parameter to "construct"
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CONSTRUCT_NULL_PEER_CERT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // test NULL pointer as output byte array parameter to "construct"
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CONSTRUCT_NULL_BUF_OUT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // test "construct" pelz message functionality
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         CONSTRUCT_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
   // test NULL pointer as input message byte array parameter to "deconstruct"
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         DECONSTRUCT_NULL_MSG_IN);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // test NULL pointer as input local certificate parameter to "deconstruct"
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         DECONSTRUCT_NULL_CERT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // test NULL pointer as input local private key parameter to "deconstruct"
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         DECONSTRUCT_NULL_PRIV);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // test NULL pointer to peer cert output parameter for "deconstruct"
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         DECONSTRUCT_NULL_PEER_CERT_OUT);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_PARAM_HANDLING_OK));
 
   // test "deconstruct" pelz message functionality
-  retval = pelz_enclave_msg_test_helper(eid, (int *) &result,
+  retval = pelz_enclave_msg_test_helper(eid,
+                                        &result,
                                         (uint8_t) test_msg_type,
                                         (uint8_t) test_req_type,
-                                        test_cipher.len, test_cipher.chars,
-                                        test_tag.len, test_tag.chars,
-                                        test_iv.len, test_iv.chars,
-                                        test_key_id.len, test_key_id.chars,
-                                        test_data.len, test_data.chars,
-                                        test_status.len, test_status.chars,
-                                        sign_priv.len, sign_priv.chars,
-                                        verify_cert.len, verify_cert.chars,
-                                        encrypt_cert.len, encrypt_cert.chars,
-                                        decrypt_priv.len, decrypt_priv.chars,
+                                        test_cipher,
+                                        test_key_id,
+                                        test_data,
+                                        test_status,
+                                        sign_priv,
+                                        verify_cert,
+                                        encrypt_cert,
+                                        decrypt_priv,
                                         DECONSTRUCT_FUNCTIONALITY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == MSG_TEST_OK));
 
   // Clean-up
   free_charbuf(&test_cipher);
-  free_charbuf(&test_tag);
-  free_charbuf(&test_iv);
   free_charbuf(&test_key_id);
   free_charbuf(&test_data);
   free_charbuf(&test_status);

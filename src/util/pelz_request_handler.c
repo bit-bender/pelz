@@ -28,41 +28,73 @@ RequestResponseStatus service_pelz_request_msg(charbuf req_in,
   }
 
   // Deconstruct (decrypt, verify, parse) received pelz request
-  X509 *requestor_cert = NULL;
+  X509 *requestor_cert = X509_new();
+  X509 *responder_cert = get_service_cert();
+  EVP_PKEY *responder_priv = get_service_priv();
   PELZ_MSG_DATA rcvd_req_data = { 0 };
   PelzMessagingStatus msg_status = PELZ_MSG_UNKNOWN_ERROR;
 
+  if ((responder_cert == NULL) || (responder_priv == NULL))
+  {
+    X509_free(requestor_cert);
+    X509_free(responder_cert);
+    EVP_PKEY_free(responder_priv);
+    pelz_sgx_log(LOG_DEBUG, "NULL key and/or cert for pelz service");
+    return REQUEST_RESPONSE_CONFIG_ERROR;
+  }
+
   msg_status = deconstruct_pelz_msg(req_in,
-                                    pelz_id.cert,
-                                    pelz_id.private_pkey,
+                                    responder_cert,
+                                    responder_priv,
                                     &requestor_cert,
                                     &rcvd_req_data);
-  if (msg_status != PELZ_MSG_OK)
+  X509_free(responder_cert);
+  EVP_PKEY_free(responder_priv);
+  if ((msg_status != PELZ_MSG_OK) || (requestor_cert == NULL))
   {
+    X509_free(requestor_cert);
     pelz_sgx_log(LOG_ERR, "deconstruct received pelz request error");
     return REQUEST_RESPONSE_MSG_DECONSTRUCT_ERROR;
   }
 
   PELZ_MSG_DATA response_data = { .msg_type = RESPONSE,
                                   .req_type = rcvd_req_data.req_type,
-                                  .cipher = rcvd_req_data.cipher,
+                                  .cipher = new_charbuf(rcvd_req_data.cipher.len),
                                   .tag = new_charbuf(0),
                                   .iv = new_charbuf(0),
-                                  .key_id = rcvd_req_data.key_id,
+                                  .key_id = new_charbuf(rcvd_req_data.key_id.len),
                                   .data = new_charbuf(0),
                                   .status = new_charbuf(0) };
+
+  memcpy(response_data.cipher.chars,
+         rcvd_req_data.cipher.chars,
+         response_data.cipher.len);
+  memcpy(response_data.key_id.chars,
+         rcvd_req_data.key_id.chars,
+         response_data.key_id.len);
 
   RequestResponseStatus handler_status = REQUEST_RESPONSE_UNKNOWN_ERROR;
 
   switch (response_data.req_type)
   {
   case KEY_WRAP:
-    handler_status = pelz_encrypt_request_handler(response_data.key_id,
-                                                  response_data.cipher,
+    handler_status = pelz_encrypt_request_handler(rcvd_req_data.key_id,
+                                                  rcvd_req_data.cipher,
                                                   rcvd_req_data.data,
                                                   &(response_data.data),
                                                   &(response_data.iv),
                                                   &(response_data.tag));
+    response_data.status.len = strlen(KEY_WRAP_OK);
+    response_data.status.chars = calloc(response_data.status.len,
+                                        sizeof(unsigned char));
+    if (response_data.status.chars == NULL)
+    {
+      pelz_sgx_log(LOG_ERR, "error allocating response status buffer");
+      return REQUEST_RESPONSE_MALLOC_ERROR;
+    }
+    memcpy(response_data.status.chars,
+           (unsigned char *) KEY_WRAP_OK,
+           response_data.status.len);
     break;
   case KEY_UNWRAP:
     handler_status = pelz_decrypt_request_handler(response_data.key_id,
@@ -71,6 +103,17 @@ RequestResponseStatus service_pelz_request_msg(charbuf req_in,
                                                   response_data.tag,
                                                   rcvd_req_data.data,
                                                   &(response_data.data));
+    response_data.status.len = strlen(KEY_UNWRAP_OK);
+    response_data.status.chars = calloc(response_data.status.len,
+                                        sizeof(unsigned char));
+    if (response_data.status.chars == NULL)
+    {
+      pelz_sgx_log(LOG_ERR, "error allocating response status buffer");
+      return REQUEST_RESPONSE_MALLOC_ERROR;
+    }
+    memcpy(response_data.status.chars,
+           (unsigned char *) KEY_UNWRAP_OK,
+           response_data.status.len);
     break;
   default:
     pelz_sgx_log(LOG_DEBUG, "invalid request type");
@@ -83,20 +126,26 @@ RequestResponseStatus service_pelz_request_msg(charbuf req_in,
     return handler_status;
   }
 
+  responder_cert = get_service_cert();
+  responder_priv = get_service_priv();
   msg_status = construct_pelz_msg(response_data,
-                                  pelz_id.cert,
-                                  pelz_id.private_pkey,
+                                  responder_cert,
+                                  responder_priv,
                                   requestor_cert,
                                   resp_out);
+  X509_free(requestor_cert);
+  X509_free(responder_cert);
+  EVP_PKEY_free(responder_priv);
   if (msg_status != PELZ_MSG_OK)
   {
+    pelz_sgx_log(LOG_DEBUG, "msg_status != PELZ_MSG_OK");
     PELZ_MSG_DATA_free(&response_data);
     return REQUEST_RESPONSE_MSG_CONSTRUCT_ERROR;
   }
+  pelz_sgx_log(LOG_INFO, "constructed pelz response message");
 
   return REQUEST_RESPONSE_OK;
 }
-
 
 RequestResponseStatus pelz_encrypt_request_handler(charbuf key_id,
                                                    charbuf cipher_name,

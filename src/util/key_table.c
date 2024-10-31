@@ -26,7 +26,7 @@ TableResponseStatus key_table_add_key(charbuf key_id, charbuf key)
 
   if (key_table.mem_size >= MAX_MEM_SIZE)
   {
-    pelz_sgx_log(LOG_ERR, "Key Table memory allocation greater then specified limit.");
+    pelz_sgx_log(LOG_ERR, "key table memory allocation exceeds limit");
     return ERR_MEM;
   }
 
@@ -35,9 +35,11 @@ TableResponseStatus key_table_add_key(charbuf key_id, charbuf key)
 
   Entry *temp;
 
-  if ((temp = (Entry *) realloc(key_table.entries, (key_table.num_entries + 1) * sizeof(Entry))) == NULL)
+  if ((temp = (Entry *) realloc(key_table.entries,
+                                (key_table.num_entries + 1) *
+                                sizeof(Entry))) == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "Key List Space Reallocation Error");
+    pelz_sgx_log(LOG_ERR, "key list space reallocation error");
     free_charbuf(&tmp_entry.id);
     secure_free_charbuf(&tmp_entry.value.key);
     return ERR_REALLOC;
@@ -49,9 +51,11 @@ TableResponseStatus key_table_add_key(charbuf key_id, charbuf key)
 
   key_table.entries[key_table.num_entries] = tmp_entry;
   key_table.num_entries++;
-  key_table.mem_size =
-    key_table.mem_size + ((tmp_entry.value.key.len * sizeof(char)) + (tmp_entry.id.len * sizeof(char)) + (2 * sizeof(size_t)));
-  pelz_sgx_log(LOG_INFO, "Key Added");
+  key_table.mem_size = key_table.mem_size +
+                       ((tmp_entry.value.key.len * sizeof(char)) +
+                       (tmp_entry.id.len * sizeof(char)) +
+                       (2 * sizeof(size_t)));
+  pelz_sgx_log(LOG_INFO, "added key to key table");
   return OK;
 }
 

@@ -8,12 +8,18 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <kmyth/file_io.h>
+
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 
 #include "charbuf.h"
 #include "pelz_log.h"
+#include "sgx_urts.h"
+#include "pelz_enclave.h"
+#include "test_enclave_u.h"
+#include "sgx_seal_unseal_impl.h"
 
 /**
  * <pre>
@@ -58,5 +64,7 @@ int keypair_pem_to_der(char *cert_pem_fn,
                        char *priv_pem_fn,
                        charbuf *der_cert_out,
                        charbuf *der_priv_out);
+
+int get_file_handle(char *path, uint64_t* handle);
 
 #endif /* TEST_HELPER_FUNCTIONS_H_ */

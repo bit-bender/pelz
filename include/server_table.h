@@ -9,6 +9,7 @@ typedef struct {
   char *common_name;
 } pelz_identity_t;
 
-
+X509 *get_service_cert(void);
+EVP_PKEY *get_service_priv(void);
 
 #endif

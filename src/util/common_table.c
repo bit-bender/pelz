@@ -102,15 +102,17 @@ TableResponseStatus table_delete(TableType type, charbuf id)
     return ERR;
   }
 
+  pelz_sgx_log(LOG_DEBUG, (char *) id.chars);
   for (size_t i = 0; i < table->num_entries; i++)
   {
     if (cmp_charbuf(id, table->entries[i].id) == 0)
     {
       if (type == KEY)
       {
-        table->mem_size =
-          table->mem_size - ((table->entries[i].value.key.len * sizeof(char)) + (table->entries[i].id.len * sizeof(char)) +
-          (2 * sizeof(size_t)));
+        table->mem_size = table->mem_size -
+                          ((table->entries[i].value.key.len * sizeof(char)) +
+                          (table->entries[i].id.len * sizeof(char)) +
+                          (2 * sizeof(size_t)));
       }
       else if (type == SERVER || type == CA_TABLE)
       {
@@ -119,7 +121,9 @@ TableResponseStatus table_delete(TableType type, charbuf id)
         {
           return ERR;
         }
-        table->mem_size = table->mem_size - ((table->entries[i].id.len * sizeof(char)) + sizeof(size_t) + (size_t)data_size);
+        table->mem_size = table->mem_size -
+                          ((table->entries[i].id.len * sizeof(char)) +
+                          sizeof(size_t) + (size_t)data_size);
       }
       free_charbuf(&table->entries[i].id);
       if (type == KEY)
@@ -136,7 +140,20 @@ TableResponseStatus table_delete(TableType type, charbuf id)
   }
   if (index == 0)
   {
-    pelz_sgx_log(LOG_ERR, "ID not found.");
+    switch (type)
+    {
+    case KEY:
+      pelz_sgx_log(LOG_DEBUG, "ID not found in key table");
+      break;
+    case SERVER:
+      pelz_sgx_log(LOG_DEBUG, "ID not found in server certificate table");
+      break;
+    case CA_TABLE:
+      pelz_sgx_log(LOG_ERR, "ID not found in CA certificate table");
+      break;
+    default:
+      pelz_sgx_log(LOG_ERR, "invalid table type");
+    }
     return NO_MATCH;
   }
   else if (table->mem_size == 0)
@@ -157,13 +174,29 @@ TableResponseStatus table_delete(TableType type, charbuf id)
 
     if ((temp = (Entry *) realloc(table->entries, (table->num_entries) * sizeof(Entry))) == NULL)
     {
-      pelz_sgx_log(LOG_ERR, "List Space Reallocation Error");
+      pelz_sgx_log(LOG_ERR, "list space reallocation error");
       return ERR_REALLOC;
     }
     else
     {
       table->entries = temp;
     }
+  }
+
+  switch (type)
+  {
+  case KEY:
+    pelz_sgx_log(LOG_INFO, "deleted key from key table");
+    break;
+  case SERVER:
+    pelz_sgx_log(LOG_INFO, "deleted certificate from server table");
+    break;
+  case CA_TABLE:
+    pelz_sgx_log(LOG_INFO, "deleted certificate from CA table");
+    break;
+  default:
+    pelz_sgx_log(LOG_ERR, "invalid table type");
+    return ERR;
   }
   return OK;
 }

@@ -18,15 +18,23 @@
 #include <openssl/evp.h>
 
 #include "charbuf.h"
+#include "server_table.h"
 
 //The maximum key length
 #define MAX_KEY_LEN 1024
 #define MAX_SOC_DATA_SIZE 1024
 
+//pelz service response status strings
+#define KEY_WRAP_OK "pelz key wrap SUCCESS"
+#define KEY_WRAP_FAIL "pelz key wrap FAIL"
+#define KEY_UNWRAP_OK "pelz key unwrap SUCCESS"
+#define KEY_UNWRAP_FAIL "pelz key unwrap FAIL"
+
 typedef enum
 { REQUEST_RESPONSE_OK,
   REQUEST_RESPONSE_UNKNOWN_ERROR,
   REQUEST_RESPONSE_BUFFER_ERROR,
+  REQUEST_RESPONSE_CONFIG_ERROR,
   REQUEST_RESPONSE_MSG_TYPE_ERROR,
   REQUEST_RESPONSE_REQ_TYPE_ERROR,
   REQUEST_RESPONSE_CIPHER_ERROR,

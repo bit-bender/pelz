@@ -51,10 +51,8 @@ enclave
     public ReqTestStatus pelz_enclave_service_test_helper(
       charbuf cipher,
       charbuf key_id,
-      charbuf der_req_priv,
       charbuf der_req_cert,
-      charbuf der_resp_priv,
-      charbuf der_resp_cert);
+      charbuf der_req_priv);
   };
 };
 

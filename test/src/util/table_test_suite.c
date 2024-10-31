@@ -43,30 +43,6 @@ int table_suite_add_tests(CU_pSuite suite)
   return (0);
 }
 
-int get_file_handle(char *path, uint64_t* handle)
-{
-  uint8_t *data = NULL;
-  size_t data_len = 0;
-
-  if (read_bytes_from_file(path, &data, &data_len))
-  {
-    pelz_log(LOG_ERR, "read_bytes_from_file function failure");
-    return 0;
-  }
-
-  if(data_len > 0)
-  {
-    if (kmyth_sgx_unseal_nkl(eid, data, data_len, handle))
-    {
-	    pelz_log(LOG_ERR, "kmyth_sgx_unseal_nkl function failure");
-	    return 0;
-	  }
-
-    free(data);
-  }
-  return 1;
-}
-
 void test_table_destroy(void)
 {
   TableResponseStatus status;

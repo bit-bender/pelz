@@ -538,7 +538,7 @@ PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
 
   // get the signer's certificate from the signed message
   STACK_OF(X509) *signer_cert_stack = sk_X509_new_null();
-  signer_cert_stack = CMS_get0_signers(signed_msg_in);
+  signer_cert_stack = CMS_get1_certs(signed_msg_in);
   if (sk_X509_num(signer_cert_stack) != 1)
   {
     pelz_sgx_log(LOG_ERR, "count of signer certs is not one, as expected");
@@ -609,12 +609,17 @@ CMS_ContentInfo *create_pelz_enveloped_msg(charbuf msg_data_in,
   }
   BIO *cms_enc_bio = BIO_new_mem_buf(msg_data_in.chars,
                                      (int) msg_data_in.len);
+  if (cms_enc_bio == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error creating CMS encrypt BIO");
+    sk_X509_free(cert_stack);
+    return NULL;
+  }
 
-  CMS_ContentInfo *msg_out = CMS_ContentInfo_new();
-  msg_out = CMS_encrypt(cert_stack,
-                        cms_enc_bio,
-                        EVP_aes_256_gcm(),
-                        CMS_BINARY);
+  CMS_ContentInfo *msg_out = CMS_encrypt(cert_stack,
+                                         cms_enc_bio,
+                                         EVP_aes_256_gcm(),
+                                         CMS_BINARY);
   if (msg_out == NULL)
   {
     pelz_sgx_log(LOG_ERR, "CMS_encrypt() error");
@@ -867,6 +872,7 @@ PelzMessagingStatus construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
     pelz_sgx_log(LOG_ERR, "error creating ASN.1 pelz message");
     return PELZ_MSG_ASN1_CREATE_ERROR;
   }
+  pelz_sgx_log(LOG_DEBUG, "created ASN.1 pelz message");
 
   // DER-encode ASN.1 formatted pelz response message
   charbuf der_asn1_msg = { .chars = NULL, .len = 0 };
@@ -881,6 +887,7 @@ PelzMessagingStatus construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
     pelz_sgx_log(LOG_ERR, "error DER-encoding ASN.1 pelz message");
     return PELZ_MSG_DER_ENCODE_ASN1_ERROR;
   }
+  pelz_sgx_log(LOG_DEBUG, "DER-encoded ASN.1 pelz message");
 
   // create signed CMS pelz response message
   CMS_ContentInfo *signed_message = NULL;
@@ -893,6 +900,7 @@ PelzMessagingStatus construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
     pelz_sgx_log(LOG_ERR, "error creating signed CMS pelz message");
     return PELZ_MSG_SIGN_ERROR;
   }
+  pelz_sgx_log(LOG_DEBUG, "created signed CMS pelz message");
 
   // DER-encode signed CMS pelz response message
   charbuf der_signed_msg = { .chars = NULL, .len = 0 };
@@ -907,23 +915,24 @@ PelzMessagingStatus construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
     pelz_sgx_log(LOG_ERR, "error DER-encoding signed CMS pelz message");
     return PELZ_MSG_DER_ENCODE_CMS_ERROR;
   }
+  pelz_sgx_log(LOG_DEBUG, "DER-encoded signed CMS pelz message");
 
   // CMS encrypt (create enveloped) pelz response message
-  CMS_ContentInfo *enveloped_message = NULL;
-  enveloped_message = create_pelz_enveloped_msg(der_signed_msg,
-                                                peer_cert_in);
+  CMS_ContentInfo *enveloped_msg = create_pelz_enveloped_msg(der_signed_msg,
+                                                             peer_cert_in);
   free(der_signed_msg.chars);
-  if (enveloped_message == NULL)
+  if (enveloped_msg == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error creating enveloped pelz CMS message");
     return PELZ_MSG_ENCRYPT_ERROR;
   }
+  pelz_sgx_log(LOG_DEBUG, "created enveloped pelz CMS message");
 
   // DER-encode enveloped CMS pelz response message
-  construct_status = der_encode_pelz_msg(enveloped_message,
+  construct_status = der_encode_pelz_msg(enveloped_msg,
                                          tx_msg_buf,
                                          CMS);
-  CMS_ContentInfo_free(enveloped_message);
+  CMS_ContentInfo_free(enveloped_msg);
   if ((construct_status != PELZ_MSG_OK) ||
       (tx_msg_buf->chars == NULL) ||
       (tx_msg_buf->len == 0))
@@ -931,6 +940,7 @@ PelzMessagingStatus construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
     pelz_sgx_log(LOG_ERR, "error DER-encoding enveloped CMS pelz response");
     return PELZ_MSG_DER_ENCODE_CMS_ERROR;
   }
+  pelz_sgx_log(LOG_DEBUG, "DER-encoded enveloped CMS pelz response");
 
   return PELZ_MSG_OK;
 }
@@ -985,6 +995,7 @@ PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf_in,
     pelz_sgx_log(LOG_ERR, "error decrypting enveloped pelz CMS message");
     return PELZ_MSG_DECRYPT_ERROR;
   }
+  pelz_sgx_log(LOG_DEBUG, "decrypted enveloped pelz CMS message");
 
   // DER-decode decrypted, signed CMS pelz message
   CMS_ContentInfo *signed_msg = NULL;
@@ -996,6 +1007,7 @@ PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf_in,
     pelz_sgx_log(LOG_ERR, "error DER-decoding decrypted, signed pelz message");
     return PELZ_MSG_DER_DECODE_CMS_ERROR;
   }
+  pelz_sgx_log(LOG_DEBUG, "DER-decoded signed pelz message");
 
   // verify signed CMS pelz message
   charbuf der_asn1_msg = { .chars = NULL, .len = 0 };
@@ -1010,6 +1022,7 @@ PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf_in,
     pelz_sgx_log(LOG_ERR, "error verifying signed pelz CMS message");
     return PELZ_MSG_VERIFY_ERROR;
   }
+  pelz_sgx_log(LOG_DEBUG, "verified signed pelz CMS message");
 
   // DER-decode ASN.1 formatted pelz message
   PELZ_MSG *asn1_msg = NULL;
@@ -1021,6 +1034,7 @@ PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf_in,
     pelz_sgx_log(LOG_ERR, "error DER-decoding ASN.1 pelz message");
     return PELZ_MSG_DER_DECODE_ASN1_ERROR;
   }
+  pelz_sgx_log(LOG_DEBUG, "DER-decoded ASN.1 pelz message");
 
   // parse ASN.1 formatted pelz request message
   deconstruct_status = parse_pelz_asn1_msg(asn1_msg, msg_data_out);
@@ -1030,6 +1044,7 @@ PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf_in,
     pelz_sgx_log(LOG_ERR, "error parsing ASN.1 pelz message");
     return PELZ_MSG_ASN1_PARSE_ERROR;
   }
+  pelz_sgx_log(LOG_DEBUG, "parsed ASN.1 pelz message");
 
   return PELZ_MSG_OK;
 }

@@ -79,6 +79,7 @@ X509_STORE * get_CA_cert_store(void)
       pelz_sgx_log(LOG_ERR, "error adding CA certificate to store");
       return NULL;
     }
+    pelz_sgx_log(LOG_DEBUG, "added certificate in CA table to store variable");
   }
 
   return store;

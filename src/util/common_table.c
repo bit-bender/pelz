@@ -102,7 +102,6 @@ TableResponseStatus table_delete(TableType type, charbuf id)
     return ERR;
   }
 
-  pelz_sgx_log(LOG_DEBUG, (char *) id.chars);
   for (size_t i = 0; i < table->num_entries; i++)
   {
     if (cmp_charbuf(id, table->entries[i].id) == 0)

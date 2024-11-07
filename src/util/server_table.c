@@ -237,13 +237,3 @@ static charbuf get_common_name_from_cert(X509* cert)
   memcpy(common_name.chars, tmp_id, common_name.len);
   return common_name;  
 }
-
-X509 *get_service_cert()
-{
-  return X509_dup(pelz_id.cert);
-}
-
-EVP_PKEY *get_service_priv()
-{
-  return EVP_PKEY_dup(pelz_id.private_pkey);
-}

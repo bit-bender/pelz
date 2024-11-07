@@ -29,27 +29,14 @@ RequestResponseStatus service_pelz_request_msg(charbuf req_in,
 
   // Deconstruct (decrypt, verify, parse) received pelz request
   X509 *requestor_cert = X509_new();
-  X509 *responder_cert = get_service_cert();
-  EVP_PKEY *responder_priv = get_service_priv();
   PELZ_MSG_DATA rcvd_req_data = { 0 };
   PelzMessagingStatus msg_status = PELZ_MSG_UNKNOWN_ERROR;
 
-  if ((responder_cert == NULL) || (responder_priv == NULL))
-  {
-    X509_free(requestor_cert);
-    X509_free(responder_cert);
-    EVP_PKEY_free(responder_priv);
-    pelz_sgx_log(LOG_DEBUG, "NULL key and/or cert for pelz service");
-    return REQUEST_RESPONSE_CONFIG_ERROR;
-  }
-
   msg_status = deconstruct_pelz_msg(req_in,
-                                    responder_cert,
-                                    responder_priv,
+                                    pelz_id.cert,
+                                    pelz_id.private_pkey,
                                     &requestor_cert,
                                     &rcvd_req_data);
-  X509_free(responder_cert);
-  EVP_PKEY_free(responder_priv);
   if ((msg_status != PELZ_MSG_OK) || (requestor_cert == NULL))
   {
     X509_free(requestor_cert);
@@ -90,6 +77,7 @@ RequestResponseStatus service_pelz_request_msg(charbuf req_in,
     if (response_data.status.chars == NULL)
     {
       pelz_sgx_log(LOG_ERR, "error allocating response status buffer");
+      X509_free(requestor_cert);
       return REQUEST_RESPONSE_MALLOC_ERROR;
     }
     memcpy(response_data.status.chars,
@@ -109,6 +97,7 @@ RequestResponseStatus service_pelz_request_msg(charbuf req_in,
     if (response_data.status.chars == NULL)
     {
       pelz_sgx_log(LOG_ERR, "error allocating response status buffer");
+      X509_free(requestor_cert);
       return REQUEST_RESPONSE_MALLOC_ERROR;
     }
     memcpy(response_data.status.chars,
@@ -123,19 +112,16 @@ RequestResponseStatus service_pelz_request_msg(charbuf req_in,
   if (handler_status != REQUEST_RESPONSE_OK)
   {
     PELZ_MSG_DATA_free(&response_data);
+    X509_free(requestor_cert);
     return handler_status;
   }
 
-  responder_cert = get_service_cert();
-  responder_priv = get_service_priv();
   msg_status = construct_pelz_msg(response_data,
-                                  responder_cert,
-                                  responder_priv,
+                                  pelz_id.cert,
+                                  pelz_id.private_pkey,
                                   requestor_cert,
                                   resp_out);
   X509_free(requestor_cert);
-  X509_free(responder_cert);
-  EVP_PKEY_free(responder_priv);
   if (msg_status != PELZ_MSG_OK)
   {
     pelz_sgx_log(LOG_DEBUG, "msg_status != PELZ_MSG_OK");

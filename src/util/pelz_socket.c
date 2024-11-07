@@ -112,7 +112,6 @@ int pelz_key_socket_accept(int socket_listen_id, int *socket_id)
 
   pelz_log(LOG_INFO, "%d::Client is connected...", socket_client);
   getnameinfo((struct sockaddr *) &client_address, client_len, address_buffer, sizeof(address_buffer), 0, 0, NI_NUMERICHOST);
-  pelz_log(LOG_DEBUG, "%s", address_buffer);
   *socket_id = (int) socket_client;
   return (0);
 }

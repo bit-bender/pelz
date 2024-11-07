@@ -253,7 +253,6 @@ PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
   }
   else
   {
-    pelz_sgx_log(LOG_DEBUG, "else");
     tag = ASN1_STRING_type(msg_in->tag);
     if (tag != V_ASN1_OCTET_STRING)
     {
@@ -510,7 +509,12 @@ PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
   }
 
   // create BIO to hold signature verification output data
-  BIO * verify_out_bio = BIO_new(BIO_s_mem());
+  BIO *verify_out_bio = BIO_new(BIO_s_mem());
+  if (verify_out_bio == NULL)
+  {
+    pelz_sgx_log(LOG_ERR, "error creating output BIO for verification");
+    return PELZ_MSG_BIO_CREATE_ERROR;
+  }
 
   // create a certificate store to facilitate validation of certificate(s)
   // contained in the CMS message being verified (i.e., need the certificate
@@ -543,6 +547,8 @@ PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
   {
     pelz_sgx_log(LOG_ERR, "count of signer certs is not one, as expected");
     BIO_free(verify_out_bio);
+    sk_X509_pop_free(signer_cert_stack, X509_free);
+    BIO_free(verify_out_bio);
     return PELZ_MSG_VERIFY_SIGNER_CERT_ERROR;
   }
   *peer_cert_out = X509_new();
@@ -550,8 +556,17 @@ PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
   if (*peer_cert_out == NULL) 
   {
     pelz_sgx_log(LOG_ERR, "error extracting signer cert");
+    sk_X509_pop_free(signer_cert_stack, X509_free);
     return PELZ_MSG_VERIFY_EXTRACT_SIGNER_CERT_ERROR;
   }
+  if (sk_X509_num(signer_cert_stack) != 0)
+  {
+    pelz_sgx_log(LOG_ERR, "signer cert stack is not empty, as exptected");
+    BIO_free(verify_out_bio);
+    sk_X509_free(signer_cert_stack);
+    return PELZ_MSG_VERIFY_EXTRACT_SIGNER_CERT_ERROR;
+  }
+  sk_X509_free(signer_cert_stack);
 
   // get size of data in signed message (in BIO now from 'verify' call)
   int bio_data_size = BIO_pending(verify_out_bio);
@@ -598,25 +613,35 @@ CMS_ContentInfo *create_pelz_enveloped_msg(charbuf msg_data_in,
     pelz_sgx_log(LOG_ERR, "invalid input parameter");
     return NULL;
   }
-
-  STACK_OF(X509) * cert_stack = sk_X509_new_null();
-  sk_X509_push(cert_stack, encrypt_cert);
-  if (sk_X509_num(cert_stack) != 1)
-  {
-    pelz_sgx_log(LOG_ERR, "X509 certificate stack error");
-    sk_X509_free(cert_stack);
-    return NULL;
-  }
+  
   BIO *cms_enc_bio = BIO_new_mem_buf(msg_data_in.chars,
                                      (int) msg_data_in.len);
   if (cms_enc_bio == NULL)
   {
     pelz_sgx_log(LOG_ERR, "error creating CMS encrypt BIO");
-    sk_X509_free(cert_stack);
     return NULL;
   }
 
-  CMS_ContentInfo *msg_out = CMS_encrypt(cert_stack,
+
+  STACK_OF(X509) *encrypt_cert_stack = sk_X509_new_null();
+  sk_X509_push(encrypt_cert_stack, encrypt_cert);
+  if (sk_X509_num(encrypt_cert_stack) != 1)
+  {
+    pelz_sgx_log(LOG_ERR, "X509 certificate stack error");
+    while (sk_X509_num(encrypt_cert_stack) > 0)
+    {
+      X509 *temp_cert = sk_X509_pop(encrypt_cert_stack);
+      // free all unexpected certificates on stack
+      if (temp_cert != encrypt_cert)
+      {
+        X509_free(temp_cert);
+      }
+    }
+    sk_X509_free(encrypt_cert_stack);
+    return NULL;
+  }
+
+  CMS_ContentInfo *msg_out = CMS_encrypt(encrypt_cert_stack,
                                          cms_enc_bio,
                                          EVP_aes_256_gcm(),
                                          CMS_BINARY);
@@ -634,7 +659,7 @@ CMS_ContentInfo *create_pelz_enveloped_msg(charbuf msg_data_in,
   }
 
   BIO_free(cms_enc_bio);
-  sk_X509_free(cert_stack);
+  sk_X509_free(encrypt_cert_stack);
   return msg_out;
 }
 

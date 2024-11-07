@@ -1,5 +1,5 @@
 /*
- * test_helper_functions.h
+ * test_defines.h
  */
 
 #ifndef TEST_DEFINES_H_

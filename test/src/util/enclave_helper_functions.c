@@ -2035,14 +2035,12 @@ ReqTestStatus pelz_enclave_service_test_helper(charbuf cipher,
   // construct test message
   charbuf test_request = new_charbuf(0);
   PelzMessagingStatus msg_retval = PELZ_MSG_UNKNOWN_ERROR;
-  X509 *responder_cert = get_service_cert();
 
   msg_retval = construct_pelz_msg(req_data,
                                   requestor_cert,
                                   requestor_priv,
-                                  responder_cert,
+                                  pelz_id.cert,
                                   &test_request);
-  X509_free(responder_cert);
   free_charbuf(&(req_data.data));
   free_charbuf(&(req_data.status));
   if ((msg_retval != PELZ_MSG_OK) ||
@@ -2066,14 +2064,6 @@ ReqTestStatus pelz_enclave_service_test_helper(charbuf cipher,
       (test_response.chars == NULL) ||
       (test_response.len == 0))
   {
-    if (test_response.chars == NULL)
-    {
-      pelz_sgx_log(LOG_DEBUG, "test_response.chars == NULL");
-    }
-    if (test_response.len == 0)
-    {
-      pelz_sgx_log(LOG_DEBUG, "test_response.len == 0");
-    }
     free_charbuf(&test_response);
     EVP_PKEY_free(requestor_priv);
     X509_free(requestor_cert);

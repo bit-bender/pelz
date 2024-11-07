@@ -214,7 +214,6 @@ void test_request_handling(void)
                                         test_key_id,
                                         (uint8_t) REQ_TEST_WRAP_INVALID_KEY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
-  pelz_log(LOG_DEBUG, "result = %d", result);
 
   // invalid parameter test: invalid (not loaded) input, unwrap key ID
   retval = pelz_enclave_req_test_helper(eid,
@@ -223,7 +222,6 @@ void test_request_handling(void)
                                         test_key_id,
                                         (uint8_t) REQ_TEST_UNWRAP_INVALID_KEY);
   CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_PARAM_HANDLING_OK));
-  pelz_log(LOG_DEBUG, "result = %d", result);
 
   // test encrypt/decrypt handler functionality for all test ciphers
   for (size_t cipher_index = 0;
@@ -349,7 +347,6 @@ void test_service_pelz_request_msg(void)
        cipher_index < cipher_list_size;
        cipher_index++)
   {
-    pelz_log(LOG_DEBUG, "cipher_index = %zu", cipher_index);
     charbuf test_cipher = new_charbuf(strlen(cipher_str[cipher_index]));
     memcpy(test_cipher.chars,
            (const unsigned char *) cipher_str[cipher_index],
@@ -377,7 +374,6 @@ void test_service_pelz_request_msg(void)
                                               req_priv);
 
     CU_ASSERT((retval == SGX_SUCCESS) && (req_test_result == REQ_TEST_OK));
-    pelz_log(LOG_DEBUG, "pelz service: result = %d", req_test_result);
 
     table_delete(eid, &table_status, KEY, test_key_id);
     if (table_status != OK)
@@ -388,6 +384,9 @@ void test_service_pelz_request_msg(void)
     free_charbuf(&test_cipher);
     free_charbuf(&test_key_id);
   }
+
+  free_charbuf(&req_cert);
+  free_charbuf(&req_priv);
 
   if (empty_CA_table(eid, NULL) != 0)
   {

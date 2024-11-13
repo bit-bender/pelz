@@ -56,6 +56,8 @@
 #include "fifo_def.h"
 #include "encrypt_datatypes.h"
 
+#include "charbuf.h"
+
 #define ENCLAVE_INITIATOR_NAME "bin/libenclave_initiator.signed.so"
 
 #define REMOTE_ADDR "127.0.0.1"
@@ -433,99 +435,6 @@ int decode_response_data(char *json_str, uint8_t **data, size_t *len)
     return 0;
 }
 
-int encrypt_wrap_store(uint8_t *data, size_t data_len, const char *kek_id, char *out_path, char *key_path, char *cert_path)
-{
-    if (strlen(kek_id) > KEK_ID_SIZE)
-    {
-        printf("kek id is too long\n");
-        return -1;
-    }
-
-    size_t bundle_len = sizeof(encrypt_bundle) + data_len;
-    encrypt_bundle *bundle = (encrypt_bundle *) calloc(bundle_len, sizeof(uint8_t));
-    if (bundle == NULL)
-    {
-        printf("allocation error\n");
-        return -1;
-    }
-
-    uint32_t ret_status;
-    sgx_status_t sgx_status;
-    sgx_status = demo_encrypt(initiator_enclave_id, &ret_status, data, data_len, (uint8_t *) bundle, bundle_len);
-    if (sgx_status != SGX_SUCCESS || ret_status != 0) {
-        printf("encrypt_data Ecall failed: ECALL return 0x%x, error code is 0x%x.\n", sgx_status, ret_status);
-        free(bundle);
-        return -1;
-    }
-
-    char *request;
-    ret_status = create_pelz_request(PELZ_REQ_ENC_PROTECTED, kek_id, bundle->key, sizeof(bundle->key), key_path, cert_path, &request);
-    if (ret_status != 0)
-    {
-        printf("request encoding failed\n");
-        free(bundle);
-        return -1;
-    }
-
-    printf("pelz request json: %s\n", request);
-
-    char resp_buff[MAX_RESP_LEN] = { 0 };
-    size_t resp_len = 0;
-
-    sgx_status = sgx_make_pelz_request(initiator_enclave_id, &ret_status, request, strlen(request), MAX_RESP_LEN, resp_buff, &resp_len);
-    free(request);
-    request = NULL;
-
-    if (sgx_status != SGX_SUCCESS || ret_status != 0) {
-        printf("make_pelz_request Ecall failed: ECALL return 0x%x, error code is 0x%x.\n", sgx_status, ret_status);
-        free(bundle);
-        return -1;
-    }
-
-    printf("pelz response json: %s\n", resp_buff);
-
-    uint8_t *wrapped_dek;
-    size_t wrapped_dek_len;
-    if (decode_response_data(resp_buff, &wrapped_dek, &wrapped_dek_len))
-    {
-        free(bundle);
-        return -1;
-    }
-
-    size_t content_len = sizeof(encrypt_file_content) + data_len;
-    encrypt_file_content *content = (encrypt_file_content *) calloc(content_len, sizeof(uint8_t));
-    if (content == NULL)
-    {
-        printf("allocation error\n");
-        free(bundle);
-        free(wrapped_dek);
-        return -1;
-    }
-
-    memcpy(content->wrapped_key, wrapped_dek, KEY_SIZE_WRAPPED);
-    free(wrapped_dek);
-
-    memcpy(content->tag, bundle->tag, TAG_SIZE);
-    memcpy(content->iv, bundle->iv, IV_SIZE);
-    memcpy(content->cipher_data, bundle->cipher_data, data_len);
-
-    free(bundle);
-
-    memcpy(content->format_code, ENCRYPT_FORMAT, sizeof(content->format_code));
-    memcpy(content->kek_id, kek_id, strlen(kek_id));
-
-    if (write_bytes_to_file(out_path, (uint8_t *) content, content_len))
-    {
-        printf("file write error\n");
-        free(content);
-        return -1;
-    }
-
-    free(content);
-
-    return 0;
-}
-
 int unwrap_dek(const char *kek_id, uint8_t *wrapped_key, char *key_path, char *cert_path, uint8_t *unwrapped_key)
 {
     int ret;
@@ -607,6 +516,112 @@ int make_decryption_bundle(uint8_t *file_data, size_t content_len, char *key_pat
 
     return 0;
 }
+
+int encrypt_wrap_store(uint8_t *data,
+                       size_t data_len,
+                       const char *kek_id,
+                       char *out_path,
+                       char *key_path,
+                       char *cert_path)
+{
+    if (strlen(kek_id) > KEK_ID_SIZE)
+    {
+        printf("kek id is too long\n");
+        return -1;
+    }
+
+    size_t bundle_len = sizeof(encrypt_bundle) + data_len;
+    encrypt_bundle *bundle = (encrypt_bundle *) calloc(bundle_len, sizeof(uint8_t));
+    if (bundle == NULL)
+    {
+        printf("allocation error\n");
+        return -1;
+    }
+
+    uint32_t ret_status;
+    sgx_status_t sgx_status;
+    sgx_status = demo_encrypt(initiator_enclave_id,
+                              &ret_status,
+                              data,
+                              data_len,
+                              (uint8_t *) bundle,
+                              bundle_len);
+    if (sgx_status != SGX_SUCCESS || ret_status != 0) {
+        printf("encrypt_data Ecall failed: ECALL return 0x%x, error code is 0x%x.\n", sgx_status, ret_status);
+        free(bundle);
+        return -1;
+    }
+    
+
+    char *request;
+    ret_status = create_pelz_request(PELZ_REQ_ENC_PROTECTED, kek_id, bundle->key, sizeof(bundle->key), key_path, cert_path, &request);
+    if (ret_status != 0)
+    {
+        printf("request encoding failed\n");
+        free(bundle);
+        return -1;
+    }
+
+    printf("pelz request json: %s\n", request);
+
+    char resp_buff[MAX_RESP_LEN] = { 0 };
+    size_t resp_len = 0;
+
+    sgx_status = sgx_make_pelz_request(initiator_enclave_id, &ret_status, request, strlen(request), MAX_RESP_LEN, resp_buff, &resp_len);
+    free(request);
+    request = NULL;
+
+    if (sgx_status != SGX_SUCCESS || ret_status != 0) {
+        printf("make_pelz_request Ecall failed: ECALL return 0x%x, error code is 0x%x.\n", sgx_status, ret_status);
+        free(bundle);
+        return -1;
+    }
+
+    printf("pelz response json: %s\n", resp_buff);
+
+    uint8_t *wrapped_dek;
+    size_t wrapped_dek_len;
+    if (decode_response_data(resp_buff, &wrapped_dek, &wrapped_dek_len))
+    {
+        free(bundle);
+        return -1;
+    }
+
+    size_t content_len = sizeof(encrypt_file_content) + data_len;
+    encrypt_file_content *content = (encrypt_file_content *) calloc(content_len, sizeof(uint8_t));
+    if (content == NULL)
+    {
+        printf("allocation error\n");
+        free(bundle);
+        free(wrapped_dek);
+        return -1;
+    }
+
+    memcpy(content->wrapped_key, wrapped_dek, KEY_SIZE_WRAPPED);
+    free(wrapped_dek);
+
+    memcpy(content->tag, bundle->tag, TAG_SIZE);
+    memcpy(content->iv, bundle->iv, IV_SIZE);
+    memcpy(content->cipher_data, bundle->cipher_data, data_len);
+
+    free(bundle);
+
+    memcpy(content->format_code, ENCRYPT_FORMAT, sizeof(content->format_code));
+    memcpy(content->kek_id, kek_id, strlen(kek_id));
+
+    if (write_bytes_to_file(out_path, (uint8_t *) content, content_len))
+    {
+        printf("file write error\n");
+        free(content);
+        return -1;
+    }
+
+    free(content);
+
+    return 0;
+}
+
+
 
 int unwrap_decrypt_store(uint8_t *file_data, size_t content_len, char *out_path, char *key_path, char *cert_path)
 {
@@ -775,9 +790,13 @@ int execute_command(int argc, char* argv[])
         return -1;
     }
     char *command = argv[optind++];
+    printf("data_len = %zu\n", data_len);
+    printf("key_path = %s\n", key_path);
+    printf("cert_path = %s\n", cert_path);
 
     if (strcmp(command, "encrypt") == 0)
     {
+        printf("command = encrypt\n");
         if (!data || !out_path || !key_path || !cert_path || optind != argc - 1)
         {
             printf("invalid arguments for \"%s\" command\n", command);
@@ -785,6 +804,7 @@ int execute_command(int argc, char* argv[])
             return -1;
         }
         char *kek_id = argv[optind];
+        printf("kek_id = %s\n", kek_id);
         if (encrypt_wrap_store(data, data_len, kek_id, out_path, key_path, cert_path)) {
             printf("encrypt_wrap failed\n");
             return -1;
@@ -792,6 +812,7 @@ int execute_command(int argc, char* argv[])
     }
     else if (strcmp(command, "decrypt") == 0)
     {
+        printf("command = decrypt\n");
         if (!data || !out_path || !key_path || !cert_path || optind != argc)
         {
             printf("invalid arguments for \"%s\" command\n", command);
@@ -805,6 +826,7 @@ int execute_command(int argc, char* argv[])
     }
     else if (strcmp(command, "search") == 0)
     {
+        printf("command = search");
         if (!data || out_path || !key_path || !cert_path || optind != argc - 1)
         {
             printf("invalid arguments for \"%s\" command\n", command);

@@ -9,8 +9,6 @@ extern "C"
 #include <openssl/cms.h>
 
 #include "charbuf.h"
-#include "pelz_request_handler.h"
-//#include "pelz_enclave.h"
 
 typedef enum
 {
@@ -45,6 +43,7 @@ typedef enum
   PELZ_MSG_MALLOC_ERROR = -3,
   PELZ_MSG_BIO_CREATE_ERROR = -4,
   PELZ_MSG_BIO_READ_ERROR = -5,
+  PELZ_MSG_CERT_LOAD_ERROR = -6,
 
   // ASN.1 message creation error(s)
   PELZ_MSG_ASN1_CREATE_ERROR = -32,
@@ -239,6 +238,7 @@ CMS_ContentInfo *create_pelz_signed_msg(charbuf msg_data_in,
  *                           enumerated (negative) error code otherwise
  */
 PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
+                                           X509 *ca_cert,
                                            X509 **peer_cert_out,
                                            charbuf *data_out);
 
@@ -477,6 +477,7 @@ PelzMessagingStatus construct_pelz_msg(PELZ_MSG_DATA msg_data_in,
  *                             error code (negative integer) otherwise
  */
 PelzMessagingStatus deconstruct_pelz_msg(charbuf rcvd_msg_buf,
+                                         X509 *ca_cert,
                                          X509 *local_cert_in,
                                          EVP_PKEY *local_priv_in,
                                          X509 **peer_cert_out,

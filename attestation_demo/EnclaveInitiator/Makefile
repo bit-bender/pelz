@@ -32,11 +32,11 @@
 include ../buildenv.mk
 
 ifneq ($(SGX_MODE), HW)
-        Trts_Library_Name := sgx_trts_sim
-        Service_Library_Name := sgx_tservice_sim
+  Trts_Library_Name := sgx_trts_sim
+  Service_Library_Name := sgx_tservice_sim
 else
-        Trts_Library_Name := sgx_trts
-        Service_Library_Name := sgx_tservice
+  Trts_Library_Name := sgx_trts
+  Service_Library_Name := sgx_tservice
 endif
 
 Crypto_Library_Name := sgx_tcrypto
@@ -71,38 +71,86 @@ Enclave_Security_Link_Flags := -Wl,-z,relro,-z,now,-z,noexecstack
 #       Use `--start-group' and `--end-group' to link these libraries.
 # Do NOT move the libraries linked with `--start-group' and `--end-group' within `--whole-archive' and `--no-whole-archive' options.
 # Otherwise, you may get some undesirable errors.
-ENCLAVE_LINK_FLAGS := $(Enclave_Security_Link_Flags) \
-     -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) -L$(SGX_SSL_LIBRARY_PATH) \
-             -Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
-			 -Wl,--whole-archive -lsgx_tsgxssl -Wl,--no-whole-archive -lsgx_tsgxssl_crypto \
-             -Wl,--start-group -lsgx_tstdc -lsgx_tcxx -lsgx_pthread -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
-             -Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
-             -Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
-             -Wl,--defsym,__ImageBase=0 -Wl,--gc-sections   \
-             -Wl,--version-script=EnclaveInitiator.lds
+ENCLAVE_LINK_FLAGS := $(Enclave_Security_Link_Flags)
+ENCLAVE_LINK_FLAGS += -Wl,--no-undefined
+ENCLAVE_LINK_FLAGS += -nostdlib
+ENCLAVE_LINK_FLAGS += -nodefaultlibs
+ENCLAVE_LINK_FLAGS += -nostartfiles
+ENCLAVE_LINK_FLAGS += -L$(SGX_LIBRARY_PATH)
+ENCLAVE_LINK_FLAGS += -L$(SGX_SSL_LIBRARY_PATH)
+ENCLAVE_LINK_FLAGS += -Wl,--whole-archive
+ENCLAVE_LINK_FLAGS += -l$(Trts_Library_Name)
+ENCLAVE_LINK_FLAGS += -Wl,--no-whole-archive
+ENCLAVE_LINK_FLAGS += -Wl,--whole-archive
+ENCLAVE_LINK_FLAGS += -lsgx_tsgxssl
+ENCLAVE_LINK_FLAGS += -Wl,--no-whole-archive
+ENCLAVE_LINK_FLAGS += -lsgx_tsgxssl_crypto
+ENCLAVE_LINK_FLAGS += -Wl,--start-group \
+                        -lsgx_tstdc \
+						-lsgx_tcxx \
+						-lsgx_pthread \
+						-l$(Crypto_Library_Name) \
+						-l$(Service_Library_Name) \
+					  -Wl,--end-group
+ENCLAVE_LINK_FLAGS += -Wl,-Bstatic
+ENCLAVE_LINK_FLAGS += -Wl,-Bsymbolic
+ENCLAVE_LINK_FLAGS += -Wl,--no-undefined
+ENCLAVE_LINK_FLAGS += -Wl,-pie,-eenclave_entry
+ENCLAVE_LINK_FLAGS += -Wl,--export-dynamic
+ENCLAVE_LINK_FLAGS += -Wl,--defsym,__ImageBase=0
+ENCLAVE_LINK_FLAGS += -Wl,--gc-sections
+ENCLAVE_LINK_FLAGS += -Wl,--version-script=EnclaveInitiator.lds
 
-SGX_COMMON_FLAGS += -Wall -Wextra -Winit-self -Wpointer-arith -Wreturn-type \
-                    -Waddress -Wsequence-point -Wformat-security \
-                    -Wmissing-include-dirs -Wfloat-equal -Wundef -Wshadow \
-                    -Wcast-align -Wconversion -Wredundant-decls
+SGX_COMMON_FLAGS := -Wall
+SGX_COMMON_FLAGS += -Wextra
+SGX_COMMON_FLAGS += -Winit-self
+SGX_COMMON_FLAGS += -Wpointer-arith
+SGX_COMMON_FLAGS += -Wreturn-type
+SGX_COMMON_FLAGS += -Waddress
+SGX_COMMON_FLAGS += -Wsequence-point
+SGX_COMMON_FLAGS += -Wformat-security
+SGX_COMMON_FLAGS += -Wmissing-include-dirs
+SGX_COMMON_FLAGS += -Wfloat-equal
+SGX_COMMON_FLAGS += -Wundef
+SGX_COMMON_FLAGS += -Wshadow
+SGX_COMMON_FLAGS += -Wcast-align
+SGX_COMMON_FLAGS += -Wconversion
+SGX_COMMON_FLAGS += -Wredundant-decls
 
-SGX_COMMON_CFLAGS := $(SGX_COMMON_FLAGS) -Wjump-misses-init -Wstrict-prototypes -Wunsuffixed-float-constants
-SGX_COMMON_CXXFLAGS := $(SGX_COMMON_FLAGS) -Wnon-virtual-dtor -std=c++11
+SGX_COMMON_CFLAGS := $(SGX_COMMON_FLAGS)
+SGX_COMMON_CFLAGS += -Wjump-misses-init
+SGX_COMMON_CFLAGS += -Wstrict-prototypes
+SGX_COMMON_CFLAGS += -Wunsuffixed-float-constants
 
-Enclave_Include_Paths := -I$(SGX_SDK)/include -I$(SGX_SDK)/include/tlibc -I$(SGX_SDK)/include/libcxx -I$(SGX_SSL)/include -I../Include
+SGX_COMMON_CXXFLAGS := $(SGX_COMMON_FLAGS)
+SGX_COMMON_CXXFLAGS += -Wnon-virtual-dtor
+SGX_COMMON_CXXFLAGS += -std=c++11
 
-Enclave_C_Flags := $(Enclave_Include_Paths) -nostdinc -fvisibility=hidden -fpie -ffunction-sections -fdata-sections
+Enclave_Include_Paths := -I$(SGX_SDK)/include
+Enclave_Include_Paths += -I$(SGX_SDK)/include/tlibc
+Enclave_Include_Paths += -I$(SGX_SDK)/include/libcxx
+Enclave_Include_Paths += -I$(SGX_SSL)/include
+Enclave_Include_Paths += -I$(ROOT_DIR)/include
+
+Enclave_C_Flags := $(Enclave_Include_Paths)
+Enclave_C_Flags += -nostdinc
+Enclave_C_Flags += -fvisibility=hidden
+Enclave_C_Flags += -fpie
+Enclave_C_Flags += -ffunction-sections
+Enclave_C_Flags += -fdata-sections
+
 CC_BELOW_4_9 := $(shell expr "`$(CC) -dumpversion`" \< "4.9")
 ifeq ($(CC_BELOW_4_9), 1)
-        Enclave_C_Flags += -fstack-protector
+  Enclave_C_Flags += -fstack-protector
 else
-        Enclave_C_Flags += -fstack-protector-strong
+  Enclave_C_Flags += -fstack-protector-strong
 endif
+
 Enclave_Cpp_Flags := $(Enclave_C_Flags) -nostdinc++
 
 ifeq ($(LAv2), 1)
-	Enclave_C_Flags += -DSGX_USE_LAv2_INITIATOR
-	Enclave_Cpp_Flags += -DSGX_USE_LAv2_INITIATOR
+  Enclave_C_Flags += -DSGX_USE_LAv2_INITIATOR
+  Enclave_Cpp_Flags += -DSGX_USE_LAv2_INITIATOR
 endif
 
 Enclave_Cpp_Files := $(wildcard *.cpp)
@@ -138,3 +186,5 @@ EnclaveInitiator_t.o: EnclaveInitiator_t.c
 	@$(CXX) $(SGX_COMMON_CXXFLAGS) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
+charbuf.o: util/charbuf.c
+	@(CC) $(SGX_COMMON_CFLAGS) $(Enclave_C_Flags) -c $< -o $@

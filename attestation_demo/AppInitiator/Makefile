@@ -36,27 +36,41 @@ TARGET = demo_worker
 RM = rm -f
 
 ifneq ($(SGX_MODE), HW)
-	URTS_LIB_NAME := sgx_urts_sim
-	UAE_SERVICE_LIB := sgx_uae_service_sim
+  URTS_LIB_NAME := sgx_urts_sim
+  UAE_SERVICE_LIB := sgx_uae_service_sim
 else
-	URTS_LIB_NAME := sgx_urts
-	UAE_SERVICE_LIB := sgx_uae_service
+  URTS_LIB_NAME := sgx_urts
+  UAE_SERVICE_LIB := sgx_uae_service
 endif
 
-INC:=-I$(SGX_SDK)/include -I$(SGX_SSL)/include -I../Include
-LIB := -l$(URTS_LIB_NAME) -l$(UAE_SERVICE_LIB) -L$(SGX_SDK)/lib64 -L$(SGX_SSL_LIBRARY_PATH) -lpthread -lcjson -lkmyth-utils -lkmyth-logger -lssl -lsgx_usgxssl -lcrypto
+INC := -I$(SGX_SDK)/include
+INC += -I$(SGX_SSL)/include
+INC += -I$(ROOT_DIR)/include
+
+LIB := -l$(URTS_LIB_NAME)
+LIB += -l$(UAE_SERVICE_LIB)
+LIB += -L$(SGX_SDK)/lib64
+LIB += -L$(SGX_SSL_LIBRARY_PATH)
+LIB += -lpthread
+LIB += -lcjson
+LIB += -lkmyth-utils
+LIB += -lkmyth-logger
+LIB += -lssl
+LIB += -lsgx_usgxssl
+LIB += -lcrypto
+
 CXXFLAGS += $(INC) $(LIB)
 CFLAGS += $(INC) $(LIB)
 
 ifeq ($(SGX_DEBUG), 1)
-        CXXFLAGS += -DDEBUG -UNDEBUG -UEDEBUG
-        CFLAGS += -DDEBUG -UNDEBUG -UEDEBUG
+  CXXFLAGS += -DDEBUG -UNDEBUG -UEDEBUG
+  CFLAGS += -DDEBUG -UNDEBUG -UEDEBUG
 else ifeq ($(SGX_PRERELEASE), 1)
-        CXXFLAGS += -DEDEBUG -DNDEBUG -UDEBUG
-        CFLAGS += -DEDEBUG -DNDEBUG -UDEBUG
+  CXXFLAGS += -DEDEBUG -DNDEBUG -UDEBUG
+  CFLAGS += -DEDEBUG -DNDEBUG -UDEBUG
 else
-        CXXFLAGS += -DNDEBUG -UEDEBUG -UDEBUG
-        CFLAGS += -DNDEBUG -UEDEBUG -UDEBUG
+  CXXFLAGS += -DNDEBUG -UEDEBUG -UDEBUG
+  CFLAGS += -DNDEBUG -UEDEBUG -UDEBUG
 endif
 
 SRC_CPP=$(wildcard *.cpp)
@@ -84,13 +98,19 @@ App.o: App.cpp
 ../util/fifo.o: ../util/fifo.cpp
 	@$(CXX) $(CXXFLAGS) -c $< -o $@
 	@echo "CXX   <=  $<"
+	
+../util/charbuf.o: ../util/charbuf.c
+	@$(CC) $(CFLAGS) -c $< -o $@
+	@echo "CC   <=  $<"
 
 EnclaveInitiator_u.o: EnclaveInitiator_u.c
-	@$(CC) $(CFLAGS) -I../Include -c $< -o $@
+	@$(CC) $(CFLAGS) $(INC) -c $< -o $@
 	@echo "CC   <=  $<"
 
 EnclaveInitiator_u.c:
-	@$(SGX_EDGER8R) --untrusted ../EnclaveInitiator/EnclaveInitiator.edl --search-path $(SGX_SDK)/include --search-path $(SGX_SSL)/include
+	@$(SGX_EDGER8R) --untrusted ../EnclaveInitiator/EnclaveInitiator.edl \
+	                --search-path $(SGX_SDK)/include \
+					--search-path $(SGX_SSL)/include
 
 $(TARGET): EnclaveInitiator_u.o $(SRC_OBJ)
 	@$(CXX) $^ $(CXXFLAGS) -o $@

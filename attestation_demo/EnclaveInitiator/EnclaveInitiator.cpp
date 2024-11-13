@@ -29,13 +29,16 @@
  *
  */
 
-
-// Enclave1.cpp : Defines the exported functions for the .so application
 #include "sgx_eid.h"
 #include "EnclaveInitiator_t.h"
 #include "EnclaveMessageExchange.h"
+#include "encrypt_datatypes.h"
 #include "error_codes.h"
 #include "Utility_E1.h"
+
+#include "charbuf.h"
+#include "pelz_messaging.h"
+
 #include "sgx_dh.h"
 #include "sgx_tcrypto.h"
 #include "sgx_utils.h"
@@ -44,7 +47,6 @@
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
-#include "encrypt_datatypes.h"
 
 #define UNUSED(val) (void)(val)
 
@@ -64,6 +66,11 @@ dh_session_t g_session;
 extern "C" uint32_t test_create_session()
 {
         return create_session(&g_session);
+}
+
+uint32_t pelz_client_main()
+{
+  return 0;
 }
 
 /* Function Description:

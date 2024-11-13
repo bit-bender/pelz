@@ -91,12 +91,26 @@ SGX_DEBUG ?= 1
 #-------------------------------------------------------------------
 # Define common compile flags used for GCC and G++
 #-------------------------------------------------------------------
-COMMON_FLAGS = -ffunction-sections -fdata-sections
-
-COMMON_FLAGS += -Wall -Wextra -Wchar-subscripts -Wno-coverage-mismatch -Winit-self \
-		-Wpointer-arith -Wreturn-type -Waddress -Wsequence-point -Wformat-security \
-		-Wmissing-include-dirs -Wfloat-equal -Wundef -Wshadow \
-		-Wcast-align -Wconversion -Wredundant-decls -Wno-missing-field-initializers
+COMMON_FLAGS := -ffunction-sections
+COMMON_FLAGS += -fdata-sections
+COMMON_FLAGS += -Wall
+COMMON_FLAGS += -Wextra
+COMMON_FLAGS += -Wchar-subscripts
+COMMON_FLAGS += -Wno-coverage-mismatch
+COMMON_FLAGS += -Winit-self
+COMMON_FLAGS += -Wpointer-arith
+COMMON_FLAGS += -Wreturn-type
+COMMON_FLAGS += -Waddress
+COMMON_FLAGS += -Wsequence-point
+COMMON_FLAGS += -Wformat-security
+COMMON_FLAGS += -Wmissing-include-dirs
+COMMON_FLAGS += -Wfloat-equal
+COMMON_FLAGS += -Wundef
+COMMON_FLAGS += -Wshadow
+COMMON_FLAGS += -Wcast-align
+COMMON_FLAGS += -Wconversion
+COMMON_FLAGS += -Wredundant-decls
+COMMON_FLAGS += -Wno-missing-field-initializers
 
 ifeq ($(SGX_DEBUG), 1)
 ifeq ($(SGX_PRERELEASE), 1)
@@ -105,10 +119,10 @@ endif
 endif
 
 ifeq ($(SGX_DEBUG), 1)
-	COMMON_FLAGS += -ggdb -DDEBUG
-	COMMON_FLAGS += -DDEBUG_LEVEL=TRACE_DEBUG
+  COMMON_FLAGS += -ggdb -DDEBUG
+  COMMON_FLAGS += -DDEBUG_LEVEL=TRACE_DEBUG
 else
-	COMMON_FLAGS += -o2 -UDEBUG
+  COMMON_FLAGS += -o2 -UDEBUG
 endif
 
 CFLAGS = $(COMMON_FLAGS)
@@ -135,7 +149,7 @@ COMMON_LDFLAGS := -Wl,-z,relro,-z,now,-z,noexecstack
 # as `global' in the LD version script.
 ENCLAVE_CFLAGS   = -ffreestanding -nostdinc -fvisibility=hidden -fpie
 ifeq ($(CC_GREAT_EQUAL_8), 1)
-    ENCLAVE_CFLAGS += -fcf-protection
+  ENCLAVE_CFLAGS += -fcf-protection
 endif
 ENCLAVE_CXXFLAGS = $(ENCLAVE_CFLAGS) -nostdinc++
 ENCLAVE_LDFLAGS  = $(COMMON_LDFLAGS)
@@ -143,23 +157,23 @@ ENCLAVE_LDFLAGS  = $(COMMON_LDFLAGS)
 RM = rm -f
 
 ifeq ($(shell getconf LONG_BIT), 32)
-        SGX_ARCH := x86
+  SGX_ARCH := x86
 else ifeq ($(findstring -m32, $(CXXFLAGS)), -m32)
-        SGX_ARCH := x86
+  SGX_ARCH := x86
 endif
 
 ifeq ($(SGX_ARCH), x86)
-        SGX_COMMON_FLAGS := -m32
-        SGX_LIBRARY_PATH := $(SGX_SDK)/lib
-        SGX_ENCLAVE_SIGNER := $(SGX_SDK)/bin/x86/sgx_sign
-        SGX_EDGER8R := $(SGX_SDK)/bin/x86/sgx_edger8r
-        SGX_SSL_LIBRARY_PATH := $(SGX_SSL)/lib
+  SGX_COMMON_FLAGS := -m32
+  SGX_LIBRARY_PATH := $(SGX_SDK)/lib
+  SGX_ENCLAVE_SIGNER := $(SGX_SDK)/bin/x86/sgx_sign
+  SGX_EDGER8R := $(SGX_SDK)/bin/x86/sgx_edger8r
+  SGX_SSL_LIBRARY_PATH := $(SGX_SSL)/lib
 else
-        SGX_COMMON_FLAGS := -m64
-        SGX_LIBRARY_PATH := $(SGX_SDK)/lib64
-        SGX_ENCLAVE_SIGNER := $(SGX_SDK)/bin/x64/sgx_sign
-        SGX_EDGER8R := $(SGX_SDK)/bin/x64/sgx_edger8r
-        SGX_SSL_LIBRARY_PATH := $(SGX_SSL)/lib64
+  SGX_COMMON_FLAGS := -m64
+  SGX_LIBRARY_PATH := $(SGX_SDK)/lib64
+  SGX_ENCLAVE_SIGNER := $(SGX_SDK)/bin/x64/sgx_sign
+  SGX_EDGER8R := $(SGX_SDK)/bin/x64/sgx_edger8r
+  SGX_SSL_LIBRARY_PATH := $(SGX_SSL)/lib64
 endif
 
 SGX_COMMON_FLAGS += $(COMMON_FLAGS)

@@ -29,24 +29,26 @@
  *
  */
 
-#include "sgx_eid.h"
-#include "EnclaveInitiator_t.h"
-#include "EnclaveMessageExchange.h"
-#include "encrypt_datatypes.h"
-#include "error_codes.h"
-#include "Utility_E1.h"
-
-#include "charbuf.h"
-#include "pelz_messaging.h"
-
-#include "sgx_dh.h"
-#include "sgx_tcrypto.h"
-#include "sgx_utils.h"
 #include <map>
 
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
+
+#include "sgx_dh.h"
+#include "sgx_eid.h"
+#include "sgx_tcrypto.h"
+#include "sgx_utils.h"
+
+#include "charbuf.h"
+#include "encrypt_datatypes.h"
+#include "error_codes.h"
+#include "pelz_messaging.h"
+#include "Utility_E1.h"
+
+#include "EnclaveInitiator_t.h"
+#include "EnclaveMessageExchange.h"
+
 
 #define UNUSED(val) (void)(val)
 
@@ -65,7 +67,7 @@ dh_session_t g_session;
  * */
 extern "C" uint32_t test_create_session()
 {
-        return create_session(&g_session);
+  return create_session(&g_session);
 }
 
 uint32_t pelz_client_main()
@@ -76,37 +78,46 @@ uint32_t pelz_client_main()
 /* Function Description:
  *   This is ECALL routine to transfer message with ECDH peer
  * */
-uint32_t sgx_make_pelz_request(char *req_msg, size_t req_msg_len, size_t max_resp_len, char *resp_buff, size_t *resp_len)
+uint32_t sgx_make_pelz_request(char *req_msg,
+                               size_t req_msg_len,
+                               size_t max_resp_len,
+                               char *resp_buff,
+                               size_t *resp_len)
 {
-    ATTESTATION_STATUS ke_status = SUCCESS;
-    char *out_buff;
-    size_t out_buff_len = 0;
+  ATTESTATION_STATUS ke_status = SUCCESS;
+  char *out_buff;
+  size_t out_buff_len = 0;
 
-    ke_status = send_request_receive_response(&g_session, req_msg, req_msg_len,
-                                                max_resp_len, &out_buff, &out_buff_len);
-    if(ke_status != SUCCESS)
-    {
-        return ke_status;
-    }
+  ke_status = send_request_receive_response(&g_session,
+                                            req_msg,
+                                            req_msg_len,
+                                            max_resp_len,
+                                            &out_buff,
+                                            &out_buff_len);
+  if (ke_status != SUCCESS)
+  {
+    return ke_status;
+  }
 
-    memcpy(resp_buff, out_buff, max_resp_len);
-    *resp_len = out_buff_len;
+  memcpy(resp_buff, out_buff, max_resp_len);
+  *resp_len = out_buff_len;
 
-    SAFE_FREE(out_buff);
-    return SUCCESS;
+  SAFE_FREE(out_buff);
+  return SUCCESS;
 }
 
 /* Function Description:
  *   This is ECALL interface to close secure session*/
 uint32_t test_close_session()
 {
-    ATTESTATION_STATUS ke_status = SUCCESS;
+  ATTESTATION_STATUS ke_status = SUCCESS;
 
-    ke_status = close_session(&g_session);
+  ke_status = close_session(&g_session);
 
-    //Erase the session context
-    memset(&g_session, 0, sizeof(dh_session_t));
-    return ke_status;
+  // erase the session context
+  memset(&g_session, 0, sizeof(dh_session_t));
+
+  return ke_status;
 }
 
 /* Function Description:
@@ -114,44 +125,62 @@ uint32_t test_close_session()
  * For demonstration purpose, we verify below points:
  *   1. peer enclave's MRSIGNER is as expected
  *   2. peer enclave's PROD_ID is as expected
- *   3. peer enclave's attribute is reasonable: it's INITIALIZED'ed enclave; in non-debug build configuration, the enclave isn't loaded with enclave debug mode.
+ *   3. peer enclave's attribute is reasonable
+ *      (it's INITIALIZED'ed enclave;
+ *       in non-debug build configuration,
+ *       the enclave isn't loaded with enclave debug mode)
  **/
-extern "C" uint32_t verify_peer_enclave_trust(sgx_dh_session_enclave_identity_t* peer_enclave_identity, sgx_measurement_t *self_mr_signer)
+extern "C" uint32_t verify_peer_enclave_trust(
+                      sgx_dh_session_enclave_identity_t* peer_enclave_identity,
+                      sgx_measurement_t *self_mr_signer)
 {
-    if (!peer_enclave_identity)
-        return INVALID_PARAMETER_ERROR;
+  if (!peer_enclave_identity)
+  {
+      return INVALID_PARAMETER_ERROR;
+  }
 
-    // Check that both enclaves have the same MRSIGNER value
-    if (memcmp((uint8_t *)&peer_enclave_identity->mr_signer, (uint8_t*)self_mr_signer, sizeof(sgx_measurement_t)))
-        return ENCLAVE_TRUST_ERROR;
+  // Check that both enclaves have the same MRSIGNER value
+  if (memcmp((uint8_t *)&peer_enclave_identity->mr_signer,
+             (uint8_t*)self_mr_signer,
+             sizeof(sgx_measurement_t)))
+  {
+    return ENCLAVE_TRUST_ERROR;
+  }
 
-    // check peer enclave's product ID and enclave attribute (should be INITIALIZED'ed)
-    if (peer_enclave_identity->isv_prod_id != RESPONDER_PRODID || !(peer_enclave_identity->attributes.flags & SGX_FLAGS_INITTED))
-        return ENCLAVE_TRUST_ERROR;
+  // check peer enclave's product ID and enclave attribute
+  // (should be INITIALIZED'ed)
+  if ((peer_enclave_identity->isv_prod_id != RESPONDER_PRODID) ||
+      !(peer_enclave_identity->attributes.flags & SGX_FLAGS_INITTED))
+  {
+    return ENCLAVE_TRUST_ERROR;
+  }
 
-    // check the enclave isn't loaded in enclave debug mode, except that the project is built for debug purpose
+  // check the enclave isn't loaded in enclave debug mode,
+  // unless the project is built for debug purpose
 #if defined(NDEBUG)
-    if (peer_enclave_identity->attributes.flags & SGX_FLAGS_DEBUG)
-        return ENCLAVE_TRUST_ERROR;
+  if (peer_enclave_identity->attributes.flags & SGX_FLAGS_DEBUG)
+  {
+    return ENCLAVE_TRUST_ERROR;
+  }
 #endif
 
-    return SUCCESS;
+  return SUCCESS;
 }
 
-/* Function Description: Operates on the input secret and generate the output secret
+/* Function Description: Operate on the input secret and
+                         generate the output secret
  * */
 uint32_t get_message_exchange_response(uint32_t inp_secret_data)
 {
-    uint32_t secret_response;
+  uint32_t secret_response;
 
-    //User should use more complex encryption method to protect their secret, below is just a simple example
-    secret_response = inp_secret_data & 0x11111111;
+  // user should use more complex encryption method to protect
+  // their secret, below is just a simplified placeholder
+  secret_response = inp_secret_data & 0x11111111;
 
-    return secret_response;
-
+  return secret_response;
 }
 
-//Generates the response from the request message
 /* Function Description:
  *   process request message and generate response
  * Parameter Description:
@@ -160,391 +189,456 @@ uint32_t get_message_exchange_response(uint32_t inp_secret_data)
  *   [output] resp_length: this points to response length
  * */
 extern "C" uint32_t message_exchange_response_generator(char* decrypted_data,
-                                              char** resp_buffer,
-                                              size_t* resp_length)
+                                                        char** resp_buffer,
+                                                        size_t* resp_length)
 {
-    ms_in_msg_exchange_t *ms;
-    uint32_t inp_secret_data;
-    uint32_t out_secret_data;
-    if(!decrypted_data || !resp_length)
-    {
-        return INVALID_PARAMETER_ERROR;
-    }
-    ms = (ms_in_msg_exchange_t *)decrypted_data;
+  ms_in_msg_exchange_t *ms;
+  uint32_t inp_secret_data;
+  uint32_t out_secret_data;
+  if (!decrypted_data || !resp_length)
+  {
+    return INVALID_PARAMETER_ERROR;
+  }
+  ms = (ms_in_msg_exchange_t *) decrypted_data;
 
-    if(umarshal_message_exchange_request(&inp_secret_data,ms) != SUCCESS)
-        return ATTESTATION_ERROR;
+  if (umarshal_message_exchange_request(&inp_secret_data, ms) != SUCCESS)
+  {
+    return ATTESTATION_ERROR;
+  }
 
-    out_secret_data = get_message_exchange_response(inp_secret_data);
+  out_secret_data = get_message_exchange_response(inp_secret_data);
 
-    if(marshal_message_exchange_response(resp_buffer, resp_length, out_secret_data) != SUCCESS)
-        return MALLOC_ERROR;
+  if (marshal_message_exchange_response(resp_buffer,
+                                        resp_length,
+                                        out_secret_data) != SUCCESS)
+  {
+    return MALLOC_ERROR;
+  }
 
-    return SUCCESS;
+  return SUCCESS;
 }
 
-uint32_t demo_decrypt(uint8_t *encrypt_data, size_t encrypt_data_len, uint8_t *decrypt_data, size_t decrypt_data_len)
+uint32_t demo_decrypt(uint8_t *encrypt_data,
+                      size_t encrypt_data_len,
+                      uint8_t *decrypt_data,
+                      size_t decrypt_data_len)
 {
-    encrypt_bundle *bundle = (encrypt_bundle *) encrypt_data;
+  encrypt_bundle *bundle = (encrypt_bundle *) encrypt_data;
 
-    // validate non-NULL buffers
-    if (encrypt_data == NULL || encrypt_data_len == 0 || decrypt_data == NULL || decrypt_data_len == 0)
-    {
-        return 1;
-    }
+  // validate non-NULL buffers
+  if ((encrypt_data == NULL)  ||
+      (encrypt_data_len == 0) ||
+      (decrypt_data == NULL)  ||
+      (decrypt_data_len == 0))
+  {
+    return 1;
+  }
 
-    if (sizeof(encrypt_bundle) + decrypt_data_len != encrypt_data_len)
-    {
-        return 1;
-    }
+  if ((sizeof(encrypt_bundle) + decrypt_data_len) != encrypt_data_len)
+  {
+    return 1;
+  }
 
-    // initialize the cipher context to match cipher suite being used
-    EVP_CIPHER_CTX *ctx;
+  // initialize the cipher context to match cipher suite being used
+  EVP_CIPHER_CTX *ctx;
 
-    if (!(ctx = EVP_CIPHER_CTX_new()))
-    {
-        return 1;
-    }
+  if (!(ctx = EVP_CIPHER_CTX_new()))
+  {
+    return 1;
+  }
 
-    if (!EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL))
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-
-    // set tag to expected tag passed in with input data
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, (int) sizeof(bundle->tag), bundle->tag))
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-
-    // set the IV length in the cipher context
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, (int) sizeof(bundle->iv), NULL))
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-
-    // set the key and IV in the cipher context
-    if (!EVP_DecryptInit_ex(ctx, NULL, NULL, bundle->key, bundle->iv))
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-
-    // variables to hold/accumulate length returned by EVP library calls
-    //   - OpenSSL insists this be an int
-    int len = 0;
-    size_t plaintext_len = 0;
-
-    if (!EVP_DecryptUpdate(ctx, decrypt_data, &len, bundle->cipher_data, (int) decrypt_data_len) || len < 0)
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-    // We've already checked that len is non-negative.
-    plaintext_len += (size_t) len;
-
-    // 'Finalize' Decrypt:
-    //   - validate that resultant tag matches the expected tag passed in
-    //   - should produce no more plaintext bytes in our case
-    if (EVP_DecryptFinal_ex(ctx, decrypt_data + plaintext_len, &len) <= 0 || len < 0)
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-    // We've already checked that len is non-negative
-    plaintext_len += (size_t) len;
-
-    // verify that the resultant PT length matches the input CT length
-    if (plaintext_len != decrypt_data_len)
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-
-    // now that the decryption is complete, clean-up cipher context used
+  if (!EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL))
+  {
     EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
 
-    return 0;
-}
-
-uint32_t demo_decrypt_search(uint8_t *encrypt_data, size_t encrypt_data_len, char *search_term, int *result_count)
-{
-    size_t decrypt_data_len = encrypt_data_len - sizeof(encrypt_bundle);
-    uint8_t *decrypt_data = (uint8_t *) calloc(decrypt_data_len, sizeof(uint8_t));
-    demo_decrypt(encrypt_data, encrypt_data_len, decrypt_data, decrypt_data_len);
-
-    // search for substring in decrypted data
-    size_t term_len = strlen(search_term);
-    int count = 0;
-    size_t search_idx = 0;
-    size_t match_idx;
-    for (search_idx=0; search_idx + term_len <= decrypt_data_len; search_idx++)
-    {
-        for (match_idx=0; match_idx<term_len; match_idx++)
-        {
-            if (decrypt_data[search_idx + match_idx] != search_term[match_idx])
-            {
-                break;
-            }
-        }
-        if (match_idx == term_len) {
-            count++;
-        }
-    }
-
-    free(decrypt_data);
-
-    *result_count = count;
-
-    return 0;
-}
-
-uint32_t demo_encrypt(uint8_t *plain_data, size_t plain_data_len, uint8_t *encrypt_data, size_t encrypt_data_len)
-{
-    encrypt_bundle *bundle = (encrypt_bundle *) encrypt_data;
-
-    // validate non-NULL buffers
-    if (plain_data == NULL || plain_data_len == 0 || encrypt_data == NULL || encrypt_data_len == 0)
-    {
-        return 1;
-    }
-
-    if (sizeof(encrypt_bundle) + plain_data_len != encrypt_data_len)
-    {
-        return 1;
-    }
-
-    // Create the random key.
-    if (RAND_priv_bytes(bundle->key, sizeof(bundle->key)) != 1)
-    {
-        log_ocall("Key generation failed");
-        return 1;
-    }
-
-    // Create the random IV.
-    if (RAND_bytes(bundle->iv, sizeof(bundle->iv)) != 1)
-    {
-        log_ocall("IV generation failed");
-        return 1;
-    }
-
-    // initialize the cipher context to match cipher suite being used
-    EVP_CIPHER_CTX *ctx;
-    if (!(ctx = EVP_CIPHER_CTX_new()))
-    {
-        return 1;
-    }
-
-    if (!EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL))
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-
-    // set the IV length in the cipher context
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, (int) sizeof(bundle->iv), NULL))
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-
-    // set the key and IV in the cipher context
-    if (!EVP_EncryptInit_ex(ctx, NULL, NULL, bundle->key, bundle->iv))
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-
-    // variable to hold length of resulting CT - OpenSSL insists this be an int
-    int ciphertext_len = 0;
-
-    // encrypt the input plaintext, put result in the output ciphertext buffer
-    if (!EVP_EncryptUpdate(ctx, bundle->cipher_data, &ciphertext_len, plain_data, (int)plain_data_len))
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-
-    // verify that the resultant CT length matches the input PT length
-    if ((size_t) ciphertext_len != plain_data_len)
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-
-    // OpenSSL requires a "finalize" operation. For AES/GCM no data is written.
-    if (!EVP_EncryptFinal_ex(ctx, bundle->tag, &ciphertext_len))
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-
-    // get the AES/GCM tag value
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, (int) sizeof(bundle->tag), bundle->tag))
-    {
-        EVP_CIPHER_CTX_free(ctx);
-        return 1;
-    }
-
-    // now that the encryption is complete, clean-up cipher context
+  // set tag to expected tag passed in with input data
+  if (!EVP_CIPHER_CTX_ctrl(ctx,
+                           EVP_CTRL_GCM_SET_TAG,
+                           (int) sizeof(bundle->tag),
+                           bundle->tag))
+  {
     EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
 
-    return 0;
+  // set the IV length in the cipher context
+  if (!EVP_CIPHER_CTX_ctrl(ctx,
+                           EVP_CTRL_GCM_SET_IVLEN,
+                           (int) sizeof(bundle->iv),
+                           NULL))
+  {
+    EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
+
+  // set the key and IV in the cipher context
+  if (!EVP_DecryptInit_ex(ctx, NULL, NULL, bundle->key, bundle->iv))
+  {
+    EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
+
+  // variables to hold/accumulate length returned by EVP library calls
+  //   - OpenSSL insists this be an int
+  int len = 0;
+  size_t plaintext_len = 0;
+
+  if (!EVP_DecryptUpdate(ctx,
+                         decrypt_data,
+                         &len,
+                         bundle->cipher_data,
+                         (int) decrypt_data_len) ||
+      (len < 0))
+  {
+    EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
+
+  // have already checked that len (EVP_DecryptUpdate()) is non-negative
+  plaintext_len += (size_t) len;
+
+  // 'Finalize' Decrypt:
+  //   - validate that resultant tag matches the expected tag passed in
+  //   - should produce no more plaintext bytes in our case
+  if (EVP_DecryptFinal_ex(ctx,
+                          decrypt_data + plaintext_len,
+                          &len) <= 0 ||
+      (len < 0))
+  {
+    EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
+  // have already checked that len (EVP_DecryptFinal_ex()) is non-negative
+  plaintext_len += (size_t) len;
+
+  // verify that the resultant PT length matches the input CT length
+  if (plaintext_len != decrypt_data_len)
+  {
+    EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
+
+  // now that the decryption is complete, clean-up cipher context used
+  EVP_CIPHER_CTX_free(ctx);
+
+  return 0;
+}
+
+uint32_t demo_decrypt_search(uint8_t *encrypt_data,
+                             size_t encrypt_data_len,
+                             char *search_term,
+                             int *result_count)
+{
+  size_t decrypt_data_len = encrypt_data_len - sizeof(encrypt_bundle);
+  uint8_t *decrypt_data = (uint8_t *) calloc(decrypt_data_len,
+                                             sizeof(uint8_t));
+  demo_decrypt(encrypt_data,
+               encrypt_data_len,
+               decrypt_data,
+               decrypt_data_len);
+
+  // search for sub-string in decrypted data
+  size_t term_len = strlen(search_term);
+  int count = 0;
+  size_t search_idx = 0;
+  size_t match_idx;
+  for (search_idx=0; search_idx + term_len <= decrypt_data_len; search_idx++)
+  {
+    for (match_idx=0; match_idx<term_len; match_idx++)
+    {
+      if (decrypt_data[search_idx + match_idx] != search_term[match_idx])
+      {
+        break;
+      }
+    }
+    if (match_idx == term_len)
+    {
+      count++;
+    }
+  }
+
+  free(decrypt_data);
+
+  *result_count = count;
+
+  return 0;
+}
+
+uint32_t demo_encrypt(uint8_t *plain_data,
+                      size_t plain_data_len,
+                      uint8_t *encrypt_data,
+                      size_t encrypt_data_len)
+{
+  encrypt_bundle *bundle = (encrypt_bundle *) encrypt_data;
+
+  // validate non-NULL buffers
+  if ((plain_data == NULL) ||
+      (plain_data_len == 0) ||
+      (encrypt_data == NULL) ||
+      (encrypt_data_len == 0))
+  {
+    return 1;
+  }
+
+  if ((sizeof(encrypt_bundle) + plain_data_len) != encrypt_data_len)
+  {
+    return 1;
+  }
+
+  // create the random key.
+  if (RAND_priv_bytes(bundle->key, sizeof(bundle->key)) != 1)
+  {
+    log_ocall("key generation failed");
+    return 1;
+  }
+
+  // create the random IV.
+  if (RAND_bytes(bundle->iv, sizeof(bundle->iv)) != 1)
+  {
+    log_ocall("IV generation failed");
+    return 1;
+  }
+
+  // initialize the cipher context to match cipher suite being used
+  EVP_CIPHER_CTX *ctx;
+  if (!(ctx = EVP_CIPHER_CTX_new()))
+  {
+    return 1;
+  }
+
+  if (!EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, NULL, NULL))
+  {
+    EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
+
+  // set the IV length in the cipher context
+  if (!EVP_CIPHER_CTX_ctrl(ctx,
+                           EVP_CTRL_GCM_SET_IVLEN,
+                           (int) sizeof(bundle->iv),
+                           NULL))
+  {
+    EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
+
+  // set the key and IV in the cipher context
+  if (!EVP_EncryptInit_ex(ctx,
+                          NULL,
+                          NULL,
+                          bundle->key,
+                          bundle->iv))
+  {
+    EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
+
+  // variable to hold length of resulting CT - OpenSSL insists this be an int
+  int ciphertext_len = 0;
+
+  // encrypt the input plaintext, put result in the output ciphertext buffer
+  if (!EVP_EncryptUpdate(ctx,
+                         bundle->cipher_data,
+                         &ciphertext_len,
+                         plain_data,
+                         (int) plain_data_len))
+  {
+    EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
+
+  // verify that the resultant CT length matches the input PT length
+  if ((size_t) ciphertext_len != plain_data_len)
+  {
+    EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
+
+  // OpenSSL requires a "finalize" operation. For AES/GCM no data is written.
+  if (!EVP_EncryptFinal_ex(ctx, bundle->tag, &ciphertext_len))
+  {
+    EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
+
+  // get the AES/GCM tag value
+  if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, (int) sizeof(bundle->tag), bundle->tag))
+  {
+    EVP_CIPHER_CTX_free(ctx);
+    return 1;
+  }
+
+  // now that the encryption is complete, clean-up cipher context
+  EVP_CIPHER_CTX_free(ctx);
+
+  return 0;
 }
 
 uint32_t demo_derive_protection_key(uint8_t *key_in, uint8_t **key_out)
 {
-    EVP_PKEY_CTX *pctx;
+  EVP_PKEY_CTX *pctx;
 
-    pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
-    if (pctx == NULL)
-    {
-        return 1;
-    }
+  pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
+  if (pctx == NULL)
+  {
+    return 1;
+  }
 
-    // initialize HKDF context
-    if (EVP_PKEY_derive_init(pctx) != 1)
-    {
-        EVP_PKEY_CTX_free(pctx);
-        return 1;
-    }
-
-    // set message digest for HKDF
-    if (EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha512()) != 1)
-    {
-        EVP_PKEY_CTX_free(pctx);
-        return 1;
-    }
-
-    // set 'salt' value for HKDF
-    if (EVP_PKEY_CTX_set1_hkdf_salt(pctx,
-                                    (const unsigned char *) HKDF_SALT,
-                                    strlen(HKDF_SALT)) != 1)
-    {
-        EVP_PKEY_CTX_free(pctx);
-        return 1;
-    }
-
-    // set input key value for HKDF
-    if (EVP_PKEY_CTX_set1_hkdf_key(pctx, key_in, SGX_AESGCM_KEY_SIZE) != 1)
-    {
-        EVP_PKEY_CTX_free(pctx);
-        return 1;
-    }
-
-    // derive key bits
-    uint8_t *tmp_key_out = (uint8_t *) calloc(SGX_AESGCM_KEY_SIZE, sizeof(uint8_t));
-    size_t tmp_key_out_len = SGX_AESGCM_KEY_SIZE;
-    if (EVP_PKEY_derive(pctx, tmp_key_out, &tmp_key_out_len) != 1)
-    {
-        EVP_PKEY_CTX_free(pctx);
-        return 1;
-    }
-
+  // initialize HKDF context
+  if (EVP_PKEY_derive_init(pctx) != 1)
+  {
     EVP_PKEY_CTX_free(pctx);
+    return 1;
+  }
 
-    if (tmp_key_out_len != SGX_AESGCM_KEY_SIZE)
-    {
-        return 1;
-    }
+  // set message digest for HKDF
+  if (EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha512()) != 1)
+  {
+    EVP_PKEY_CTX_free(pctx);
+    return 1;
+  }
 
-    *key_out = tmp_key_out;
+  // set 'salt' value for HKDF
+  if (EVP_PKEY_CTX_set1_hkdf_salt(pctx,
+                                  (const unsigned char *) HKDF_SALT,
+                                  strlen(HKDF_SALT)) != 1)
+  {
+    EVP_PKEY_CTX_free(pctx);
+    return 1;
+  }
 
-    return 0;
+  // set input key value for HKDF
+  if (EVP_PKEY_CTX_set1_hkdf_key(pctx, key_in, SGX_AESGCM_KEY_SIZE) != 1)
+  {
+    EVP_PKEY_CTX_free(pctx);
+    return 1;
+  }
+
+  // derive key bits
+  uint8_t *tmp_key_out = (uint8_t *) calloc(SGX_AESGCM_KEY_SIZE,
+                                            sizeof(uint8_t));
+  size_t tmp_key_out_len = SGX_AESGCM_KEY_SIZE;
+  if (EVP_PKEY_derive(pctx, tmp_key_out, &tmp_key_out_len) != 1)
+  {
+    EVP_PKEY_CTX_free(pctx);
+    return 1;
+  }
+
+  EVP_PKEY_CTX_free(pctx);
+
+  if (tmp_key_out_len != SGX_AESGCM_KEY_SIZE)
+  {
+    return 1;
+  }
+
+  *key_out = tmp_key_out;
+
+  return 0;
 }
 
 /* Encrypt data and concatenate IV | CIPHERTEXT | TAG.
  * Compatible with kmyth's aes_gcm.h
 */
-uint32_t demo_encrypt_message_string(uint8_t *plaintext, size_t plain_len,
-                                            uint8_t *cipher_data, size_t cipher_len)
+uint32_t demo_encrypt_message_string(uint8_t *plaintext,
+                                     size_t plain_len,
+                                     uint8_t *cipher_data,
+                                     size_t cipher_len)
 {
-    if (plain_len >= __UINT32_MAX__)
-    {
-        return 1;
-    }
+  if (plain_len >= __UINT32_MAX__)
+  {
+    return 1;
+  }
 
-    if (cipher_len != (plain_len + SGX_AESGCM_MAC_SIZE + SGX_AESGCM_IV_SIZE))
-    {
-        return 1;
-    }
+  if (cipher_len != (plain_len + SGX_AESGCM_MAC_SIZE + SGX_AESGCM_IV_SIZE))
+  {
+    return 1;
+  }
 
-    // Additional authentication data is empty string
-    const uint8_t *aad = (const uint8_t *)(" ");
-    uint32_t aad_len = 0;
+  // additional authentication data is empty string
+  const uint8_t *aad = (const uint8_t *)(" ");
+  uint32_t aad_len = 0;
 
-    // Use a random IV.
-    uint8_t *iv = cipher_data;
-    if (RAND_bytes(iv, SGX_AESGCM_IV_SIZE) != 1)
-    {
-        log_ocall("IV generation failed");
-        return 1;
-    }
+  // use a random IV.
+  uint8_t *iv = cipher_data;
+  if (RAND_bytes(iv, SGX_AESGCM_IV_SIZE) != 1)
+  {
+    log_ocall("IV generation failed");
+    return 1;
+  }
 
-    uint8_t *ciphertext = cipher_data + SGX_AESGCM_IV_SIZE;
-    uint8_t *tag = cipher_data + SGX_AESGCM_IV_SIZE + plain_len;
+  uint8_t *ciphertext = cipher_data + SGX_AESGCM_IV_SIZE;
+  uint8_t *tag = cipher_data + SGX_AESGCM_IV_SIZE + plain_len;
 
-    uint8_t *session_key;
-    if (demo_derive_protection_key((uint8_t *) &g_session.active.AEK, &session_key))
-    {
-        return 1;
-    }
+  uint8_t *session_key;
+  if (demo_derive_protection_key((uint8_t *) &g_session.active.AEK,
+                                 &session_key))
+  {
+    return 1;
+  }
 
-    sgx_status_t status = sgx_rijndael128GCM_encrypt(
-                (const sgx_aes_gcm_128bit_key_t *) session_key,
-                plaintext, (uint32_t) plain_len,
-                ciphertext,
-                iv, SGX_AESGCM_IV_SIZE,
-                aad, aad_len,
-                (sgx_aes_gcm_128bit_tag_t *) tag);
+  sgx_status_t status = sgx_rijndael128GCM_encrypt(
+                          (const sgx_aes_gcm_128bit_key_t *) session_key,
+                          plaintext,
+                          (uint32_t) plain_len,
+                          ciphertext,
+                          iv,
+                          SGX_AESGCM_IV_SIZE,
+                          aad,
+                          aad_len,
+                          (sgx_aes_gcm_128bit_tag_t *) tag);
 
-    free(session_key);
+  free(session_key);
 
-    return status;
+  return status;
 }
 
 /* Decrypt concatenated IV | CIPHERTEXT | TAG.
  * Compatible with kmyth's aes_gcm.h
  */
-uint32_t demo_decrypt_message_string(uint8_t *cipher_data, size_t cipher_len,
-                                            uint8_t *plaintext, size_t plain_len)
+uint32_t demo_decrypt_message_string(uint8_t *cipher_data,
+                                     size_t cipher_len,
+                                     uint8_t *plaintext,
+                                     size_t plain_len)
 {
-    if (plain_len >= __UINT32_MAX__)
-    {
-        return 1;
-    }
+  if (plain_len >= __UINT32_MAX__)
+  {
+    return 1;
+  }
 
-    if (cipher_len != (plain_len + SGX_AESGCM_MAC_SIZE + SGX_AESGCM_IV_SIZE))
-    {
-        return 1;
-    }
+  if (cipher_len != (plain_len + SGX_AESGCM_MAC_SIZE + SGX_AESGCM_IV_SIZE))
+  {
+    return 1;
+  }
 
-    // Additional authentication data is empty string
-    const uint8_t *aad = (const uint8_t*)(" ");
-    uint32_t aad_len = 0;
+  // additional authentication data is empty string
+  const uint8_t *aad = (const uint8_t*)(" ");
+  uint32_t aad_len = 0;
 
-    uint8_t *iv = cipher_data;
-    uint8_t *ciphertext = cipher_data + SGX_AESGCM_IV_SIZE;
-    uint8_t *tag = cipher_data + SGX_AESGCM_IV_SIZE + plain_len;
+  uint8_t *iv = cipher_data;
+  uint8_t *ciphertext = cipher_data + SGX_AESGCM_IV_SIZE;
+  uint8_t *tag = cipher_data + SGX_AESGCM_IV_SIZE + plain_len;
 
-    uint8_t *session_key;
-    if (demo_derive_protection_key((uint8_t *) &g_session.active.AEK, &session_key))
-    {
-        return 1;
-    }
+  uint8_t *session_key;
+  if (demo_derive_protection_key((uint8_t *) &g_session.active.AEK,
+                                 &session_key))
+  {
+    return 1;
+  }
 
-    sgx_status_t status = sgx_rijndael128GCM_decrypt(
-                (const sgx_aes_gcm_128bit_key_t *) session_key,
-                ciphertext, (uint32_t) plain_len,
-                plaintext,
-                iv, SGX_AESGCM_IV_SIZE,
-                aad, aad_len,
-                (sgx_aes_gcm_128bit_tag_t *) tag);
+  sgx_status_t status = sgx_rijndael128GCM_decrypt(
+                          (const sgx_aes_gcm_128bit_key_t *) session_key,
+                          ciphertext,
+                          (uint32_t) plain_len,
+                          plaintext,
+                          iv,
+                          SGX_AESGCM_IV_SIZE,
+                          aad,
+                          aad_len,
+                          (sgx_aes_gcm_128bit_tag_t *) tag);
 
-    free(session_key);
+  free(session_key);
 
-    return status;
+  return status;
 }

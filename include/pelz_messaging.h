@@ -7,6 +7,7 @@ extern "C"
 #endif
 
 #include <openssl/cms.h>
+#include <openssl/x509_vfy.h>
 
 #include "charbuf.h"
 #include "pelz_request_handler.h"

@@ -160,7 +160,6 @@ PELZ_MSG * create_pelz_asn1_msg(PELZ_MSG_DATA msg_data_in)
 PelzMessagingStatus parse_pelz_asn1_msg(PELZ_MSG *msg_in,
                                         PELZ_MSG_DATA *parsed_msg_out)
 {
-  pelz_sgx_log(LOG_DEBUG, "starting parse_pelz_asn1_msg()");
   int tag = -1;
 
   // parse message type (msg_type) field
@@ -523,7 +522,12 @@ PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
   X509_STORE *v_store = get_CA_cert_store();
 
   // use OpenSSL's CMS API to verify the signed message
-  int ret = CMS_verify(signed_msg_in, NULL, v_store, NULL, verify_out_bio, 0);
+  int ret = CMS_verify(signed_msg_in,
+                       NULL,
+                       v_store,
+                       NULL,
+                       verify_out_bio,
+                       0);
   X509_STORE_free(v_store);
   if (ret != 1)
   {
@@ -539,8 +543,8 @@ PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
     BIO_free(verify_out_bio);
     return PELZ_MSG_VERIFY_ERROR;
   }
-
-  // get the signer's certificate from the signed message
+  
+  // extract the signer's certificate from the signed message
   STACK_OF(X509) *signer_cert_stack = sk_X509_new_null();
   signer_cert_stack = CMS_get1_certs(signed_msg_in);
   if (sk_X509_num(signer_cert_stack) != 1)
@@ -549,7 +553,7 @@ PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
     BIO_free(verify_out_bio);
     sk_X509_pop_free(signer_cert_stack, X509_free);
     BIO_free(verify_out_bio);
-    return PELZ_MSG_VERIFY_SIGNER_CERT_ERROR;
+    return PELZ_MSG_VERIFY_EXTRACT_SIGNER_CERT_ERROR;
   }
   *peer_cert_out = X509_new();
   *peer_cert_out = sk_X509_pop(signer_cert_stack);
@@ -561,7 +565,7 @@ PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
   }
   if (sk_X509_num(signer_cert_stack) != 0)
   {
-    pelz_sgx_log(LOG_ERR, "signer cert stack is not empty, as exptected");
+    pelz_sgx_log(LOG_ERR, "signer cert stack is not empty, as expected");
     BIO_free(verify_out_bio);
     sk_X509_free(signer_cert_stack);
     return PELZ_MSG_VERIFY_EXTRACT_SIGNER_CERT_ERROR;
@@ -597,8 +601,6 @@ PelzMessagingStatus verify_pelz_signed_msg(CMS_ContentInfo *signed_msg_in,
     return PELZ_MSG_BIO_READ_ERROR;
   }
 
-  pelz_sgx_log(LOG_DEBUG, "successful CMS signed message verification");
-
   return PELZ_MSG_OK;
 }
 
@@ -621,7 +623,6 @@ CMS_ContentInfo *create_pelz_enveloped_msg(charbuf msg_data_in,
     pelz_sgx_log(LOG_ERR, "error creating CMS encrypt BIO");
     return NULL;
   }
-
 
   STACK_OF(X509) *encrypt_cert_stack = sk_X509_new_null();
   sk_X509_push(encrypt_cert_stack, encrypt_cert);

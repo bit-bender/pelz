@@ -734,12 +734,16 @@ void test_verify_pelz_signed_msg(void)
   TableResponseStatus status;
   uint64_t handle = 0;
 
+  if (empty_CA_table(eid, NULL) != 0)
+  {
+    CU_FAIL("error emptying CA table");
+  }
   if (pelz_load_file_to_enclave("test/data/ca_pub.der.nkl", &handle) == 0)
   {
     add_cert_to_table(eid, &status, CA_TABLE, handle);
     CU_ASSERT(status == OK);
-    pelz_log(LOG_INFO, "CA Table add complete");
     handle = 0;
+    pelz_log(LOG_INFO, "loaded correct CA cert (test/data/ca_pub.der.nkl)");
   }
 
   // NULL signed message input test case
@@ -816,8 +820,8 @@ void test_verify_pelz_signed_msg(void)
   {
     add_cert_to_table(eid, &status, CA_TABLE, handle);
     CU_ASSERT(status == OK);
-    pelz_log(LOG_INFO, "CA Table add complete");
     handle = 0;
+    pelz_log(LOG_INFO, "loaded incorrect CA cert (test/data/req_pub.der.nkl)");
   }
 
   retval = pelz_enclave_msg_test_helper(eid,
@@ -914,8 +918,8 @@ void test_create_pelz_enveloped_msg(void)
   {
     add_cert_to_table(eid, &status, CA_TABLE, handle);
     CU_ASSERT(status == OK);
-    pelz_log(LOG_INFO, "CA Table add complete");
     handle = 0;
+    pelz_log(LOG_INFO, "loaded correct CA certificate");
   }
 
   // NULL input data should be handled as invalid parameter
@@ -1063,7 +1067,7 @@ void test_decrypt_pelz_enveloped_msg(void)
   {
     add_cert_to_table(eid, &status, CA_TABLE, handle);
     CU_ASSERT(status == OK);
-    pelz_log(LOG_INFO, "CA Table add complete");
+    pelz_log(LOG_INFO, "loaded correct CA certificate");
     handle = 0;
   }
 
@@ -1281,7 +1285,7 @@ void test_der_encode_pelz_msg(void)
   {
     add_cert_to_table(eid, &status, CA_TABLE, handle);
     CU_ASSERT(status == OK);
-    pelz_log(LOG_INFO, "CA Table add complete");
+    pelz_log(LOG_INFO, "loaded correct CA certificate");
     handle = 0;
   }
 
@@ -1559,7 +1563,7 @@ void test_der_decode_pelz_msg(void)
   {
     add_cert_to_table(eid, &status, CA_TABLE, handle);
     CU_ASSERT(status == OK);
-    pelz_log(LOG_INFO, "CA Table add complete");
+    pelz_log(LOG_INFO, "loaded correct CA certificate");
     handle = 0;
   }
 
@@ -1783,7 +1787,7 @@ void test_construct_deconstruct_pelz_msg(void)
   {
     add_cert_to_table(eid, &status, CA_TABLE, handle);
     CU_ASSERT(status == OK);
-    pelz_log(LOG_INFO, "CA Table add complete");
+    pelz_log(LOG_INFO, "loaded correct CA certificate");
     handle = 0;
   }
 

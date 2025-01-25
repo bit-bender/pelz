@@ -687,21 +687,20 @@ test: all test-all
 	@echo "GEN => Test Key/Cert Files"
 	@cd kmyth/sgx && make demo-all 
 	@./kmyth/sgx/demo/bin/demo-kmip-server -k test/data/server_priv.pem \
-	                                       -c test/data/server_pub.pem \
-	                                       -C test/data/ca_pub.pem \
-	                                       -p 7001 > /dev/null &
+	                                       -l test/data/server_pub.pem \
+	                                       -c test/data/ca_pub.pem \
+	                                       -p 7001 &
 	@sleep 1
-	@./kmyth/sgx/demo/bin/tls-proxy -r test/data/proxy_priv.pem \
-	                                -c test/data/proxy_pub.pem \
-	                                -u test/data/node_pub.pem \
+	@./kmyth/sgx/demo/bin/tls-proxy -k test/data/proxy_priv.pem \
+	                                -l test/data/proxy_pub.pem \
+	                                -r test/data/node_pub.pem \
 	                                -p 7000 \
-	                                -R test/data/proxy_priv.pem \
-	                                -U test/data/proxy_pub.pem \
-	                                -C test/data/ca_pub.pem \
-	                                -I localhost \
-	                                -N demoServer \
+	                                -K test/data/proxy_priv.pem \
+	                                -L test/data/proxy_pub.pem \
+	                                -c test/data/ca_pub.pem \
+	                                -R 127.0.0.1 \
 	                                -P 7001 \
-	                                -m 1 > /dev/null &
+	                                -m 1 &
 	@sleep 1
 	@./test/bin/pelz-test
 	@rm -f test/data/*.pem

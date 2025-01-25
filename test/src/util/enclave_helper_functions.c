@@ -468,7 +468,6 @@ MsgTestStatus pelz_asn1_msg_test_helper(MsgTestSelect test_select,
   // all remaining test cases
   case ASN1_PARSE_DER_DECODE_FUNCTIONALITY:
   default:
-    pelz_sgx_log(LOG_DEBUG, "default DER-decode switch()");
     decoded_msg = der_decode_pelz_msg(*der_asn1_msg_out, ASN1);
     break;
   }
@@ -538,7 +537,6 @@ MsgTestStatus pelz_asn1_msg_test_helper(MsgTestSelect test_select,
   {
     free_charbuf(der_asn1_msg_out);
   }
-
   return MSG_TEST_OK;
 }
 
@@ -684,6 +682,7 @@ MsgTestStatus pelz_signed_msg_test_helper(MsgTestSelect test_select,
                                     &verify_data);
     if (retval != PELZ_MSG_OK)
     {
+      pelz_sgx_log(LOG_DEBUG, "verify_pelz_signed_msg() failed");
       free_charbuf(&verify_data);
       return MSG_TEST_VERIFY_ERROR;
     }
@@ -2002,7 +2001,6 @@ ReqTestStatus pelz_enclave_service_test_helper(charbuf cipher,
   {
     pelz_sgx_log(LOG_INFO, "requestor key/cert are not paired");
   }
-  pelz_sgx_log(LOG_DEBUG, "requestor key/cert passed pairing check");
 
   const char *pt_str = "abcdefghijklmnopqrstuvwxyz012345";
   size_t pt_str_len = strlen(pt_str);

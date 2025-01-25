@@ -1,14 +1,14 @@
-# Generate CA key+cert
-openssl ecparam -name secp521r1 \
-                -genkey \
-                -noout \
-                -out ca_priv.pem
-
-openssl req -new \
-            -x509 \
-            -config ca.cnf \
-            -key ca_priv.pem \
-            -days 365 \
+# create key and certificate for test Certificate Authority (CA)
+# (need cert in both .pem and .der formats)
+openssl req -x509 \
+            -batch \
+            -noenc \
+            -newkey ec \
+            -pkeyopt ec_paramgen_curve:secp521r1 \
+            -config openssl.cnf \
+            -section req_ca \
+            -days 30 \
+            -keyout ca_priv.pem \
             -out ca_pub.pem
 
 openssl x509 -in ca_pub.pem \
@@ -16,136 +16,94 @@ openssl x509 -in ca_pub.pem \
              -out ca_pub.der \
              -outform der
 
-# Generate key+cert for local pelz service node
-openssl ecparam -name secp521r1 \
-                -genkey \
-                -noout \
-                -out node_priv.pem
+# create key and certificate for local pelz service node
+# (need both key and cert in both .pem and .der formats)
+openssl req -x509 \
+            -batch \
+            -noenc \
+            -newkey ec \
+            -pkeyopt ec_paramgen_curve:secp521r1 \
+            -config openssl.cnf \
+            -section req_node \
+            -CA ca_pub.pem \
+            -CAkey ca_priv.pem \
+            -days 30 \
+            -keyout node_priv.pem \
+            -out node_pub.pem
 
-openssl pkey -in node_priv.pem \
-             -inform pem \
+openssl pkey -inform pem \
+             -in node_priv.pem \
              -outform der \
              -out node_priv.der
-
-openssl req -new \
-            -config node.cnf \
-            -key node_priv.pem \
-            -out node.csr
-
-openssl x509 -req \
-             -in node.csr \
-             -extfile node.cnf \
-             -extensions v3_ext \
-             -CA ca_pub.pem \
-             -CAkey ca_priv.pem \
-             -CAcreateserial \
-             -days 365 \
-             -out node_pub.pem
 
 openssl x509 -inform pem \
              -in node_pub.pem \
              -outform der \
              -out node_pub.der
 
-# Generate key+cert for test ECDH proxy used by pelz node to access key server
-openssl ecparam -name secp521r1 \
-                -genkey \
-                -noout \
-                -out proxy_priv.pem
-
-openssl req -new \
-            -config proxy.cnf \
-            -key proxy_priv.pem \
-            -out proxy.csr
-
-openssl x509 -req \
-             -in proxy.csr \
-             -extfile proxy.cnf \
-             -extensions v3_ext \
-             -CA ca_pub.pem \
-             -CAkey ca_priv.pem \
-             -CAcreateserial \
-             -days 365 \
-             -out proxy_pub.pem
+# create key and certificate for test ECDH proxy
+# used by pelz node to access key server
+# (need cert in both .pem and .der formats)
+openssl req -x509 \
+            -batch \
+            -noenc \
+            -newkey ec \
+            -pkeyopt ec_paramgen_curve:secp521r1 \
+            -config openssl.cnf \
+            -section req_proxy \
+            -CA ca_pub.pem \
+            -CAkey ca_priv.pem \
+            -days 30 \
+            -keyout proxy_priv.pem \
+            -out proxy_pub.pem
 
 openssl x509 -inform pem \
              -in proxy_pub.pem \
              -outform der \
              -out proxy_pub.der
 
-# Generate key+cert for test KMIP (simplified) key server
-openssl ecparam -name secp521r1 \
-                -genkey \
-                -noout \
-                -out server_priv.pem
+# create key and certficate for test KMIP (simplified) key server
+openssl req -x509 \
+            -batch \
+            -noenc \
+            -newkey ec \
+            -pkeyopt ec_paramgen_curve:secp521r1 \
+            -config openssl.cnf \
+            -section req_server \
+            -CA ca_pub.pem \
+            -CAkey ca_priv.pem \
+            -days 30 \
+            -keyout server_priv.pem \
+            -out server_pub.pem
 
-openssl req -new \
-            -config server.cnf \
-            -key server_priv.pem \
-            -out server.csr
-
-openssl x509 -req \
-             -in server.csr \
-             -extfile server.cnf \
-             -extensions v3_ext \
-             -CA ca_pub.pem \
-             -CAkey ca_priv.pem \
-             -CAcreateserial \
-             -days 365 \
-             -out server_pub.pem
-
-openssl x509 -inform pem \
-             -in server_pub.pem \
-             -outform der \
-             -out server_pub.der
-
-# Generate key+cert for test worker enclave (pelz client)
-openssl ecparam -name secp521r1 \
-                -genkey \
-                -noout \
-                -out worker_priv.pem
-
-openssl req -new \
-            -config worker.cnf \
-            -key worker_priv.pem \
-            -out worker.csr
-
-openssl x509 -req \
-             -in worker.csr \
-             -extfile worker.cnf \
-             -extensions v3_ext \
-             -CA ca_pub.pem \
-             -CAkey ca_priv.pem \
-             -CAcreateserial \
-             -days 365 \
-             -out worker_pub.pem
+# create key and certificate for test worker enclave (pelz client)
+openssl req -x509 \
+            -batch \
+            -noenc \
+            -newkey ec \
+            -pkeyopt ec_paramgen_curve:secp521r1 \
+            -config openssl.cnf \
+            -section req_worker \
+            -CA ca_pub.pem \
+            -CAkey ca_priv.pem \
+            -days 30 \
+            -keyout worker_priv.pem \
+            -out worker_pub.pem
 
 # create key and certificate for messaging tests "requestor"
-openssl ecparam -name secp521r1 \
-                -genkey \
-                -noout \
-                -out msg_test_req_priv.pem
-
-openssl ec -inform pem \
-           -in msg_test_req_priv.pem \
-           -outform der \
-           -out msg_test_req_priv.der
-
-
-openssl req -new \
-            -config msg_test_requestor.cnf \
-            -key msg_test_req_priv.pem \
-            -out msg_test_requestor.csr
-
-openssl x509 -req \
-             -in msg_test_requestor.csr \
-             -extfile msg_test_requestor.cnf \
-             -extensions v3_ext \
-             -CA ca_pub.pem \
-             -CAkey ca_priv.pem \
-             -CAcreateserial \
-             -days 365 \
-             -out msg_test_req_pub.pem
+# (need certificate in both .pem and .der format)
+openssl req -x509 \
+            -batch \
+            -noenc \
+            -newkey ec \
+            -pkeyopt ec_paramgen_curve:secp521r1 \
+            -config openssl.cnf \
+            -section req_requestor \
+            -CA ca_pub.pem \
+            -CAkey ca_priv.pem \
+            -days 30 \
+            -keyout msg_test_req_priv.pem \
+            -out msg_test_req_pub.pem
 
 openssl x509 -inform pem \
              -in msg_test_req_pub.pem \
@@ -153,30 +111,24 @@ openssl x509 -inform pem \
              -out msg_test_req_pub.der
 
 # create key and certificate for messaging tests "responder"
-openssl ecparam -name secp521r1 \
-                -genkey \
-                -noout \
-                -out msg_test_resp_priv.pem
+# (need both key and certificate in both .pem and .der format)
+openssl req -x509 \
+            -batch \
+            -noenc \
+            -newkey ec \
+            -pkeyopt ec_paramgen_curve:secp521r1 \
+            -config openssl.cnf \
+            -section req_responder \
+            -CA ca_pub.pem \
+            -CAkey ca_priv.pem \
+            -days 30 \
+            -keyout msg_test_resp_priv.pem \
+            -out msg_test_resp_pub.pem
 
-openssl ec -inform pem \
-            -in msg_test_resp_priv.pem \
-            -outform der \
-            -out msg_test_resp_priv.der
-
-openssl req -new \
-            -config msg_test_responder.cnf \
-            -key msg_test_resp_priv.pem \
-            -out msg_test_responder.csr
-
-openssl x509 -req \
-             -in msg_test_responder.csr \
-             -extfile msg_test_responder.cnf \
-             -extensions v3_ext \
-             -CA ca_pub.pem \
-             -CAkey ca_priv.pem \
-             -CAcreateserial \
-             -days 365 \
-             -out msg_test_resp_pub.pem
+openssl pkey -inform pem \
+             -in msg_test_resp_priv.pem \
+             -outform der \
+             -out msg_test_resp_priv.der
 
 openssl x509 -inform pem \
              -in msg_test_resp_pub.pem \

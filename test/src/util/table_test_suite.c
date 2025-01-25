@@ -138,7 +138,7 @@ void test_table_add(void)
   {
     private_pkey_add(eid, &status, handle, cert_handle);
     CU_ASSERT(status == OK);
-    pelz_log(LOG_INFO, "Private Pkey add success");
+    pelz_log(LOG_INFO, "private pkey add success");
     handle = 0;
   }
 
@@ -150,8 +150,8 @@ void test_table_add(void)
     handle = 0;
   }
     
-  server_id = new_charbuf(strlen("localhost"));
-  memcpy(server_id.chars, "localhost", server_id.len);
+  server_id = new_charbuf(strlen("TestProxy"));
+  memcpy(server_id.chars, "TestProxy", server_id.len);
   port = new_charbuf(4);
   memcpy(port.chars, "7000", port.len);
   tmp = copy_CWD_to_id(prefix, valid_id[2]);
@@ -225,7 +225,7 @@ void test_table_lookup_func(void)
   add_cert_to_table(eid, &status, CA_TABLE, handle);
   CU_ASSERT(status == OK);
 
-  //Testing table count funcion
+  //Testing table count functionality
   table_id_count(eid, &status, KEY, &count);
   CU_ASSERT(status == OK);
   CU_ASSERT(count == 6);
@@ -233,7 +233,7 @@ void test_table_lookup_func(void)
   CU_ASSERT(status == OK);
   CU_ASSERT(count == 2);
 
-  //Testing table id funcion
+  //Testing table id functionality
   for (size_t j = 0; j < 6; j++)
   {
     charbuf id = new_charbuf(0);
@@ -268,8 +268,8 @@ void test_table_lookup_func(void)
   free_charbuf(&tmp);
 
   //Testing the look-up function for server table
-  tmp = new_charbuf(strlen("TestNode"));
-  memcpy(tmp.chars, "TestNode", tmp.len);
+  tmp = new_charbuf(strlen("TestPelzInstance"));
+  memcpy(tmp.chars, "TestPelzInstance", tmp.len);
   test_table_lookup(eid, &status, SERVER, tmp, &index);
   CU_ASSERT(status == OK);
   CU_ASSERT(index == 0);
@@ -279,8 +279,8 @@ void test_table_lookup_func(void)
   free_charbuf(&tmp);
   index = 0;
 
-  tmp = new_charbuf(strlen("localhost"));
-  memcpy(tmp.chars, "localhost", tmp.len);
+  tmp = new_charbuf(strlen("TestProxy"));
+  memcpy(tmp.chars, "TestProxy", tmp.len);
   test_table_lookup(eid, &status, SERVER, tmp, &index);
   CU_ASSERT(status == OK);
   CU_ASSERT(index == 1);
@@ -403,15 +403,15 @@ void test_table_delete(void)
   CU_ASSERT(status == NO_MATCH);
   free_charbuf(&tmp);
 
-  tmp = new_charbuf(strlen("TestNode"));
-  memcpy(tmp.chars, "TestNode", tmp.len);
+  tmp = new_charbuf(strlen("TestPelzInstance"));
+  memcpy(tmp.chars, "TestPelzInstance", tmp.len);
   table_delete(eid, &status, SERVER, tmp);
   CU_ASSERT(status == OK);
   table_delete(eid, &status, CA_TABLE, tmp);
   CU_ASSERT(status == OK);
   free_charbuf(&tmp);
 
-  tmp = new_charbuf(strlen("TestClient"));
+  tmp = new_charbuf(strlen("TestWorker"));
   memcpy(tmp.chars, "TestClient", tmp.len);
   table_delete(eid, &status, SERVER, tmp);
   CU_ASSERT(status == NO_MATCH);
@@ -419,8 +419,8 @@ void test_table_delete(void)
   CU_ASSERT(status == NO_MATCH);
   free_charbuf(&tmp);
 
-  tmp = new_charbuf(strlen("localhost"));
-  memcpy(tmp.chars, "localhost", tmp.len);
+  tmp = new_charbuf(strlen("TestProxy"));
+  memcpy(tmp.chars, "TestProxy", tmp.len);
   table_delete(eid, &status, SERVER, tmp);
   CU_ASSERT(status == OK);
   table_delete(eid, &status, CA_TABLE, tmp);

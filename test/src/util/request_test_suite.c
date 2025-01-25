@@ -261,7 +261,6 @@ void test_request_handling(void)
                                           test_key_id,
                                           (uint8_t) REQ_TEST_WRAP_FUNCTIONALITY);
     CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_OK));
-    pelz_log(LOG_DEBUG, "REQ_TEST_WRAP_FUNCIONALITY: result = %d", result);
 
     retval = pelz_enclave_req_test_helper(eid,
                                           &result,
@@ -269,7 +268,6 @@ void test_request_handling(void)
                                           test_key_id,
                                           (uint8_t) REQ_TEST_UNWRAP_FUNCTIONALITY);
     CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_OK));
-    pelz_log(LOG_DEBUG, "REQ_TEST_UNWRAP_FUNCTIONALITY: result = %d", result);
 
     retval = pelz_enclave_req_test_helper(eid,
                                           &result,
@@ -277,7 +275,6 @@ void test_request_handling(void)
                                           test_key_id,
                                           (uint8_t) REQ_TEST_WRAP_UNWRAP);
     CU_ASSERT((retval == SGX_SUCCESS) && (result == REQ_TEST_OK));
-    pelz_log(LOG_DEBUG, "REQ_TEST_WRAP_UNWRAP: result = %d", result);
 
     if (table_delete(eid, &table_status, KEY, test_key_id) != 0)
     {
@@ -314,8 +311,8 @@ void test_service_pelz_request_msg(void)
   {
     add_cert_to_table(eid, &table_status, CA_TABLE, priv_handle);
     CU_ASSERT(table_status == OK);
-    pelz_log(LOG_INFO, "CA Table add complete");
     priv_handle = 0;
+    pelz_log(LOG_INFO, "loaded correct CA certificate");
   }
   else
   {

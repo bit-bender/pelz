@@ -91,7 +91,7 @@ int main(void)
     fclose(fp);
   }
 
-  //Seal test items
+  // seal test keys/certs
   for (int i = 0; i < 7; i++)
   {
     if (seal_for_testing(unsealed_name[i],
@@ -99,27 +99,32 @@ int main(void)
                          (strlen(sealed_name[i]) + 1),
                          false))
     {
-      pelz_log(LOG_ERR, "Failure to seal cert.");
+      pelz_log(LOG_ERR, "failure to seal key/cert (%s)", unsealed_name[i]);
       return (1);
     }
-    pelz_log(LOG_DEBUG, "Seal: %s", sealed_name[i]);
+    pelz_log(LOG_DEBUG, "sealed key/cert: %s", sealed_name[i]);
   }
 
-  pelz_log(LOG_DEBUG, "Start Unit Test");
-  // Initialize CUnit test registry
+  
+  // initialize CUnit test registry
   if (CUE_SUCCESS != CU_initialize_registry())
   {
     return CU_get_error();
   }
 
+  // create SGX enclave to support pelz unit test code
   sgx_create_enclave(ENCLAVE_PATH, SGX_DEBUG_FLAG, NULL, NULL, &eid, NULL);
+  pelz_log(LOG_DEBUG, "created pelz test enclave (eid = %lu)", (uint32_t) eid);
+
+  // initialize "unseal table"
   kmyth_unsealed_data_table_initialize(eid, &status);
   if (status)
   {
-    pelz_log(LOG_ERR, "Unseal Table Init Failure");
+    pelz_log(LOG_ERR, "error initializing unseal table in pelz test enclave");
     sgx_destroy_enclave(eid);
     return (1);
   }
+  pelz_log(LOG_DEBUG, "initialized unseal table for pelz test enclave");
 
   // Add utility suite --- tests utility functions
   CU_pSuite utility_Suite = NULL;

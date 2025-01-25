@@ -1,0 +1,137 @@
+##############################################################################
+#        X509 configuration for pelz test/demo keys and certificates         #
+#                                                                            #
+# Test keys/certificates are configured for the following test 'nodes':      #
+#     ca: test Certificate Authority (CA)                                    #
+#     node: test pelz 'key broker' instance                                  #
+#     proxy: test ECDH proxy                                                 #
+#     worker: test pelz client                                               #
+#     msg_test_requestor: test 'requestor' for pelz messaging tests          #
+#     msg_test_responder: test 'responder' for pelz messaging tests          #
+##############################################################################
+
+[ req_ca ]
+prompt                  = no
+default_md              = sha512
+distinguished_name      = dn_ca
+x509_extensions         = v3_ext_ca
+
+[ req_node ]
+prompt                  = no
+default_md              = sha512
+distinguished_name      = dn_node
+x509_extensions         = v3_ext_node
+
+[ req_proxy ]
+prompt                  = no
+default_md              = sha512
+distinguished_name      = dn_proxy
+x509_extensions         = v3_ext_proxy
+
+[ req_requestor ]
+prompt                  = no
+default_md              = sha512
+distinguished_name      = dn_requestor
+x509_extensions         = v3_ext_requestor
+
+[ req_responder ]
+prompt                  = no
+default_md              = sha512
+distinguished_name      = dn_responder
+x509_extensions         = v3_ext_responder
+
+[ req_worker ]
+prompt                  = no
+default_md              = sha512
+distinguished_name      = dn_worker
+x509_extensions         = v3_ext_worker
+
+[ req_server ]
+prompt                  = no
+default_md              = sha512
+distinguished_name      = dn_server
+x509_extensions         = v3_ext_server
+
+[ dn_ca ]
+C                       = "US"
+O                       = "pelz"
+CN                      = "TestCA"
+
+[ dn_node ]
+C                       = "US"
+O                       = "pelz"
+CN                      = "TestPelzInstance"
+
+[ dn_proxy ]
+C                       = "US"
+O                       = "pelz"
+CN                      = "TestProxy"
+
+[ dn_requestor ]
+C                       = "US"
+O                       = "pelz"
+CN                      = "TestPelzRequestor"
+
+[ dn_responder ]
+C                       = "US"
+O                       = "pelz"
+CN                      = "TestPelzResponder"
+
+[ dn_server ]
+C                       = "US"
+O                       = "pelz"
+CN                      = "TestServer"
+
+[ dn_worker ]
+C                       = "US"
+O                       = "pelz"
+CN                      = "TestWorker"
+
+[ v3_ext_ca ]
+subjectKeyIdentifier    = hash
+keyUsage                = keyCertSign
+basicConstraints        = CA:true, pathlen:0
+
+[ v3_ext_node ]
+extendedKeyUsage        = clientAuth,serverAuth
+subjectAltName          = @alt_names_node
+basicConstraints        = CA:false
+
+[ v3_ext_proxy ]
+extendedKeyUsage        = clientAuth,serverAuth
+subjectAltName          = @alt_names_proxy
+basicConstraints        = CA:false
+
+[ v3_ext_requestor ]
+extendedKeyUsage        = emailProtection
+basicConstraints        = CA:false
+
+[ v3_ext_responder ]
+extendedKeyUsage        = emailProtection
+basicConstraints        = CA:false
+
+[ v3_ext_server ]
+extendedKeyUsage        = serverAuth
+subjectAltName          = @alt_names_server
+basicConstraints        = CA:false
+
+[ v3_ext_worker ]
+extendedKeyUsage        = clientAuth
+subjectAltName          = @alt_names_worker
+basicConstraints        = CA:false
+
+[ alt_names_node ]
+DNS.0                    = localhost
+IP.0                     = 127.0.0.1
+
+[ alt_names_proxy ]
+DNS.0                   = localhost
+IP.0                    = 127.0.0.1
+
+[ alt_names_server ]
+DNS.0                   = localhost
+IP.0                    = 127.0.0.1
+
+[ alt_names_worker ]
+DNS.0                   = localhost
+IP.0                    = 127.0.0.1

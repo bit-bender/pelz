@@ -60,7 +60,7 @@ X509_STORE * get_CA_cert_store(void)
   Table *table = get_table_by_type(CA_TABLE);
   if (table == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "failed to get CA certificate table");
+    pelz_sgx_log(LOG_ERR, "cannot access CA certificate table");
     return NULL;
   }
 
@@ -76,10 +76,9 @@ X509_STORE * get_CA_cert_store(void)
     ret = X509_STORE_add_cert(store, (X509*) (table->entries[i].value.cert));
     if (ret != 1)
     {
-      pelz_sgx_log(LOG_ERR, "error adding CA certificate to store");
+      pelz_sgx_log(LOG_ERR, "error adding CA certificate to X509_STORE");
       return NULL;
     }
-    pelz_sgx_log(LOG_DEBUG, "added certificate in CA table to store variable");
   }
 
   return store;
@@ -90,7 +89,7 @@ int empty_CA_table(void)
   Table *table = get_table_by_type(CA_TABLE);
   if (table == NULL)
   {
-    pelz_sgx_log(LOG_ERR, "failed to get CA certificate table");
+    pelz_sgx_log(LOG_ERR, "cannot access CA certificate table");
     return 1;
   }
 
